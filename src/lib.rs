@@ -3,11 +3,9 @@ use std::fmt::{Display, Write};
 use graphics::{ClearKind, Graphics};
 use writer::{Ansi, AnsiFmt};
 
-//TODO Add inline mod, remove color, style
-pub mod color;
 pub mod graphics;
-pub mod style;
 pub mod writer;
+pub mod inline;
 
 #[cfg(test)]
 mod tests;
@@ -24,7 +22,7 @@ pub struct AnsiString {
 
 impl AnsiString {
     #[inline]
-    pub fn style(mut self, style: impl Into<style::Style>) -> Self {
+    pub fn style(mut self, style: impl Into<inline::Style>) -> Self {
         self.graphics = self.graphics.style(style);
         self
     }
@@ -34,12 +32,12 @@ impl AnsiString {
         self
     }
     #[inline]
-    pub fn foreground(mut self, color: impl Into<color::ColorKind>) -> Self {
+    pub fn foreground(mut self, color: impl Into<graphics::ColorKind>) -> Self {
         self.graphics = self.graphics.foreground(color);
         self
     }
     #[inline]
-    pub fn background(mut self, color: impl Into<color::ColorKind>) -> Self {
+    pub fn background(mut self, color: impl Into<graphics::ColorKind>) -> Self {
         self.graphics = self.graphics.background(color);
         self
     }
@@ -143,13 +141,13 @@ pub trait ToAnsiString {
     {
         self.to_ansi_string().set_clear(clear_kind)
     }
-    fn foreground(self, color: impl Into<color::ColorKind>) -> AnsiString
+    fn foreground(self, color: impl Into<graphics::ColorKind>) -> AnsiString
     where
         Self: Sized,
     {
         self.to_ansi_string().foreground(color)
     }
-    fn background(self, color: impl Into<color::ColorKind>) -> AnsiString
+    fn background(self, color: impl Into<graphics::ColorKind>) -> AnsiString
     where
         Self: Sized,
     {

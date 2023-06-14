@@ -1,5 +1,5 @@
 use easy_ansi::{
-    color::Color::*, color::ColorKind::*, graphics::ClearKind, style::Style::*, ToAnsiString,
+    graphics::{ClearKind, ColorKind::*}, inline::{Color::*, Style::*}, ToAnsiString,
 };
 
 // TODO create writer with defaults

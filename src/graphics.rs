@@ -1,8 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    color::ColorKind,
-    style::Style,
+    inline::Style,
     writer::{Ansi, AnsiFmt, AnsiWriter},
 };
 
@@ -216,4 +215,20 @@ impl Display for Graphics {
         self.place_ansi(&mut writer)?;
         writer.end()
     }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub enum ColorKind {
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+    EightBit(u8),
+    Rgb(u8, u8, u8),
+    #[default]
+    Default,
 }

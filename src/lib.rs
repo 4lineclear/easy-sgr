@@ -10,7 +10,7 @@ pub mod inline;
 #[cfg(test)]
 mod tests;
 
-pub const ESCAPE: &'static str = "\x1b[";
+pub const ESCAPE: &str = "\x1b[";
 pub const END: char = 'm';
 pub const RESET: &str = "\x1b[0m";
 

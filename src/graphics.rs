@@ -179,8 +179,8 @@ impl Ansi for Graphics {
     }
     fn no_places(&self) -> bool {
         self.custom_places.is_empty()
-            && !self.foreground.is_some()
-            && !self.background.is_some()
+            && self.foreground.is_none()
+            && self.background.is_none()
             && !self.reset
             && !self.bold
             && !self.dim
@@ -195,8 +195,8 @@ impl Ansi for Graphics {
     fn no_clears(&self) -> bool {
         self.clear_kind == ClearKind::Skip
             || (self.custom_clears.is_empty()
-                && !self.foreground.is_some()
-                && !self.foreground.is_some()
+                && self.foreground.is_none()
+                && self.foreground.is_none()
                 && !self.bold
                 && !self.dim
                 && !self.italic

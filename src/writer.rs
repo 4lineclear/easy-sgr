@@ -72,23 +72,20 @@ impl<W: std::io::Write> AnsiWriter for BufAnsiWriter<W> {
     type Error = std::io::Error;
 
     fn escape(&mut self) -> Result<(), Self::Error> {
-        self.writer.write(ESCAPE.as_bytes())?;
-        Ok(())
+        self.writer.write_all(ESCAPE.as_bytes())
     }
 
     fn end(&mut self) -> Result<(), Self::Error> {
-        self.writer.write(&[END as u8])?;
-        Ok(())
+        self.writer.write_all(&[END as u8])
     }
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error> {
         match self.first_write {
             true => self.first_write = false,
             false => {
-                self.writer.write(b";")?;
+                self.writer.write_all(b";")?;
             }
         }
-        self.writer.write(&code.to_string().as_bytes())?;
-        Ok(())
+        self.writer.write_all(code.to_string().as_bytes())
     }
 }
 

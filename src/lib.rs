@@ -1,12 +1,16 @@
 use std::fmt::{Display, Write};
 
-use graphics::{Graphics, ClearKind};
+use graphics::{ClearKind, Graphics};
 use writer::{Ansi, AnsiFmt};
 
+//TODO Add inline mod, remove color, style
 pub mod color;
 pub mod graphics;
 pub mod style;
 pub mod writer;
+
+#[cfg(test)]
+mod tests;
 
 pub const ESCAPE: &'static str = "\x1b[";
 pub const END: char = 'm';
@@ -47,6 +51,11 @@ impl AnsiString {
     #[inline]
     pub fn clear_custom(mut self, code: u8) -> Self {
         self.graphics = self.graphics.clear_custom(code);
+        self
+    }
+    #[inline]
+    pub fn text(mut self, text: impl Into<String>) -> Self {
+        self.text = text.into();
         self
     }
 }

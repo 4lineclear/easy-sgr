@@ -179,7 +179,7 @@ impl Ansi for Graphics {
         }
     }
     fn no_places(&self) -> bool {
-        self.custom_clears.is_empty()
+        self.custom_places.is_empty()
             && !self.foreground.is_some()
             && !self.background.is_some()
             && !self.reset

@@ -1,6 +1,6 @@
 use std::fmt::{Display, Write};
 
-use graphics::Graphics;
+use graphics::{Graphics, ClearKind};
 use writer::{Ansi, AnsiFmt};
 
 pub mod color;
@@ -11,33 +11,42 @@ pub mod writer;
 pub const ESCAPE: &'static str = "\x1b[";
 pub const END: char = 'm';
 pub const RESET: &str = "\x1b[0m";
-// TODO name: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
+
 #[derive(Debug, Default, Clone)]
 pub struct AnsiString {
     pub text: String,
     pub graphics: Graphics,
-    pub custom: Custom,
 }
 
 impl AnsiString {
-    pub fn hard_reset(mut self) -> Self {
-        self.graphics.hard_reset = true;
-        self
-    }
-    pub fn skip_reset(mut self) -> Self {
-        self.graphics.skip_reset = true;
-        self
-    }
+    #[inline]
     pub fn style(mut self, style: impl Into<style::Style>) -> Self {
-        self.graphics = self.graphics.style(style.into());
+        self.graphics = self.graphics.style(style);
         self
     }
-    pub fn foreground(mut self, color: impl Into<color::AnsiColor>) -> Self {
-        self.graphics.foreground = Some(color.into());
+    #[inline]
+    pub fn set_clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
+        self.graphics = self.graphics.set_clear(clear_kind);
         self
     }
-    pub fn background(mut self, color: impl Into<color::AnsiColor>) -> Self {
-        self.graphics.background = Some(color.into());
+    #[inline]
+    pub fn foreground(mut self, color: impl Into<color::ColorKind>) -> Self {
+        self.graphics = self.graphics.foreground(color);
+        self
+    }
+    #[inline]
+    pub fn background(mut self, color: impl Into<color::ColorKind>) -> Self {
+        self.graphics = self.graphics.background(color);
+        self
+    }
+    #[inline]
+    pub fn place_custom(mut self, code: u8) -> Self {
+        self.graphics = self.graphics.place_custom(code);
+        self
+    }
+    #[inline]
+    pub fn clear_custom(mut self, code: u8) -> Self {
+        self.graphics = self.graphics.clear_custom(code);
         self
     }
 }
@@ -70,92 +79,68 @@ impl From<&String> for AnsiString {
 }
 
 impl Ansi for AnsiString {
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: writer::AnsiWriter,
     {
-        writer.escape()?;
-        self.graphics.write(writer)?;
-        self.custom.write(writer)?;
-        writer.end()
+        match self.no_places() {
+            true => Ok(()),
+            false => {
+                writer.escape()?;
+                self.graphics.place_ansi(writer)?;
+                writer.end()
+            }
+        }
     }
 
-    fn reset<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: writer::AnsiWriter,
     {
-        writer.escape()?;
-        self.graphics.reset(writer)?;
-        self.custom.reset(writer)?;
-        writer.end()
+        match self.no_clears() {
+            true => Ok(()),
+            false => {
+                writer.escape()?;
+                self.graphics.clear_ansi(writer)?;
+                writer.end()
+            }
+        }
     }
 
-    fn empty(&self) -> bool {
-        self.graphics.empty() && self.custom.empty()
+    fn no_places(&self) -> bool {
+        self.graphics.no_places()
+    }
+
+    fn no_clears(&self) -> bool {
+        self.graphics.no_clears()
     }
 }
 
 impl Display for AnsiString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.empty() {
-            true => f.write_str(&self.text),
-            false => {
-                let mut writer = AnsiFmt::new(f);
-                self.write(&mut writer)?;
-                writer.write_str(&self.text)?;
-                self.reset(&mut writer)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct Custom {
-    pub writes: Vec<u8>,
-    pub resets: Vec<u8>,
-}
-
-impl Ansi for Custom {
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
-    where
-        W: writer::AnsiWriter,
-    {
-        writer.write_all(&self.writes)
-    }
-
-    fn reset<W>(&self, writer: &mut W) -> Result<(), W::Error>
-    where
-        W: writer::AnsiWriter,
-    {
-        writer.write_all(&self.resets)
-    }
-
-    fn empty(&self) -> bool {
-        self.writes.is_empty() && self.resets.is_empty()
+        let mut writer = AnsiFmt::new(f);
+        self.place_ansi(&mut writer)?;
+        writer.write_str(&self.text)?;
+        self.clear_ansi(&mut writer)
     }
 }
 
 pub trait ToAnsiString {
     fn to_ansi_string(self) -> AnsiString;
-    fn skip_reset(self) -> AnsiString
+
+    fn set_clear(self, clear_kind: impl Into<ClearKind>) -> AnsiString
     where
         Self: Sized,
     {
-        self.to_ansi_string().skip_reset()
+        self.to_ansi_string().set_clear(clear_kind)
     }
-    fn style(self, style: impl Into<style::Style>) -> AnsiString
-    where
-        Self: Sized,
-    {
-        self.to_ansi_string().style(style)
-    }
-    fn foreground(self, color: impl Into<color::AnsiColor>) -> AnsiString
+    fn foreground(self, color: impl Into<color::ColorKind>) -> AnsiString
     where
         Self: Sized,
     {
         self.to_ansi_string().foreground(color)
     }
-    fn background(self, color: impl Into<color::AnsiColor>) -> AnsiString
+    fn background(self, color: impl Into<color::ColorKind>) -> AnsiString
     where
         Self: Sized,
     {
@@ -163,19 +148,21 @@ pub trait ToAnsiString {
     }
 }
 
-macro_rules! impl_to_ansi_string {
-    ($($t:ty),+) => {
-        $(
-            impl ToAnsiString for $t {
-                fn to_ansi_string(self) -> AnsiString {
-                    AnsiString::from(self)
-                }
-            }
-        )*
-    };
+impl ToAnsiString for &str {
+    fn to_ansi_string(self) -> AnsiString {
+        AnsiString::from(self)
+    }
 }
-
-impl_to_ansi_string!(&str, String, &String);
+impl ToAnsiString for String {
+    fn to_ansi_string(self) -> AnsiString {
+        AnsiString::from(self)
+    }
+}
+impl ToAnsiString for &String {
+    fn to_ansi_string(self) -> AnsiString {
+        AnsiString::from(self)
+    }
+}
 
 // #[derive(Debug, Default, Clone)]
 // pub struct AnsiAggregate {

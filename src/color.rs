@@ -1,11 +1,9 @@
 use std::fmt::Display;
 
-use crate::{
-    writer::{AnsiFmt, AnsiWriter},
-};
+use crate::writer::{AnsiFmt, AnsiWriter};
 
 #[derive(Debug, Default, Clone, Copy)]
-pub enum AnsiColor {
+pub enum ColorKind {
     Black,
     Red,
     Green,
@@ -31,7 +29,7 @@ pub enum Color {
     FCyan,
     FWhite,
     FEightBit(u8),
-    Frgb(u8, u8, u8),
+    FRgb(u8, u8, u8),
     FDefault,
 
     BBlack,
@@ -43,7 +41,7 @@ pub enum Color {
     BCyan,
     BWhite,
     BEightBit(u8),
-    Brgb(u8, u8, u8),
+    BRgb(u8, u8, u8),
     BDefault,
 }
 
@@ -52,6 +50,7 @@ impl Display for Color {
         use Color::*;
         let mut fmt = AnsiFmt::new(f);
         fmt.escape()?;
+
         match self {
             FBlack => fmt.write_code(30),
             FRed => fmt.write_code(31),
@@ -62,7 +61,8 @@ impl Display for Color {
             FCyan => fmt.write_code(36),
             FWhite => fmt.write_code(37),
             FEightBit(n) => fmt.write_all(&[38, 2, *n]),
-            Frgb(r, g, b) => fmt.write_all(&[38, 5, *r, *g, *b]),
+            FRgb(r, g, b) => fmt.write_all(&[38, 5, *r, *g, *b]),
+
             FDefault => fmt.write_code(39),
             BBlack => fmt.write_code(40),
             BRed => fmt.write_code(41),
@@ -73,7 +73,7 @@ impl Display for Color {
             BCyan => fmt.write_code(46),
             BWhite => fmt.write_code(47),
             BEightBit(n) => fmt.write_all(&[48, 2, *n]),
-            Brgb(r, g, b) => fmt.write_all(&[48, 5, *r, *g, *b]),
+            BRgb(r, g, b) => fmt.write_all(&[48, 5, *r, *g, *b]),
             BDefault => fmt.write_code(49),
         }?;
 

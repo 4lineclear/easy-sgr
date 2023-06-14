@@ -1,6 +1,7 @@
-use std::fmt::Write;
-
-use crate::{ESCAPE, END, graphics::Graphics};
+use crate::{
+    graphics::Graphics,
+    writer::{AnsiFmt, AnsiWriter},
+};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub enum Style {
@@ -14,28 +15,24 @@ pub enum Style {
     Inverse,
     Hidden,
     Strikethrough,
-    ResetBold,
-    ResetDim,
-    ResetItalic,
-    ResetUnderline,
-    ResetBlinking,
-    ResetInverse,
-    ResetHidden,
-    ResetStrikethrough,
+
+    ClearBold,
+    ClearDim,
+    ClearItalic,
+    ClearUnderline,
+    ClearBlinking,
+    ClearInverse,
+    ClearHidden,
+    ClearStrikethrough,
 }
 
 impl std::fmt::Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(ESCAPE)?;
-        f.write_str(&self.code().to_string())?;
-        f.write_char(END)
-    }
-}
-
-impl Style {
-    pub fn code(&self) -> u8 {
         use Style::*;
-        match self {
+        let mut fmt = AnsiFmt::new(f);
+        fmt.escape()?;
+
+        fmt.write_code(match self {
             Reset => 0,
             Bold => 1,
             Dim => 2,
@@ -45,17 +42,22 @@ impl Style {
             Inverse => 7,
             Hidden => 8,
             Strikethrough => 9,
-            ResetBold => 22,
-            ResetDim => 22,
-            ResetItalic => 23,
-            ResetUnderline => 24,
-            ResetBlinking => 25,
-            ResetInverse => 27,
-            ResetHidden => 28,
-            ResetStrikethrough => 29,
-        }
+
+            ClearBold => 22,
+            ClearDim => 22,
+            ClearItalic => 23,
+            ClearUnderline => 24,
+            ClearBlinking => 25,
+            ClearInverse => 27,
+            ClearHidden => 28,
+            ClearStrikethrough => 29,
+        })?;
+        fmt.end()
     }
-    pub fn and(self, other: Self) -> Graphics {
+}
+
+impl Style {
+    pub fn style(self, other: Self) -> Graphics {
         Graphics::default().style(self).style(other)
     }
 }

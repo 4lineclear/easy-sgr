@@ -1,76 +1,46 @@
-use paste::paste;
 use std::fmt::Display;
 
 use crate::{
-    color::AnsiColor,
+    color::ColorKind,
     style::Style,
     writer::{Ansi, AnsiFmt, AnsiWriter},
 };
 
-macro_rules! create_graphics {
-    ($($field:ident : $type:ty),+) => {
+#[derive(Debug, Default, Clone)]
+pub struct Graphics {
+    pub custom_places: Vec<u8>,
+    pub custom_clears: Vec<u8>,
 
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct Graphics {
-            $(
-                pub $field: $type,
-            )*
-        }
+    pub foreground: Option<ColorKind>,
+    pub background: Option<ColorKind>,
 
-        paste! {
-            impl Graphics {
-                $(
-                    pub fn [<get_ $field>](&self) -> &$type {
-                        &self.$field
-                    }
-                )*
+    pub clear_kind: ClearKind,
 
-
-                $(
-                    pub fn [<set_ $field>](&mut self, $field: $type) -> &mut Self{
-                        self.$field = $field;
-
-                        self
-                    }
-                )*
-            }
-
-
-        }
-    };
+    pub reset: bool,
+    pub bold: bool,
+    pub dim: bool,
+    pub italic: bool,
+    pub underline: bool,
+    pub blinking: bool,
+    pub inverse: bool,
+    pub hidden: bool,
+    pub strikethrough: bool,
 }
 
-create_graphics!(
-    foreground: Option<AnsiColor>,
-    background: Option<AnsiColor>,
-    clear_foreground: bool,
-    clear_background: bool,
-    reset: bool,
-    bold: bool,
-    dim: bool,
-    italic: bool,
-    underline: bool,
-    blinking: bool,
-    inverse: bool,
-    hidden: bool,
-    strikethrough: bool,
-    clear_bold: bool,
-    clear_dim: bool,
-    clear_italic: bool,
-    clear_underline: bool,
-    clear_blinking: bool,
-    clear_inverse: bool,
-    clear_hidden: bool,
-    clear_strikethrough: bool,
-    skip_reset: bool,
-    hard_reset: bool
-);
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub enum ClearKind {
+    #[default]
+    Skip,
+    Full,
+    Clean,
+}
 
 impl Graphics {
-    pub fn style(mut self, style: Style) -> Self {
+    #[inline]
+    pub fn style(mut self, style: impl Into<Style>) -> Self {
         use Style::*;
 
-        match style {
+        match style.into() {
             Reset => self.reset = true,
 
             Bold => self.bold = true,
@@ -82,29 +52,51 @@ impl Graphics {
             Hidden => self.hidden = true,
             Strikethrough => self.strikethrough = true,
 
-            ResetBold => self.clear_bold = true,
-            ResetDim => self.clear_dim = true,
-            ResetItalic => self.clear_italic = true,
-            ResetUnderline => self.clear_underline = true,
-            ResetBlinking => self.clear_blinking = true,
-            ResetInverse => self.clear_inverse = true,
-            ResetHidden => self.clear_hidden = true,
-            ResetStrikethrough => self.clear_strikethrough = true,
+            ClearBold => self.bold = false,
+            ClearDim => self.dim = false,
+            ClearItalic => self.italic = false,
+            ClearUnderline => self.underline = false,
+            ClearBlinking => self.blinking = false,
+            ClearInverse => self.inverse = false,
+            ClearHidden => self.hidden = false,
+            ClearStrikethrough => self.strikethrough = false,
         }
         self
     }
 
-    pub fn and(self, other: Style) -> Self {
-        self.style(other)
+    #[inline]
+    pub fn set_clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
+        self.clear_kind = clear_kind.into();
+        self
+    }
+    #[inline]
+    pub fn foreground(mut self, color: impl Into<ColorKind>) -> Self {
+        self.foreground = Some(color.into());
+        self
+    }
+    #[inline]
+    pub fn background(mut self, color: impl Into<ColorKind>) -> Self {
+        self.background = Some(color.into());
+        self
+    }
+    #[inline]
+    pub fn place_custom(mut self, code: u8) -> Self {
+        self.custom_places.push(code);
+        self
+    }
+    #[inline]
+    pub fn clear_custom(mut self, code: u8) -> Self {
+        self.custom_clears.push(code);
+        self
     }
 }
 
 impl Ansi for Graphics {
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: crate::writer::AnsiWriter,
     {
-        use AnsiColor::*;
+        use ColorKind::*;
         if let Some(color) = self.foreground {
             match color {
                 Black => writer.write_code(30)?,
@@ -151,47 +143,45 @@ impl Ansi for Graphics {
                 writer.write_code(code)?;
             }
         }
-        Ok(())
+        writer.write_all(&self.custom_places)
     }
 
-    fn reset<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: crate::writer::AnsiWriter,
     {
-        if self.skip_reset {
-            return Ok(());
-        }
-
-        if self.hard_reset {
-            return writer.write_code(0);
-        }
-
-        if self.foreground.is_some() && self.clear_foreground {
-            writer.write_code(39)?;
-        }
-        if self.background.is_some() && self.clear_background {
-            writer.write_code(49)?;
-        }
-        for (should_write, code) in [
-            (self.clear_bold, 22),
-            (self.clear_dim, 22),
-            (self.clear_italic, 23),
-            (self.clear_underline, 24),
-            (self.clear_blinking, 25),
-            (self.clear_inverse, 27),
-            (self.clear_hidden, 28),
-            (self.clear_strikethrough, 29),
-        ] {
-            if should_write {
-                writer.write_code(code)?;
+        match self.clear_kind {
+            ClearKind::Skip => Ok(()),
+            ClearKind::Full => writer.write_code(0),
+            ClearKind::Clean => {
+                if self.foreground.is_some() {
+                    writer.write_code(39)?;
+                }
+                if self.background.is_some() {
+                    writer.write_code(49)?;
+                }
+                for (should_write, code) in [
+                    (self.bold, 22),
+                    (self.dim, 22),
+                    (self.italic, 23),
+                    (self.underline, 24),
+                    (self.blinking, 25),
+                    (self.inverse, 27),
+                    (self.hidden, 28),
+                    (self.strikethrough, 29),
+                ] {
+                    if should_write {
+                        writer.write_code(code)?;
+                    }
+                }
+                writer.write_all(&self.custom_clears)
             }
         }
-        Ok(())
     }
-
-    fn empty(&self) -> bool {
-        self.foreground.is_none()
-            && self.background.is_none()
+    fn no_places(&self) -> bool {
+        self.custom_clears.is_empty()
+            && !self.foreground.is_some()
+            && !self.background.is_some()
             && !self.reset
             && !self.bold
             && !self.dim
@@ -201,18 +191,21 @@ impl Ansi for Graphics {
             && !self.inverse
             && !self.hidden
             && !self.strikethrough
-            && !self.hard_reset
-            && !self.skip_reset
-            && !self.clear_foreground
-            && !self.clear_foreground
-            && !self.clear_bold
-            && !self.clear_dim
-            && !self.clear_italic
-            && !self.clear_underline
-            && !self.clear_blinking
-            && !self.clear_inverse
-            && !self.clear_hidden
-            && !self.clear_strikethrough
+    }
+
+    fn no_clears(&self) -> bool {
+        self.clear_kind == ClearKind::Skip
+            || (self.custom_clears.is_empty()
+                && !self.foreground.is_some()
+                && !self.foreground.is_some()
+                && !self.bold
+                && !self.dim
+                && !self.italic
+                && !self.underline
+                && !self.blinking
+                && !self.inverse
+                && !self.hidden
+                && !self.strikethrough)
     }
 }
 
@@ -220,7 +213,7 @@ impl Display for Graphics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut writer = AnsiFmt::new(f);
         writer.escape()?;
-        self.write(&mut writer)?;
-        writer.escape()
+        self.place_ansi(&mut writer)?;
+        writer.end()
     }
 }

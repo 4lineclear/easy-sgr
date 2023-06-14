@@ -1,6 +1,4 @@
-use std::fmt::Display;
-
-use crate::{END, ESCAPE, graphics::Graphics};
+use crate::{END, ESCAPE};
 
 pub struct AnsiFmt<W: std::fmt::Write> {
     writer: W,
@@ -11,7 +9,7 @@ impl<W: std::fmt::Write> AnsiFmt<W> {
     pub fn new(writer: W) -> Self {
         Self {
             writer,
-            first_write: true
+            first_write: true,
         }
     }
 }
@@ -26,13 +24,14 @@ impl<W: std::fmt::Write> AnsiWriter for AnsiFmt<W> {
     type Error = std::fmt::Error;
 
     fn escape(&mut self) -> Result<(), Self::Error> {
+        self.first_write = true;
         self.writer.write_str(ESCAPE)
     }
 
     fn end(&mut self) -> Result<(), Self::Error> {
         self.writer.write_char(END)
     }
-    
+
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error>
     where
         Self: Sized,
@@ -43,7 +42,6 @@ impl<W: std::fmt::Write> AnsiWriter for AnsiFmt<W> {
         }
         self.writer.write_str(&code.to_string())
     }
-
 }
 
 pub struct BufAnsiWriter<W: std::io::Write> {
@@ -111,16 +109,12 @@ pub trait AnsiWriter {
 }
 
 pub trait Ansi {
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: AnsiWriter;
-    fn reset<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: AnsiWriter;
-    fn empty(&self) -> bool;
-    // fn and(&self, other: Self) -> Graphics;
-}
-
-pub trait InlineAnsi : Ansi + Display{
-    fn and(&self, other: Self) -> Graphics;
+    fn no_places(&self) -> bool;
+    fn no_clears(&self) -> bool;
 }

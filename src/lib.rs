@@ -1,7 +1,6 @@
 use std::fmt::{Display, Write};
 
 use graphics::{ClearKind, Graphics};
-use inline::InlineAnsi;
 use writer::AnsiFmt;
 
 pub mod graphics;

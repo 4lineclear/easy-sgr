@@ -1,8 +1,5 @@
-use std::fmt::Display;
-
 use crate::{
-    inline::{Color, InlineAnsi, Style},
-    writer::{AnsiFmt, AnsiWriter},
+    inline::{Color, Style},
     Ansi,
 };
 
@@ -36,6 +33,65 @@ pub enum ClearKind {
 }
 
 impl Graphics {
+    #[inline]
+    pub fn style(mut self, style: impl Into<Style>) -> Self {
+        use Style::*;
+
+        match style.into() {
+            Reset => self.reset = true,
+
+            Bold => self.bold = true,
+            Dim => self.dim = true,
+            Italic => self.italic = true,
+            Underline => self.underline = true,
+            Blinking => self.blinking = true,
+            Inverse => self.inverse = true,
+            Hidden => self.hidden = true,
+            Strikethrough => self.strikethrough = true,
+
+            ClearBold => self.bold = false,
+            ClearDim => self.dim = false,
+            ClearItalic => self.italic = false,
+            ClearUnderline => self.underline = false,
+            ClearBlinking => self.blinking = false,
+            ClearInverse => self.inverse = false,
+            ClearHidden => self.hidden = false,
+            ClearStrikethrough => self.strikethrough = false,
+        }
+        self
+    }
+
+    #[inline]
+    pub fn color(mut self, color: impl Into<crate::inline::Color>) -> Graphics {
+        use {Color::*, ColorKind::*};
+
+        match color.into() {
+            FBlack => self.foreground = Some(Black),
+            FRed => self.foreground = Some(Red),
+            FGreen => self.foreground = Some(Green),
+            FYellow => self.foreground = Some(Yellow),
+            FBlue => self.foreground = Some(Blue),
+            FMagenta => self.foreground = Some(Magenta),
+            FCyan => self.foreground = Some(Cyan),
+            FWhite => self.foreground = Some(White),
+            FEightBit(n) => self.foreground = Some(EightBit(n)),
+            FRgb(r, g, b) => self.foreground = Some(Rgb(r, g, b)),
+            FDefault => self.foreground = Some(Default),
+
+            BBlack => self.background = Some(Black),
+            BRed => self.background = Some(Red),
+            BGreen => self.background = Some(Green),
+            BYellow => self.background = Some(Yellow),
+            BBlue => self.background = Some(Blue),
+            BMagenta => self.background = Some(Magenta),
+            BCyan => self.background = Some(Cyan),
+            BWhite => self.background = Some(White),
+            BEightBit(n) => self.background = Some(EightBit(n)),
+            BRgb(r, g, b) => self.background = Some(Rgb(r, g, b)),
+            BDefault => self.background = Some(Default),
+        }
+        self
+    }
     #[inline]
     pub fn clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
         self.clear = clear_kind.into();
@@ -178,75 +234,6 @@ impl Ansi for Graphics {
                 && !self.inverse
                 && !self.hidden
                 && !self.strikethrough)
-    }
-}
-impl InlineAnsi for Graphics {
-    #[inline]
-    fn style(mut self, style: impl Into<Style>) -> Self {
-        use Style::*;
-
-        match style.into() {
-            Reset => self.reset = true,
-
-            Bold => self.bold = true,
-            Dim => self.dim = true,
-            Italic => self.italic = true,
-            Underline => self.underline = true,
-            Blinking => self.blinking = true,
-            Inverse => self.inverse = true,
-            Hidden => self.hidden = true,
-            Strikethrough => self.strikethrough = true,
-
-            ClearBold => self.bold = false,
-            ClearDim => self.dim = false,
-            ClearItalic => self.italic = false,
-            ClearUnderline => self.underline = false,
-            ClearBlinking => self.blinking = false,
-            ClearInverse => self.inverse = false,
-            ClearHidden => self.hidden = false,
-            ClearStrikethrough => self.strikethrough = false,
-        }
-        self
-    }
-
-    fn color(mut self, color: impl Into<crate::inline::Color>) -> Graphics {
-        use {Color::*, ColorKind::*};
-
-        match color.into() {
-            FBlack => self.foreground = Some(Black),
-            FRed => self.foreground = Some(Red),
-            FGreen => self.foreground = Some(Green),
-            FYellow => self.foreground = Some(Yellow),
-            FBlue => self.foreground = Some(Blue),
-            FMagenta => self.foreground = Some(Magenta),
-            FCyan => self.foreground = Some(Cyan),
-            FWhite => self.foreground = Some(White),
-            FEightBit(n) => self.foreground = Some(EightBit(n)),
-            FRgb(r, g, b) => self.foreground = Some(Rgb(r, g, b)),
-            FDefault => self.foreground = Some(Default),
-
-            BBlack => self.background = Some(Black),
-            BRed => self.background = Some(Red),
-            BGreen => self.background = Some(Green),
-            BYellow => self.background = Some(Yellow),
-            BBlue => self.background = Some(Blue),
-            BMagenta => self.background = Some(Magenta),
-            BCyan => self.background = Some(Cyan),
-            BWhite => self.background = Some(White),
-            BEightBit(n) => self.background = Some(EightBit(n)),
-            BRgb(r, g, b) => self.background = Some(Rgb(r, g, b)),
-            BDefault => self.background = Some(Default),
-        }
-        self
-    }
-}
-
-impl Display for Graphics {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut writer = AnsiFmt::new(f);
-        writer.escape()?;
-        self.place_ansi(&mut writer)?;
-        writer.end()
     }
 }
 

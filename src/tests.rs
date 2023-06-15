@@ -1,6 +1,6 @@
 use crate::{
     graphics::ColorKind::*,
-    inline::{Color::*, Style::*},
+    inline::{Color::*, InlineAnsi, Style::*},
     AnsiString,
     ClearKind::*,
 };
@@ -82,8 +82,22 @@ fn inline() {
         "{FRed}{BBlack}{Bold}{Italic}\x1b[9m{COMPLEX_TEXT}{FDefault}{BDefault}{ClearBold}{ClearItalic}\x1b[29m"
     );
 
+    let lots_of_stuff_dense = format!(
+        "{}{COMPLEX_TEXT}{}",
+        FRed.color(BBlack).style(Bold).style(Italic).custom(9),
+        FDefault
+            .color(BDefault)
+            .style(ClearBold)
+            .style(ClearItalic)
+            .custom(29)
+    );
+
     assert_eq!(
         lots_of_stuff,
         format!("\x1b[31m\x1b[40m\x1b[1m\x1b[3m\x1b[9m{COMPLEX_TEXT}\x1b[39m\x1b[49m\x1b[22m\x1b[23m\x1b[29m")
+    );
+    assert_eq!(
+        lots_of_stuff_dense,
+        format!("\x1b[31;40;1;3;9m{COMPLEX_TEXT}\x1b[39;49;22;23;29m") //TODO fix this
     );
 }

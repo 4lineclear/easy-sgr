@@ -2,7 +2,8 @@ use std::fmt::Display;
 
 use crate::{
     inline::Style,
-    writer::{Ansi, AnsiFmt, AnsiWriter},
+    writer::{AnsiFmt, AnsiWriter},
+    Ansi,
 };
 
 #[derive(Debug, Default, Clone)]

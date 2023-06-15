@@ -105,13 +105,3 @@ pub trait AnsiWriter {
     }
 }
 
-pub trait Ansi {
-    fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
-    where
-        W: AnsiWriter;
-    fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
-    where
-        W: AnsiWriter;
-    fn no_places(&self) -> bool;
-    fn no_clears(&self) -> bool;
-}

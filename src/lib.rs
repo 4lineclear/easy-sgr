@@ -1,11 +1,11 @@
 use std::fmt::{Display, Write};
 
 use graphics::{ClearKind, Graphics};
-use writer::{Ansi, AnsiFmt};
+use writer::AnsiFmt;
 
 pub mod graphics;
-pub mod writer;
 pub mod inline;
+pub mod writer;
 
 #[cfg(test)]
 mod tests;
@@ -170,6 +170,59 @@ impl ToAnsiString for &String {
         AnsiString::from(self)
     }
 }
+
+pub trait Ansi {
+    fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: writer::AnsiWriter;
+    fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: writer::AnsiWriter;
+    fn no_places(&self) -> bool;
+    fn no_clears(&self) -> bool;
+}
+
+// pub fn condense<'a>(text: &'a str) -> Result<String, std::fmt::Error> {
+//     let bytes = text.as_bytes();
+//     let mut new_text = String::with_capacity(bytes.len());
+//     let mut search_step = SearchType::FindEscape1;
+
+//     for b in bytes {
+//         new_text.write_char(*b as char)?;
+//         search_step = match search_step {
+//             SearchType::FindEscape1 if *b == b'\x1b' => SearchType::FindEscape2,
+//             SearchType::FindEscape2 if *b == b'[' => SearchType::Escaped,
+//             SearchType::Escaped => match b {
+//                 b'0'..=b'9' => search_step,
+//                 b';' => search_step,
+//                 _ => return Err(std::fmt::Error::default()),
+//             },
+//             _ => search_step,
+//         }
+//     }
+
+//     Ok(new_text)
+// }
+// #[macro_export]
+// macro_rules! format_ansi {
+//     ($fmt:expr $(,$arg:tt)+) => {{
+//         use $crate::{AnsiString, writer::Ansi};
+//         trait GetAnsi : Sized{
+//             fn get_ansi<A: Ansi>(&self) -> Option<&Self> {
+//                 Some(self)
+//             }
+//         }
+//         impl GetAnsi for AnsiString {}
+//         trait GetOther : Sized{
+//             fn get_other(&self) -> Option<Self> {
+//                 None
+//             }
+//         }
+//         impl<T> GetOther for T {}
+
+//         format!($fmt $(,$arg)*)
+//     }};
+// }
 
 // #[derive(Debug, Default, Clone)]
 // pub struct AnsiAggregate {

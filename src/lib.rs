@@ -1,4 +1,6 @@
-#![deny(clippy::all, clippy::cargo)]
+#![deny(clippy::all)]
+#![warn(clippy::cargo)]
+
 use std::fmt::{Display, Write};
 
 use graphics::{ClearKind, Graphics};

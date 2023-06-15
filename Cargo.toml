@@ -1,7 +1,11 @@
 [package]
 name = "easy-ansi"
-version = "0.1.0"
+version = "0.0.1"
+description = "A (hopefully) easy to use Ansi library"
 edition = "2021"
+
+categories = ["command-line-interface"]
+keywords = ["ansi", "cli", "color", "terminal", "text"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

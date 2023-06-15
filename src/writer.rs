@@ -1,11 +1,11 @@
 use crate::{END, ESCAPE};
 
-pub struct AnsiFmt<W: std::fmt::Write> {
+pub struct FmtWriter<W: std::fmt::Write> {
     writer: W,
     first_write: bool,
 }
 
-impl<W: std::fmt::Write> AnsiFmt<W> {
+impl<W: std::fmt::Write> FmtWriter<W> {
     pub fn new(writer: W) -> Self {
         Self {
             writer,
@@ -14,13 +14,13 @@ impl<W: std::fmt::Write> AnsiFmt<W> {
     }
 }
 
-impl<W: std::fmt::Write> std::fmt::Write for AnsiFmt<W> {
+impl<W: std::fmt::Write> std::fmt::Write for FmtWriter<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         self.writer.write_str(s)
     }
 }
 
-impl<W: std::fmt::Write> AnsiWriter for AnsiFmt<W> {
+impl<W: std::fmt::Write> AnsiWriter for FmtWriter<W> {
     type Error = std::fmt::Error;
 
     fn escape(&mut self) -> Result<(), Self::Error> {
@@ -44,12 +44,12 @@ impl<W: std::fmt::Write> AnsiWriter for AnsiFmt<W> {
     }
 }
 
-pub struct BufAnsiWriter<W: std::io::Write> {
+pub struct IoWriter<W: std::io::Write> {
     writer: W,
     first_write: bool,
 }
 
-impl<W: std::io::Write> BufAnsiWriter<W> {
+impl<W: std::io::Write> IoWriter<W> {
     pub fn new(writer: W, first_write: bool) -> Self {
         Self {
             writer,
@@ -58,7 +58,7 @@ impl<W: std::io::Write> BufAnsiWriter<W> {
     }
 }
 
-impl<W: std::io::Write> std::io::Write for BufAnsiWriter<W> {
+impl<W: std::io::Write> std::io::Write for IoWriter<W> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.writer.write(buf)
     }
@@ -68,7 +68,7 @@ impl<W: std::io::Write> std::io::Write for BufAnsiWriter<W> {
     }
 }
 
-impl<W: std::io::Write> AnsiWriter for BufAnsiWriter<W> {
+impl<W: std::io::Write> AnsiWriter for IoWriter<W> {
     type Error = std::io::Error;
 
     fn escape(&mut self) -> Result<(), Self::Error> {

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     graphics::ColorKind,
-    writer::{AnsiFmt, AnsiWriter},
+    writer::{FmtWriter, AnsiWriter},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -59,7 +59,7 @@ impl Display for InlineGraphics {
             true => Ok(()),
             false => {
                 use ColorKind::*;
-                let mut fmt = AnsiFmt::new(f);
+                let mut fmt = FmtWriter::new(f);
 
                 fmt.escape()?;
                 if let Some(color) = self.foreground {
@@ -222,7 +222,7 @@ pub enum Style {
 impl std::fmt::Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Style::*;
-        let mut fmt = AnsiFmt::new(f);
+        let mut fmt = FmtWriter::new(f);
         fmt.escape()?;
 
         fmt.write_code(match self {
@@ -307,7 +307,7 @@ impl InlineAnsi for Color {
 impl Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Color::*;
-        let mut fmt = AnsiFmt::new(f);
+        let mut fmt = FmtWriter::new(f);
         fmt.escape()?;
 
         match self {

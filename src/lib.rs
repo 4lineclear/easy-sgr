@@ -1,7 +1,7 @@
 use std::fmt::{Display, Write};
 
 use graphics::{ClearKind, Graphics};
-use writer::AnsiFmt;
+use writer::FmtWriter;
 
 pub mod graphics;
 pub mod inline;
@@ -126,7 +126,7 @@ impl Ansi for AnsiString {
 
 impl Display for AnsiString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut writer = AnsiFmt::new(f);
+        let mut writer = FmtWriter::new(f);
         self.place_ansi(&mut writer)?;
         writer.write_str(&self.text)?;
         self.clear_ansi(&mut writer)

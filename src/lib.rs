@@ -28,7 +28,7 @@ impl AnsiString {
     }
     #[inline]
     pub fn set_clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
-        self.graphics = self.graphics.set_clear(clear_kind);
+        self.graphics = self.graphics.clear(clear_kind);
         self
     }
     #[inline]
@@ -42,13 +42,13 @@ impl AnsiString {
         self
     }
     #[inline]
-    pub fn place_custom(mut self, code: u8) -> Self {
-        self.graphics = self.graphics.place_custom(code);
+    pub fn custom_place(mut self, code: u8) -> Self {
+        self.graphics = self.graphics.custom_place(code);
         self
     }
     #[inline]
-    pub fn clear_custom(mut self, code: u8) -> Self {
-        self.graphics = self.graphics.clear_custom(code);
+    pub fn custom_clear(mut self, code: u8) -> Self {
+        self.graphics = self.graphics.custom_clear(code);
         self
     }
     #[inline]

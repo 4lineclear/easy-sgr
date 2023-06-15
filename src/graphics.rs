@@ -14,7 +14,7 @@ pub struct Graphics {
     pub foreground: Option<ColorKind>,
     pub background: Option<ColorKind>,
 
-    pub clear_kind: ClearKind,
+    pub clear: ClearKind,
 
     pub reset: bool,
     pub bold: bool,
@@ -65,8 +65,8 @@ impl Graphics {
     }
 
     #[inline]
-    pub fn set_clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
-        self.clear_kind = clear_kind.into();
+    pub fn clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
+        self.clear = clear_kind.into();
         self
     }
     #[inline]
@@ -80,12 +80,12 @@ impl Graphics {
         self
     }
     #[inline]
-    pub fn place_custom(mut self, code: u8) -> Self {
+    pub fn custom_place(mut self, code: u8) -> Self {
         self.custom_places.push(code);
         self
     }
     #[inline]
-    pub fn clear_custom(mut self, code: u8) -> Self {
+    pub fn custom_clear(mut self, code: u8) -> Self {
         self.custom_clears.push(code);
         self
     }
@@ -150,7 +150,7 @@ impl Ansi for Graphics {
     where
         W: crate::writer::AnsiWriter,
     {
-        match self.clear_kind {
+        match self.clear {
             ClearKind::Skip => Ok(()),
             ClearKind::Full => writer.write_code(0),
             ClearKind::Clean => {
@@ -194,7 +194,7 @@ impl Ansi for Graphics {
     }
 
     fn no_clears(&self) -> bool {
-        self.clear_kind == ClearKind::Skip
+        self.clear == ClearKind::Skip
             || (self.custom_clears.is_empty()
                 && self.foreground.is_none()
                 && self.foreground.is_none()

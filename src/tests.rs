@@ -12,8 +12,8 @@ const COMPLEX_TEXT: &str = "Lorem ipsum dolor sit amet, consectetur adipiscing e
 fn skip_all() {
     let all_empty = AnsiString::default();
     let just_text = AnsiString::from(TEXT);
-    let empty_with_custom = AnsiString::default().clear_custom(2).clear_custom(3);
-    let text_with_custom = AnsiString::from(TEXT).clear_custom(2).clear_custom(3);
+    let empty_with_custom = AnsiString::default().custom_clear(2).custom_clear(3);
+    let text_with_custom = AnsiString::from(TEXT).custom_clear(2).custom_clear(3);
 
     assert_eq!(all_empty.to_string(), "");
     assert_eq!(just_text.to_string(), TEXT);
@@ -24,8 +24,8 @@ fn skip_all() {
 #[test]
 fn skip_places() {
     let just_custom = AnsiString::default()
-        .clear_custom(2)
-        .clear_custom(3)
+        .custom_clear(2)
+        .custom_clear(3)
         .set_clear(Clean);
 
     let just_text = AnsiString::from(TEXT);
@@ -43,16 +43,16 @@ fn skip_places() {
 #[test]
 fn skip_clears() {
     let just_custom = AnsiString::default()
-        .place_custom(2)
-        .place_custom(3)
+        .custom_place(2)
+        .custom_place(3)
         .set_clear(Clean);
     let with_all = AnsiString::from(TEXT)
         .foreground(Red)
         .background(Black)
         .style(Bold)
         .style(Italic)
-        .place_custom(2)
-        .place_custom(3);
+        .custom_place(2)
+        .custom_place(3);
 
     assert_eq!(just_custom.to_string(), "\x1b[2;3m");
     assert_eq!(with_all.to_string(), format!("\x1b[31;40;1;3;2;3m{TEXT}"));
@@ -65,8 +65,8 @@ fn ansi_string() {
         .background(Black)
         .style(Bold)
         .style(Italic)
-        .place_custom(9)
-        .clear_custom(29)
+        .custom_place(9)
+        .custom_clear(29)
         .set_clear(Clean);
 
     assert_eq!(

@@ -2,12 +2,12 @@
 use std::fmt::{Display, Write};
 
 use graphics::{ClearKind, Graphics};
-use writer::FmtWriter;
+use write::FmtWriter;
 
 pub mod graphics;
 pub mod inline;
 pub mod parser;
-pub mod writer;
+pub mod write;
 
 #[cfg(test)]
 mod tests;
@@ -24,36 +24,43 @@ pub struct AnsiString {
 
 impl AnsiString {
     #[inline]
+    #[must_use]
     pub fn style(mut self, style: impl Into<inline::Style>) -> Self {
         self.graphics = self.graphics.style(style);
         self
     }
     #[inline]
+    #[must_use]
     pub fn set_clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
         self.graphics = self.graphics.clear(clear_kind);
         self
     }
     #[inline]
+    #[must_use]
     pub fn foreground(mut self, color: impl Into<graphics::ColorKind>) -> Self {
         self.graphics = self.graphics.foreground(color);
         self
     }
     #[inline]
+    #[must_use]
     pub fn background(mut self, color: impl Into<graphics::ColorKind>) -> Self {
         self.graphics = self.graphics.background(color);
         self
     }
     #[inline]
+    #[must_use]
     pub fn custom_place(mut self, code: u8) -> Self {
         self.graphics = self.graphics.custom_place(code);
         self
     }
     #[inline]
+    #[must_use]
     pub fn custom_clear(mut self, code: u8) -> Self {
         self.graphics = self.graphics.custom_clear(code);
         self
     }
     #[inline]
+    #[must_use]
     pub fn text(mut self, text: impl Into<String>) -> Self {
         self.text = text.into();
         self
@@ -90,29 +97,27 @@ impl From<&String> for AnsiString {
 impl Ansi for AnsiString {
     fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: writer::AnsiWriter,
+        W: write::AnsiWriter,
     {
-        match self.no_places() {
-            true => Ok(()),
-            false => {
-                writer.escape()?;
-                self.graphics.place_ansi(writer)?;
-                writer.end()
-            }
+        if self.no_places() {
+            Ok(())
+        } else {
+            writer.escape()?;
+            self.graphics.place_ansi(writer)?;
+            writer.end()
         }
     }
 
     fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: writer::AnsiWriter,
+        W: write::AnsiWriter,
     {
-        match self.no_clears() {
-            true => Ok(()),
-            false => {
-                writer.escape()?;
-                self.graphics.clear_ansi(writer)?;
-                writer.end()
-            }
+        if self.no_clears() {
+            Ok(())
+        } else {
+            writer.escape()?;
+            self.graphics.clear_ansi(writer)?;
+            writer.end()
         }
     }
 
@@ -170,11 +175,10 @@ impl ToAnsiString for &String {
 pub trait Ansi {
     fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: writer::AnsiWriter;
+        W: write::AnsiWriter;
     fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: writer::AnsiWriter;
+        W: write::AnsiWriter;
     fn no_places(&self) -> bool;
     fn no_clears(&self) -> bool;
-
 }

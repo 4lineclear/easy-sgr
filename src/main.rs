@@ -2,8 +2,8 @@ use std::io::{stdout, Write};
 
 use easy_ansi::{
     graphics::{ClearKind, ColorKind::*},
-    inline::{Color::*, InlineAnsi, Style::*},
-    writer::{AnsiWriter, IoWriter},
+    inline::{Color::*, DisplayedAnsi, Style::*},
+    write::{AnsiWriter, IoWriter},
     ToAnsiString,
 };
 fn main() {

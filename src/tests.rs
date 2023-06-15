@@ -1,6 +1,6 @@
 use crate::{
     graphics::ColorKind::*,
-    inline::{Color::*, InlineAnsi, Style::*},
+    inline::{Color::*, DisplayedAnsi, Style::*},
     AnsiString,
     ClearKind::*,
 };

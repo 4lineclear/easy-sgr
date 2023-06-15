@@ -1,4 +1,4 @@
-use crate::{END, ESCAPE, Ansi, inline::InlineAnsi};
+use crate::{inline::DisplayedAnsi, Ansi, END, ESCAPE};
 
 pub struct FmtWriter<W: std::fmt::Write> {
     writer: W,
@@ -36,9 +36,10 @@ impl<W: std::fmt::Write> AnsiWriter for FmtWriter<W> {
     where
         Self: Sized,
     {
-        match self.first_write {
-            true => self.first_write = false,
-            false => self.writer.write_char(';')?,
+        if self.first_write {
+            self.first_write = false;
+        } else {
+            self.writer.write_char(';')?;
         }
         self.writer.write_str(&code.to_string())
     }
@@ -79,17 +80,16 @@ impl<W: std::io::Write> AnsiWriter for IoWriter<W> {
         self.writer.write_all(&[END as u8])
     }
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error> {
-        match self.first_write {
-            true => self.first_write = false,
-            false => {
-                self.writer.write_all(b";")?;
-            }
+        if self.first_write {
+            self.first_write = false;
+        } else {
+            self.writer.write_all(b";")?;
         }
         self.writer.write_all(code.to_string().as_bytes())
     }
 }
 
-pub trait AnsiWriter : Sized{
+pub trait AnsiWriter: Sized {
     type Error;
 
     fn escape(&mut self) -> Result<(), Self::Error>;
@@ -108,7 +108,7 @@ pub trait AnsiWriter : Sized{
         ansi.place_ansi(self)
     }
 
-    fn inject_inline(&mut self, ansi: &impl InlineAnsi) -> Result<(), Self::Error> {
+    fn inject_inline(&mut self, ansi: &impl DisplayedAnsi) -> Result<(), Self::Error> {
         ansi.write(self)
     }
 }

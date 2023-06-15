@@ -50,6 +50,7 @@ pub enum ColorKind {
 
 impl Graphics {
     #[inline]
+    #[must_use]
     pub fn style(mut self, style: impl Into<Style>) -> Self {
         use Style::*;
 
@@ -109,26 +110,31 @@ impl Graphics {
         self
     }
     #[inline]
+    #[must_use]
     pub fn clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
         self.clear = clear_kind.into();
         self
     }
     #[inline]
+    #[must_use]
     pub fn foreground(mut self, color: impl Into<ColorKind>) -> Self {
         self.foreground = Some(color.into());
         self
     }
     #[inline]
+    #[must_use]
     pub fn background(mut self, color: impl Into<ColorKind>) -> Self {
         self.background = Some(color.into());
         self
     }
     #[inline]
+    #[must_use]
     pub fn custom_place(mut self, code: u8) -> Self {
         self.custom_places.push(code);
         self
     }
     #[inline]
+    #[must_use]
     pub fn custom_clear(mut self, code: u8) -> Self {
         self.custom_clears.push(code);
         self
@@ -138,7 +144,7 @@ impl Graphics {
 impl Ansi for Graphics {
     fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: crate::writer::AnsiWriter,
+        W: crate::write::AnsiWriter,
     {
         use ColorKind::*;
         if let Some(color) = self.foreground {
@@ -192,7 +198,7 @@ impl Ansi for Graphics {
 
     fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: crate::writer::AnsiWriter,
+        W: crate::write::AnsiWriter,
     {
         match self.clear {
             ClearKind::Skip => Ok(()),

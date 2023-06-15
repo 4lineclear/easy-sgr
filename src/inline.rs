@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     graphics::ColorKind,
-    writer::{AnsiWriter, FmtWriter},
+    write::{AnsiWriter, FmtWriter},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -35,7 +35,7 @@ pub struct InlineGraphics {
 
 impl Display for InlineGraphics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.custom.is_empty()
+        if self.custom.is_empty()
             && !self.reset
             && self.foreground.is_none()
             && self.background.is_none()
@@ -56,13 +56,14 @@ impl Display for InlineGraphics {
             && !self.clear_hidden
             && !self.clear_strikethrough
         {
-            true => Ok(()),
-            false => FmtWriter::new(f).inject_inline(self),
+            Ok(())
+        } else {
+            FmtWriter::new(f).inject_inline(self)
         }
     }
 }
 
-impl InlineAnsi for InlineGraphics {
+impl DisplayedAnsi for InlineGraphics {
     #[inline]
     fn style(mut self, style: impl Into<Style>) -> Self {
         use Style::*;
@@ -227,7 +228,7 @@ impl std::fmt::Display for Style {
     }
 }
 
-impl InlineAnsi for Style {
+impl DisplayedAnsi for Style {
     fn style(self, style: impl Into<Style>) -> InlineGraphics {
         InlineGraphics::default().style(self).style(style.into())
     }
@@ -253,8 +254,7 @@ impl InlineAnsi for Style {
             Hidden => 8,
             Strikethrough => 9,
 
-            ClearBold => 22,
-            ClearDim => 22,
+            ClearBold | ClearDim => 22,
             ClearItalic => 23,
             ClearUnderline => 24,
             ClearBlinking => 25,
@@ -292,7 +292,7 @@ pub enum Color {
     BDefault,
 }
 
-impl InlineAnsi for Color {
+impl DisplayedAnsi for Color {
     fn style(self, style: impl Into<Style>) -> InlineGraphics {
         InlineGraphics::default().color(self).style(style.into())
     }
@@ -345,14 +345,13 @@ impl Display for Color {
     }
 }
 
-pub trait InlineAnsi: Display {
+pub trait DisplayedAnsi: Display {
     fn style(self, style: impl Into<Style>) -> InlineGraphics;
     fn color(self, color: impl Into<Color>) -> InlineGraphics;
     fn custom(self, code: impl Into<u8>) -> InlineGraphics;
 
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error>;
 }
-
 
 // #[macro_export]
 // macro_rules! combine {
@@ -382,7 +381,7 @@ pub trait InlineAnsi: Display {
 //         $(
 //             match $arg {
 //                 Reset => graphics.reset = true,
-    
+
 //                 Bold => graphics.place_bold = true,
 //                 Dim => graphics.place_dim = true,
 //                 Italic => graphics.place_italic = true,
@@ -391,7 +390,7 @@ pub trait InlineAnsi: Display {
 //                 Inverse => graphics.place_inverse = true,
 //                 Hidden => graphics.place_hidden = true,
 //                 Strikethrough => graphics.place_strikethrough = true,
-    
+
 //                 ClearBold => graphics.clear_bold = true,
 //                 ClearDim => graphics.clear_dim = true,
 //                 ClearItalic => graphics.clear_italic = true,
@@ -403,6 +402,6 @@ pub trait InlineAnsi: Display {
 //             }
 //         )*
 //         graphics
-        
+
 //     }};
 // }

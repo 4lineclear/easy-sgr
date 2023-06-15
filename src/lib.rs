@@ -1,6 +1,7 @@
 use std::fmt::{Display, Write};
 
 use graphics::{ClearKind, Graphics};
+use inline::InlineAnsi;
 use writer::AnsiFmt;
 
 pub mod graphics;
@@ -135,12 +136,6 @@ impl Display for AnsiString {
 pub trait ToAnsiString {
     fn to_ansi_string(self) -> AnsiString;
 
-    fn set_clear(self, clear_kind: impl Into<ClearKind>) -> AnsiString
-    where
-        Self: Sized,
-    {
-        self.to_ansi_string().set_clear(clear_kind)
-    }
     fn foreground(self, color: impl Into<graphics::ColorKind>) -> AnsiString
     where
         Self: Sized,

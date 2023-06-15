@@ -58,9 +58,13 @@ impl std::fmt::Display for Style {
     }
 }
 
-impl Style {
-    pub fn style(self, other: Self) -> Graphics {
-        Graphics::default().style(self).style(other)
+impl InlineAnsi for Style {
+    fn style(self, style: impl Into<Style>) -> Graphics {
+        Graphics::default().style(self).style(style.into())
+    }
+
+    fn color(self, color: impl Into<Color>) -> Graphics {
+        Graphics::default().style(self).color(color.into())
     }
 }
 
@@ -89,6 +93,16 @@ pub enum Color {
     BEightBit(u8),
     BRgb(u8, u8, u8),
     BDefault,
+}
+
+impl InlineAnsi for Color {
+    fn style(self, style: impl Into<Style>) -> Graphics {
+        Graphics::default().color(self).style(style.into())
+    }
+
+    fn color(self, color: impl Into<Color>) -> Graphics {
+        Graphics::default().color(self).color(color.into())
+    }
 }
 
 impl Display for Color {
@@ -125,4 +139,9 @@ impl Display for Color {
 
         fmt.end()
     }
+}
+
+pub trait InlineAnsi: Display {
+    fn style(self, style: impl Into<Style>) -> Graphics;
+    fn color(self, color: impl Into<Color>) -> Graphics;
 }

@@ -4,7 +4,6 @@ use easy_ansi::{
     ToAnsiString,
 };
 
-// TODO create writer with defaults
 fn main() {
     let string = "This is italic and red".to_ansi_string().foreground(Red);
 

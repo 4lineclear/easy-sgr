@@ -77,7 +77,6 @@ fn ansi_string() {
 
 #[test]
 fn inline() {
-    //TODO Add feature to reduce \x1b[...m
     let lots_of_stuff = format!(
         "{FRed}{BBlack}{Bold}{Italic}\x1b[9m{COMPLEX_TEXT}{FDefault}{BDefault}{ClearBold}{ClearItalic}\x1b[29m"
     );
@@ -98,6 +97,6 @@ fn inline() {
     );
     assert_eq!(
         lots_of_stuff_dense,
-        format!("\x1b[31;40;1;3;9m{COMPLEX_TEXT}\x1b[39;49;22;23;29m") //TODO fix this
+        format!("\x1b[31;40;1;3;9m{COMPLEX_TEXT}\x1b[39;49;22;23;29m")
     );
 }

@@ -175,4 +175,5 @@ pub trait Ansi {
         W: writer::AnsiWriter;
     fn no_places(&self) -> bool;
     fn no_clears(&self) -> bool;
+
 }

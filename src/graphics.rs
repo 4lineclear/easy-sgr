@@ -32,6 +32,22 @@ pub enum ClearKind {
     Clean,
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub enum ColorKind {
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+    EightBit(u8),
+    Rgb(u8, u8, u8),
+    #[default]
+    Default,
+}
+
 impl Graphics {
     #[inline]
     pub fn style(mut self, style: impl Into<Style>) -> Self {
@@ -135,8 +151,8 @@ impl Ansi for Graphics {
                 Magenta => writer.write_code(35)?,
                 Cyan => writer.write_code(36)?,
                 White => writer.write_code(37)?,
-                EightBit(n) => writer.write_all(&[38, 2, n])?,
-                Rgb(r, g, b) => writer.write_all(&[38, 5, r, g, b])?,
+                EightBit(n) => writer.write_multiple(&[38, 2, n])?,
+                Rgb(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
                 Default => writer.write_code(39)?,
             }
         };
@@ -150,8 +166,8 @@ impl Ansi for Graphics {
                 Magenta => writer.write_code(45)?,
                 Cyan => writer.write_code(46)?,
                 White => writer.write_code(47)?,
-                EightBit(n) => writer.write_all(&[48, 2, n])?,
-                Rgb(r, g, b) => writer.write_all(&[48, 5, r, g, b])?,
+                EightBit(n) => writer.write_multiple(&[48, 2, n])?,
+                Rgb(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
                 Default => writer.write_code(49)?,
             }
         };
@@ -171,7 +187,7 @@ impl Ansi for Graphics {
                 writer.write_code(code)?;
             }
         }
-        writer.write_all(&self.custom_places)
+        writer.write_multiple(&self.custom_places)
     }
 
     fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
@@ -202,7 +218,7 @@ impl Ansi for Graphics {
                         writer.write_code(code)?;
                     }
                 }
-                writer.write_all(&self.custom_clears)
+                writer.write_multiple(&self.custom_clears)
             }
         }
     }
@@ -235,20 +251,4 @@ impl Ansi for Graphics {
                 && !self.hidden
                 && !self.strikethrough)
     }
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub enum ColorKind {
-    Black,
-    Red,
-    Green,
-    Yellow,
-    Blue,
-    Magenta,
-    Cyan,
-    White,
-    EightBit(u8),
-    Rgb(u8, u8, u8),
-    #[default]
-    Default,
 }

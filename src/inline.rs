@@ -2,35 +2,35 @@ use std::fmt::Display;
 
 use crate::{
     graphics::ColorKind,
-    writer::{FmtWriter, AnsiWriter},
+    writer::{AnsiWriter, FmtWriter},
 };
 
 #[derive(Debug, Clone, Default)]
 pub struct InlineGraphics {
-    custom: Vec<u8>,
+    pub custom: Vec<u8>,
 
-    reset: bool,
+    pub reset: bool,
 
-    foreground: Option<ColorKind>,
-    background: Option<ColorKind>,
+    pub foreground: Option<ColorKind>,
+    pub background: Option<ColorKind>,
 
-    place_bold: bool,
-    place_dim: bool,
-    place_italic: bool,
-    place_underline: bool,
-    place_blinking: bool,
-    place_inverse: bool,
-    place_hidden: bool,
-    place_strikethrough: bool,
+    pub place_bold: bool,
+    pub place_dim: bool,
+    pub place_italic: bool,
+    pub place_underline: bool,
+    pub place_blinking: bool,
+    pub place_inverse: bool,
+    pub place_hidden: bool,
+    pub place_strikethrough: bool,
 
-    clear_bold: bool,
-    clear_dim: bool,
-    clear_italic: bool,
-    clear_underline: bool,
-    clear_blinking: bool,
-    clear_inverse: bool,
-    clear_hidden: bool,
-    clear_strikethrough: bool,
+    pub clear_bold: bool,
+    pub clear_dim: bool,
+    pub clear_italic: bool,
+    pub clear_underline: bool,
+    pub clear_blinking: bool,
+    pub clear_inverse: bool,
+    pub clear_hidden: bool,
+    pub clear_strikethrough: bool,
 }
 
 impl Display for InlineGraphics {
@@ -57,74 +57,7 @@ impl Display for InlineGraphics {
             && !self.clear_strikethrough
         {
             true => Ok(()),
-            false => {
-                use ColorKind::*;
-                let mut fmt = FmtWriter::new(f);
-
-                fmt.escape()?;
-                if let Some(color) = self.foreground {
-                    match color {
-                        Black => fmt.write_code(30)?,
-                        Red => fmt.write_code(31)?,
-                        Green => fmt.write_code(32)?,
-                        Yellow => fmt.write_code(33)?,
-                        Blue => fmt.write_code(34)?,
-                        Magenta => fmt.write_code(35)?,
-                        Cyan => fmt.write_code(36)?,
-                        White => fmt.write_code(37)?,
-                        EightBit(n) => fmt.write_all(&[38, 2, n])?,
-                        Rgb(r, g, b) => fmt.write_all(&[38, 5, r, g, b])?,
-                        Default => fmt.write_code(39)?,
-                    }
-                };
-                if let Some(color) = self.background {
-                    match color {
-                        Black => fmt.write_code(40)?,
-                        Red => fmt.write_code(41)?,
-                        Green => fmt.write_code(42)?,
-                        Yellow => fmt.write_code(43)?,
-                        Blue => fmt.write_code(44)?,
-                        Magenta => fmt.write_code(45)?,
-                        Cyan => fmt.write_code(46)?,
-                        White => fmt.write_code(47)?,
-                        EightBit(n) => fmt.write_all(&[48, 2, n])?,
-                        Rgb(r, g, b) => fmt.write_all(&[48, 5, r, g, b])?,
-                        Default => fmt.write_code(49)?,
-                    }
-                };
-
-                for (should_write, code) in [
-                    (self.reset, 0),
-                    (self.place_bold, 1),
-                    (self.place_dim, 2),
-                    (self.place_italic, 3),
-                    (self.place_underline, 4),
-                    (self.place_blinking, 5),
-                    (self.place_inverse, 7),
-                    (self.place_hidden, 8),
-                    (self.place_strikethrough, 9),
-                ] {
-                    if should_write {
-                        fmt.write_code(code)?;
-                    }
-                }
-                for (should_write, code) in [
-                    (self.clear_bold, 22),
-                    (self.clear_dim, 22),
-                    (self.clear_italic, 23),
-                    (self.clear_underline, 24),
-                    (self.clear_blinking, 25),
-                    (self.clear_inverse, 27),
-                    (self.clear_hidden, 28),
-                    (self.clear_strikethrough, 29),
-                ] {
-                    if should_write {
-                        fmt.write_code(code)?;
-                    }
-                }
-                fmt.write_all(&self.custom)?;
-                fmt.end()
-            }
+            false => FmtWriter::new(f).inject_inline(self),
         }
     }
 }
@@ -194,6 +127,72 @@ impl InlineAnsi for InlineGraphics {
         self.custom.push(code.into());
         self
     }
+
+    fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
+        use ColorKind::*;
+        writer.escape()?;
+        if let Some(color) = self.foreground {
+            match color {
+                Black => writer.write_code(30)?,
+                Red => writer.write_code(31)?,
+                Green => writer.write_code(32)?,
+                Yellow => writer.write_code(33)?,
+                Blue => writer.write_code(34)?,
+                Magenta => writer.write_code(35)?,
+                Cyan => writer.write_code(36)?,
+                White => writer.write_code(37)?,
+                EightBit(n) => writer.write_multiple(&[38, 2, n])?,
+                Rgb(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
+                Default => writer.write_code(39)?,
+            }
+        };
+        if let Some(color) = self.background {
+            match color {
+                Black => writer.write_code(40)?,
+                Red => writer.write_code(41)?,
+                Green => writer.write_code(42)?,
+                Yellow => writer.write_code(43)?,
+                Blue => writer.write_code(44)?,
+                Magenta => writer.write_code(45)?,
+                Cyan => writer.write_code(46)?,
+                White => writer.write_code(47)?,
+                EightBit(n) => writer.write_multiple(&[48, 2, n])?,
+                Rgb(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
+                Default => writer.write_code(49)?,
+            }
+        };
+        for (should_write, code) in [
+            (self.reset, 0),
+            (self.place_bold, 1),
+            (self.place_dim, 2),
+            (self.place_italic, 3),
+            (self.place_underline, 4),
+            (self.place_blinking, 5),
+            (self.place_inverse, 7),
+            (self.place_hidden, 8),
+            (self.place_strikethrough, 9),
+        ] {
+            if should_write {
+                writer.write_code(code)?;
+            }
+        }
+        for (should_write, code) in [
+            (self.clear_bold, 22),
+            (self.clear_dim, 22),
+            (self.clear_italic, 23),
+            (self.clear_underline, 24),
+            (self.clear_blinking, 25),
+            (self.clear_inverse, 27),
+            (self.clear_hidden, 28),
+            (self.clear_strikethrough, 29),
+        ] {
+            if should_write {
+                writer.write_code(code)?;
+            }
+        }
+        writer.write_multiple(&self.custom)?;
+        writer.end()
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -221,11 +220,29 @@ pub enum Style {
 
 impl std::fmt::Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Style::*;
         let mut fmt = FmtWriter::new(f);
         fmt.escape()?;
+        fmt.inject_inline(self)?;
+        fmt.end()
+    }
+}
 
-        fmt.write_code(match self {
+impl InlineAnsi for Style {
+    fn style(self, style: impl Into<Style>) -> InlineGraphics {
+        InlineGraphics::default().style(self).style(style.into())
+    }
+
+    fn color(self, color: impl Into<Color>) -> InlineGraphics {
+        InlineGraphics::default().style(self).color(color.into())
+    }
+
+    fn custom(self, code: impl Into<u8>) -> InlineGraphics {
+        InlineGraphics::default().style(self).custom(code.into())
+    }
+
+    fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
+        use Style::*;
+        writer.write_code(match self {
             Reset => 0,
             Bold => 1,
             Dim => 2,
@@ -244,22 +261,7 @@ impl std::fmt::Display for Style {
             ClearInverse => 27,
             ClearHidden => 28,
             ClearStrikethrough => 29,
-        })?;
-        fmt.end()
-    }
-}
-
-impl InlineAnsi for Style {
-    fn style(self, style: impl Into<Style>) -> InlineGraphics {
-        InlineGraphics::default().style(self).style(style.into())
-    }
-
-    fn color(self, color: impl Into<Color>) -> InlineGraphics {
-        InlineGraphics::default().style(self).color(color.into())
-    }
-
-    fn custom(self, code: impl Into<u8>) -> InlineGraphics {
-        InlineGraphics::default().style(self).custom(code.into())
+        })
     }
 }
 
@@ -302,40 +304,43 @@ impl InlineAnsi for Color {
     fn custom(self, code: impl Into<u8>) -> InlineGraphics {
         InlineGraphics::default().color(self).custom(code.into())
     }
+
+    fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
+        use Color::*;
+
+        match self {
+            FBlack => writer.write_code(30),
+            FRed => writer.write_code(31),
+            FGreen => writer.write_code(32),
+            FYellow => writer.write_code(33),
+            FBlue => writer.write_code(34),
+            FMagenta => writer.write_code(35),
+            FCyan => writer.write_code(36),
+            FWhite => writer.write_code(37),
+            FEightBit(n) => writer.write_multiple(&[38, 2, *n]),
+            FRgb(r, g, b) => writer.write_multiple(&[38, 5, *r, *g, *b]),
+
+            FDefault => writer.write_code(39),
+            BBlack => writer.write_code(40),
+            BRed => writer.write_code(41),
+            BGreen => writer.write_code(42),
+            BYellow => writer.write_code(43),
+            BBlue => writer.write_code(44),
+            BMagenta => writer.write_code(45),
+            BCyan => writer.write_code(46),
+            BWhite => writer.write_code(47),
+            BEightBit(n) => writer.write_multiple(&[48, 2, *n]),
+            BRgb(r, g, b) => writer.write_multiple(&[48, 5, *r, *g, *b]),
+            BDefault => writer.write_code(49),
+        }
+    }
 }
 
 impl Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Color::*;
         let mut fmt = FmtWriter::new(f);
         fmt.escape()?;
-
-        match self {
-            FBlack => fmt.write_code(30),
-            FRed => fmt.write_code(31),
-            FGreen => fmt.write_code(32),
-            FYellow => fmt.write_code(33),
-            FBlue => fmt.write_code(34),
-            FMagenta => fmt.write_code(35),
-            FCyan => fmt.write_code(36),
-            FWhite => fmt.write_code(37),
-            FEightBit(n) => fmt.write_all(&[38, 2, *n]),
-            FRgb(r, g, b) => fmt.write_all(&[38, 5, *r, *g, *b]),
-
-            FDefault => fmt.write_code(39),
-            BBlack => fmt.write_code(40),
-            BRed => fmt.write_code(41),
-            BGreen => fmt.write_code(42),
-            BYellow => fmt.write_code(43),
-            BBlue => fmt.write_code(44),
-            BMagenta => fmt.write_code(45),
-            BCyan => fmt.write_code(46),
-            BWhite => fmt.write_code(47),
-            BEightBit(n) => fmt.write_all(&[48, 2, *n]),
-            BRgb(r, g, b) => fmt.write_all(&[48, 5, *r, *g, *b]),
-            BDefault => fmt.write_code(49),
-        }?;
-
+        fmt.inject_inline(self)?;
         fmt.end()
     }
 }
@@ -344,4 +349,60 @@ pub trait InlineAnsi: Display {
     fn style(self, style: impl Into<Style>) -> InlineGraphics;
     fn color(self, color: impl Into<Color>) -> InlineGraphics;
     fn custom(self, code: impl Into<u8>) -> InlineGraphics;
+
+    fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error>;
 }
+
+
+// #[macro_export]
+// macro_rules! combine {
+//     ($($arg:expr),*) => {{
+//         let mut graphics = InlineGraphics {
+//             custom: Vec::new(),
+//             reset: false,
+//             foreground: None,
+//             background: None,
+//             place_bold: false,
+//             place_dim: false,
+//             place_italic: false,
+//             place_underline: false,
+//             place_blinking: false,
+//             place_inverse: false,
+//             place_hidden: false,
+//             place_strikethrough: false,
+//             clear_bold: false,
+//             clear_dim: false,
+//             clear_italic: false,
+//             clear_underline: false,
+//             clear_blinking: false,
+//             clear_inverse: false,
+//             clear_hidden: false,
+//             clear_strikethrough: false,
+//         };
+//         $(
+//             match $arg {
+//                 Reset => graphics.reset = true,
+    
+//                 Bold => graphics.place_bold = true,
+//                 Dim => graphics.place_dim = true,
+//                 Italic => graphics.place_italic = true,
+//                 Underline => graphics.place_underline = true,
+//                 Blinking => graphics.place_blinking = true,
+//                 Inverse => graphics.place_inverse = true,
+//                 Hidden => graphics.place_hidden = true,
+//                 Strikethrough => graphics.place_strikethrough = true,
+    
+//                 ClearBold => graphics.clear_bold = true,
+//                 ClearDim => graphics.clear_dim = true,
+//                 ClearItalic => graphics.clear_italic = true,
+//                 ClearUnderline => graphics.clear_underline = true,
+//                 ClearBlinking => graphics.clear_blinking = true,
+//                 ClearInverse => graphics.clear_inverse = true,
+//                 ClearHidden => graphics.clear_hidden = true,
+//                 ClearStrikethrough => graphics.clear_strikethrough = true,
+//             }
+//         )*
+//         graphics
+        
+//     }};
+// }

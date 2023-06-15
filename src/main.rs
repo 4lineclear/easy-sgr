@@ -1,9 +1,11 @@
+use std::io::{stdout, Write};
+
 use easy_ansi::{
     graphics::{ClearKind, ColorKind::*},
     inline::{Color::*, InlineAnsi, Style::*},
+    writer::{AnsiWriter, IoWriter},
     ToAnsiString,
 };
-
 fn main() {
     let string = "This is italic and red".to_ansi_string().foreground(Red);
 
@@ -20,6 +22,15 @@ fn main() {
 
     println!("{test}");
     println!("{test2}");
-    dbg!(&test);
-    dbg!(&test2);
+
+    let mut writer = IoWriter::new(stdout().lock());
+    writer.escape().unwrap();
+    writer.write_multiple(&[3, 31]).unwrap();
+    writer.end().unwrap();
+    writer
+        .write(b"This writing should be italic red, using the IoWriter!\n")
+        .unwrap();
+    writer.escape().unwrap();
+    writer.write_multiple(&[23, 38]).unwrap();
+    writer.end().unwrap();
 }

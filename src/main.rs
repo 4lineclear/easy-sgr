@@ -28,7 +28,7 @@ fn main() {
     writer.write_multiple(&[3, 31]).unwrap();
     writer.end().unwrap();
     writer
-        .write(b"This writing should be italic red, using the IoWriter!\n")
+        .write_all(b"This writing should be italic red, using the IoWriter!\n")
         .unwrap();
     writer.escape().unwrap();
     writer.write_multiple(&[23, 38]).unwrap();

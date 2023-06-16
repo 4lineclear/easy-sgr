@@ -31,6 +31,7 @@ pub enum StyleKind {
     None,
     Place,
     Clear,
+    Both
 }
 impl StyleKind {
     pub fn is_none(&self) -> bool {
@@ -180,7 +181,7 @@ impl DisplayedAnsi for InlineGraphics {
         ] {
             match kind {
                 None => (),
-                Place => writer.write_code(place)?,
+                Place | Both => writer.write_code(place)?,
                 Clear => writer.write_code(clear)?,
             }
         }
@@ -222,20 +223,15 @@ impl std::fmt::Display for Style {
 }
 
 impl DisplayedAnsi for Style {
-    #[inline]
-    #[must_use]
     fn style(self, style: impl Into<Style>) -> InlineGraphics {
         InlineGraphics::default().style(self).style(style.into())
     }
-
     fn color(self, color: impl Into<Color>) -> InlineGraphics {
         InlineGraphics::default().style(self).color(color.into())
     }
-
     fn custom(self, code: impl Into<u8>) -> InlineGraphics {
         InlineGraphics::default().style(self).custom(code.into())
     }
-
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
         use Style::*;
         writer.write_code(match self {

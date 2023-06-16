@@ -1,4 +1,7 @@
-use crate::Ansi;
+use crate::{
+    inline::{Color, Style},
+    Ansi,
+};
 
 use StyleKind::*;
 
@@ -12,7 +15,7 @@ pub struct Graphics {
 
     pub clear: ClearKind,
 
-    pub reset: StyleKind,
+    pub reset: bool,
 
     pub bold: StyleKind,
     pub dim: StyleKind,
@@ -24,55 +27,49 @@ pub struct Graphics {
     pub strikethrough: StyleKind,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub enum ClearKind {
-    #[default]
-    Skip,
-    Full,
-    Clean,
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub enum ColorKind {
-    Black,
-    Red,
-    Green,
-    Yellow,
-    Blue,
-    Magenta,
-    Cyan,
-    White,
-    EightBit(u8),
-    Rgb(u8, u8, u8),
-    #[default]
-    Default,
-}
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub enum StyleKind {
-    #[default]
-    Empty,
-    Place,
-    Clear,
-    Both,
-}
-
-impl StyleKind {
-    #[must_use]
-    pub fn shift(&self, other: StyleKind) -> Self {
-        match self {
-            Empty => other,
-            Place if other == Clear => Both,
-            Clear if other == Place => Both,
-            _ => *self,
-        }
-    }
-    #[must_use]
-    pub fn is_none(&self) -> bool {
-        *self == Empty
-    }
-}
-
 impl Graphics {
+    #[inline]
+    #[must_use]
+    pub fn style(mut self, style: impl Into<Style>) -> Self {
+        use Style::*;
+        match style.into() {
+            Reset => self.reset = true,
+
+            Bold => self.bold = self.bold.shift(Place),
+            Dim => self.dim = self.dim.shift(Place),
+            Italic => self.italic = self.italic.shift(Place),
+            Underline => self.underline = self.underline.shift(Place),
+            Blinking => self.blinking = self.blinking.shift(Place),
+            Inverse => self.inverse = self.inverse.shift(Place),
+            Hidden => self.hidden = self.hidden.shift(Place),
+            Strikethrough => self.strikethrough = self.strikethrough.shift(Place),
+
+            ClearBold => self.bold = self.bold.shift(Clear),
+            ClearDim => self.dim = self.dim.shift(Clear),
+            ClearItalic => self.italic = self.italic.shift(Clear),
+            ClearUnderline => self.underline = self.underline.shift(Clear),
+            ClearBlinking => self.blinking = self.blinking.shift(Clear),
+            ClearInverse => self.inverse = self.inverse.shift(Clear),
+            ClearHidden => self.hidden = self.hidden.shift(Clear),
+            ClearStrikethrough => self.strikethrough = self.strikethrough.shift(Clear),
+        }
+
+
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn color(mut self, color: impl Into<Color>) -> Graphics {
+        let (foreground, background) = color.into().into();
+        if let Some(foreground) = foreground {
+            self.foreground = Some(foreground);
+        }
+        if let Some(background) = background {
+            self.background = Some(background);
+        }
+        self
+    }
     #[inline]
     #[must_use]
     pub fn clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
@@ -91,12 +88,24 @@ impl Graphics {
         self.background = Some(color.into());
         self
     }
+    #[inline]
+    #[must_use]
+    pub fn custom_place(mut self, code: u8) -> Self {
+        self.custom_places.push(code);
+        self
+    }
+    #[inline]
+    #[must_use]
+    pub fn custom_clear(mut self, code: u8) -> Self {
+        self.custom_clears.push(code);
+        self
+    }
 }
 
 impl Ansi for Graphics {
     fn place_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
-    where
-        W: crate::write::AnsiWriter,
+        where
+            W: crate::write::AnsiWriter,
     {
         use ColorKind::*;
         if let Some(color) = self.foreground {
@@ -150,8 +159,8 @@ impl Ansi for Graphics {
     }
 
     fn clear_ansi<W>(&self, writer: &mut W) -> Result<(), W::Error>
-    where
-        W: crate::write::AnsiWriter,
+        where
+            W: crate::write::AnsiWriter,
     {
         match self.clear {
             ClearKind::Skip => Ok(()),
@@ -164,7 +173,7 @@ impl Ansi for Graphics {
                     writer.write_code(49)?;
                 }
 
-                for (kind, clear, place) in [
+                for (kind, place, clear) in [
                     (self.bold, 22, 1),
                     (self.dim, 22, 2),
                     (self.italic, 23, 3),
@@ -176,8 +185,8 @@ impl Ansi for Graphics {
                 ] {
                     match kind {
                         Empty => (),
-                        Place | Both => writer.write_code(clear)?,
-                        Clear => writer.write_code(place)?,
+                        Place | Both => writer.write_code(place)?,
+                        Clear => writer.write_code(clear)?,
                     }
                 }
                 writer.write_multiple(&self.custom_clears)
@@ -188,7 +197,7 @@ impl Ansi for Graphics {
         self.custom_places.is_empty()
             && self.foreground.is_none()
             && self.background.is_none()
-            && self.reset.is_none()
+            && !self.reset
             && self.bold.is_none()
             && self.dim.is_none()
             && self.italic.is_none()
@@ -202,15 +211,95 @@ impl Ansi for Graphics {
     fn no_clears(&self) -> bool {
         self.clear == ClearKind::Skip
             || (self.custom_clears.is_empty()
-                && self.foreground.is_none()
-                && self.foreground.is_none()
-                && self.bold.is_none()
-                && self.dim.is_none()
-                && self.italic.is_none()
-                && self.underline.is_none()
-                && self.blinking.is_none()
-                && self.inverse.is_none()
-                && self.hidden.is_none()
-                && self.strikethrough.is_none())
+            && self.foreground.is_none()
+            && self.foreground.is_none()
+            && self.bold.is_none()
+            && self.dim.is_none()
+            && self.italic.is_none()
+            && self.underline.is_none()
+            && self.blinking.is_none()
+            && self.inverse.is_none()
+            && self.hidden.is_none()
+            && self.strikethrough.is_none())
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub enum ClearKind {
+    #[default]
+    Skip,
+    Full,
+    Clean,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub enum ColorKind {
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+    EightBit(u8),
+    Rgb(u8, u8, u8),
+    #[default]
+    Default,
+}
+
+impl From<Color> for (Option<ColorKind>, Option<ColorKind>) {
+    fn from(value: Color) -> Self {
+        use {Color::*, ColorKind::*};
+        match value {
+            FBlack => (Some(Black), None),
+            FRed => (Some(Red), None),
+            FGreen => (Some(Green), None),
+            FYellow => (Some(Yellow), None),
+            FBlue => (Some(Blue), None),
+            FMagenta => (Some(Magenta), None),
+            FCyan => (Some(Cyan), None),
+            FWhite => (Some(White), None),
+            FEightBit(n) => (Some(EightBit(n)), None),
+            FRgb(r, g, b) => (Some(Rgb(r, g, b)), None),
+            FDefault => (Some(Default), None),
+
+            BBlack => (None, Some(Black)),
+            BRed => (None, Some(Red)),
+            BGreen => (None, Some(Green)),
+            BYellow => (None, Some(Yellow)),
+            BBlue => (None, Some(Blue)),
+            BMagenta => (None, Some(Magenta)),
+            BCyan => (None, Some(Cyan)),
+            BWhite => (None, Some(White)),
+            BEightBit(n) => (None, Some(EightBit(n))),
+            BRgb(r, g, b) => (None, Some(Rgb(r, g, b))),
+            BDefault => (None, Some(Default)),
+        }
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub enum StyleKind {
+    #[default]
+    Empty,
+    Place,
+    Clear,
+    Both,
+}
+
+impl StyleKind {
+    #[must_use]
+    pub fn shift(&self, other: StyleKind) -> Self {
+        match self {
+            Empty => other,
+            Place if other == Clear => Both,
+            Clear if other == Place => Both,
+            _ => *self,
+        }
+    }
+    #[must_use]
+    pub fn is_none(&self) -> bool {
+        *self == Empty
     }
 }

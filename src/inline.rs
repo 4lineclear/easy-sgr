@@ -43,7 +43,7 @@ impl DisplayedAnsi for Graphics {
         }
         self
     }
-    fn color(mut self, color: impl Into<crate::inline::Color>) -> Graphics {
+    fn color(mut self, color: impl Into<Color>) -> Graphics {
         use {Color::*, ColorKind::*};
 
         match color.into() {

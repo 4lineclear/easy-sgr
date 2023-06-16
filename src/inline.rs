@@ -7,7 +7,7 @@ use crate::{
 use StyleKind::*;
 
 #[derive(Debug, Clone, Default)]
-pub struct InlineGraphics {
+pub struct DisplayedGraphics {
     pub custom: Vec<u8>,
 
     pub reset: bool,
@@ -25,19 +25,13 @@ pub struct InlineGraphics {
     pub strikethrough: StyleKind,
 }
 
-impl StyleKind {
-    pub fn is_none(&self) -> bool {
-        *self == None
-    }
-}
-
 #[derive(Debug, Copy, Clone)]
 pub enum Custom {
     Place(u8),
     Clear(u8),
 }
 
-impl Display for InlineGraphics {
+impl Display for DisplayedGraphics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.custom.is_empty()
             && !self.reset
@@ -59,7 +53,7 @@ impl Display for InlineGraphics {
     }
 }
 
-impl DisplayedAnsi for InlineGraphics {
+impl DisplayedAnsi for DisplayedGraphics {
     #[inline]
     fn style(mut self, style: impl Into<Style>) -> Self {
         use Style::*;
@@ -120,7 +114,7 @@ impl DisplayedAnsi for InlineGraphics {
         self
     }
 
-    fn custom(mut self, code: impl Into<u8>) -> InlineGraphics {
+    fn custom(mut self, code: impl Into<u8>) -> DisplayedGraphics {
         self.custom.push(code.into());
         self
     }
@@ -215,14 +209,14 @@ impl std::fmt::Display for Style {
 }
 
 impl DisplayedAnsi for Style {
-    fn style(self, style: impl Into<Style>) -> InlineGraphics {
-        InlineGraphics::default().style(self).style(style.into())
+    fn style(self, style: impl Into<Style>) -> DisplayedGraphics {
+        DisplayedGraphics::default().style(self).style(style.into())
     }
-    fn color(self, color: impl Into<Color>) -> InlineGraphics {
-        InlineGraphics::default().style(self).color(color.into())
+    fn color(self, color: impl Into<Color>) -> DisplayedGraphics {
+        DisplayedGraphics::default().style(self).color(color.into())
     }
-    fn custom(self, code: impl Into<u8>) -> InlineGraphics {
-        InlineGraphics::default().style(self).custom(code.into())
+    fn custom(self, code: impl Into<u8>) -> DisplayedGraphics {
+        DisplayedGraphics::default().style(self).custom(code.into())
     }
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
         use Style::*;
@@ -276,16 +270,16 @@ pub enum Color {
 }
 
 impl DisplayedAnsi for Color {
-    fn style(self, style: impl Into<Style>) -> InlineGraphics {
-        InlineGraphics::default().color(self).style(style.into())
+    fn style(self, style: impl Into<Style>) -> DisplayedGraphics {
+        DisplayedGraphics::default().color(self).style(style.into())
     }
 
-    fn color(self, color: impl Into<Color>) -> InlineGraphics {
-        InlineGraphics::default().color(self).color(color.into())
+    fn color(self, color: impl Into<Color>) -> DisplayedGraphics {
+        DisplayedGraphics::default().color(self).color(color.into())
     }
 
-    fn custom(self, code: impl Into<u8>) -> InlineGraphics {
-        InlineGraphics::default().color(self).custom(code.into())
+    fn custom(self, code: impl Into<u8>) -> DisplayedGraphics {
+        DisplayedGraphics::default().color(self).custom(code.into())
     }
 
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
@@ -330,11 +324,11 @@ impl Display for Color {
 
 pub trait DisplayedAnsi: Display {
     #[must_use]
-    fn style(self, style: impl Into<Style>) -> InlineGraphics;
+    fn style(self, style: impl Into<Style>) -> DisplayedGraphics;
     #[must_use]
-    fn color(self, color: impl Into<Color>) -> InlineGraphics;
+    fn color(self, color: impl Into<Color>) -> DisplayedGraphics;
     #[must_use]
-    fn custom(self, code: impl Into<u8>) -> InlineGraphics;
+    fn custom(self, code: impl Into<u8>) -> DisplayedGraphics;
 
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error>;
 }

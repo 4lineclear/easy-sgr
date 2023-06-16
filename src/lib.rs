@@ -1,5 +1,6 @@
-#![deny(clippy::all)]
+#![deny(clippy::all, clippy::pedantic)]
 #![warn(clippy::cargo)]
+#![allow(clippy::enum_glob_use)]
 
 use std::fmt::{Display, Write};
 

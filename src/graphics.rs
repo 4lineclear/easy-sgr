@@ -1,7 +1,10 @@
+
 use crate::{
     inline::{Color, Style},
     Ansi,
 };
+
+use StyleKind::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct Graphics {
@@ -14,14 +17,15 @@ pub struct Graphics {
     pub clear: ClearKind,
 
     pub reset: bool,
-    pub bold: bool,
-    pub dim: bool,
-    pub italic: bool,
-    pub underline: bool,
-    pub blinking: bool,
-    pub inverse: bool,
-    pub hidden: bool,
-    pub strikethrough: bool,
+
+    pub bold: StyleKind,
+    pub dim: StyleKind,
+    pub italic: StyleKind,
+    pub underline: StyleKind,
+    pub blinking: StyleKind,
+    pub inverse: StyleKind,
+    pub hidden: StyleKind,
+    pub strikethrough: StyleKind,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -56,6 +60,22 @@ pub enum StyleKind {
     Both,
 }
 
+impl StyleKind {
+    #[must_use]
+    pub fn shift(&self, other: StyleKind) -> Self {
+        match self {
+            None => other,
+            Place if other == Clear => Both,
+            Clear if other == Place => Both,
+            _ => *self,
+        }
+    }
+    #[must_use]
+    pub fn is_none(&self) -> bool {
+        *self == None
+    }
+}
+
 impl Graphics {
     #[inline]
     #[must_use]
@@ -65,28 +85,29 @@ impl Graphics {
         match style.into() {
             Reset => self.reset = true,
 
-            Bold => self.bold = true,
-            Dim => self.dim = true,
-            Italic => self.italic = true,
-            Underline => self.underline = true,
-            Blinking => self.blinking = true,
-            Inverse => self.inverse = true,
-            Hidden => self.hidden = true,
-            Strikethrough => self.strikethrough = true,
+            Bold => self.bold = self.bold.shift(StyleKind::Place),
+            Dim => self.dim = self.dim.shift(StyleKind::Place),
+            Italic => self.italic = self.italic.shift(StyleKind::Place),
+            Underline => self.underline = self.underline.shift(StyleKind::Place),
+            Blinking => self.blinking = self.blinking.shift(StyleKind::Place),
+            Inverse => self.inverse = self.inverse.shift(StyleKind::Place),
+            Hidden => self.hidden = self.hidden.shift(StyleKind::Place),
+            Strikethrough => self.strikethrough = self.strikethrough.shift(StyleKind::Place),
 
-            ClearBold => self.bold = false,
-            ClearDim => self.dim = false,
-            ClearItalic => self.italic = false,
-            ClearUnderline => self.underline = false,
-            ClearBlinking => self.blinking = false,
-            ClearInverse => self.inverse = false,
-            ClearHidden => self.hidden = false,
-            ClearStrikethrough => self.strikethrough = false,
+            ClearBold => self.bold = self.bold.shift(StyleKind::Clear),
+            ClearDim => self.dim = self.dim.shift(StyleKind::Clear),
+            ClearItalic => self.italic = self.italic.shift(StyleKind::Clear),
+            ClearUnderline => self.underline = self.underline.shift(StyleKind::Clear),
+            ClearBlinking => self.blinking = self.blinking.shift(StyleKind::Clear),
+            ClearInverse => self.inverse = self.inverse.shift(StyleKind::Clear),
+            ClearHidden => self.hidden = self.hidden.shift(StyleKind::Clear),
+            ClearStrikethrough => self.strikethrough = self.strikethrough.shift(StyleKind::Clear),
         }
         self
     }
 
     #[inline]
+    #[must_use]
     pub fn color(mut self, color: impl Into<crate::inline::Color>) -> Graphics {
         use {Color::*, ColorKind::*};
 
@@ -186,19 +207,20 @@ impl Ansi for Graphics {
             }
         };
 
-        for (should_write, code) in [
-            (self.reset, 0),
-            (self.bold, 1),
-            (self.dim, 2),
-            (self.italic, 3),
-            (self.underline, 4),
-            (self.blinking, 5),
-            (self.inverse, 7),
-            (self.hidden, 8),
-            (self.strikethrough, 9),
+        for (kind, place, clear) in [
+            (self.bold, 1, 22),
+            (self.dim, 2, 22),
+            (self.italic, 3, 23),
+            (self.underline, 4, 24),
+            (self.blinking, 5, 25),
+            (self.inverse, 7, 27),
+            (self.hidden, 8, 28),
+            (self.strikethrough, 9, 29),
         ] {
-            if should_write {
-                writer.write_code(code)?;
+            match kind {
+                None => (),
+                Place | Both => writer.write_code(place)?,
+                Clear => writer.write_code(clear)?,
             }
         }
         writer.write_multiple(&self.custom_places)
@@ -218,18 +240,21 @@ impl Ansi for Graphics {
                 if self.background.is_some() {
                     writer.write_code(49)?;
                 }
-                for (should_write, code) in [
-                    (self.bold, 22),
-                    (self.dim, 22),
-                    (self.italic, 23),
-                    (self.underline, 24),
-                    (self.blinking, 25),
-                    (self.inverse, 27),
-                    (self.hidden, 28),
-                    (self.strikethrough, 29),
+
+                for (kind, place, clear) in [
+                    (self.bold, 22, 1),
+                    (self.dim, 22, 2),
+                    (self.italic, 23, 3),
+                    (self.underline, 24, 4),
+                    (self.blinking, 25, 5),
+                    (self.inverse, 27, 7),
+                    (self.hidden, 28, 8),
+                    (self.strikethrough, 29, 9),
                 ] {
-                    if should_write {
-                        writer.write_code(code)?;
+                    match kind {
+                        None => (),
+                        Place | Both => writer.write_code(place)?,
+                        Clear => writer.write_code(clear)?,
                     }
                 }
                 writer.write_multiple(&self.custom_clears)
@@ -241,14 +266,14 @@ impl Ansi for Graphics {
             && self.foreground.is_none()
             && self.background.is_none()
             && !self.reset
-            && !self.bold
-            && !self.dim
-            && !self.italic
-            && !self.underline
-            && !self.blinking
-            && !self.inverse
-            && !self.hidden
-            && !self.strikethrough
+            && self.bold.is_none()
+            && self.dim.is_none()
+            && self.italic.is_none()
+            && self.underline.is_none()
+            && self.blinking.is_none()
+            && self.inverse.is_none()
+            && self.hidden.is_none()
+            && self.strikethrough.is_none()
     }
 
     fn no_clears(&self) -> bool {
@@ -256,13 +281,13 @@ impl Ansi for Graphics {
             || (self.custom_clears.is_empty()
                 && self.foreground.is_none()
                 && self.foreground.is_none()
-                && !self.bold
-                && !self.dim
-                && !self.italic
-                && !self.underline
-                && !self.blinking
-                && !self.inverse
-                && !self.hidden
-                && !self.strikethrough)
+                && self.bold.is_none()
+                && self.dim.is_none()
+                && self.italic.is_none()
+                && self.underline.is_none()
+                && self.blinking.is_none()
+                && self.inverse.is_none()
+                && self.hidden.is_none()
+                && self.strikethrough.is_none())
     }
 }

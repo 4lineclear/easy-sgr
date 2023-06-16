@@ -1,51 +1,14 @@
 use std::fmt::Display;
 
 use crate::{
-    graphics::{ColorKind, StyleKind},
+    graphics::{ColorKind, Graphics, StyleKind},
     write::{AnsiWriter, FmtWriter},
+    Ansi,
 };
-use StyleKind::*;
 
-#[derive(Debug, Clone, Default)]
-pub struct DisplayedGraphics {
-    pub custom: Vec<u8>,
-
-    pub reset: bool,
-
-    pub foreground: Option<ColorKind>,
-    pub background: Option<ColorKind>,
-
-    pub bold: StyleKind,
-    pub dim: StyleKind,
-    pub italic: StyleKind,
-    pub underline: StyleKind,
-    pub blinking: StyleKind,
-    pub inverse: StyleKind,
-    pub hidden: StyleKind,
-    pub strikethrough: StyleKind,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum Custom {
-    Place(u8),
-    Clear(u8),
-}
-
-impl Display for DisplayedGraphics {
+impl Display for Graphics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.custom.is_empty()
-            && !self.reset
-            && self.foreground.is_none()
-            && self.background.is_none()
-            && self.bold.is_none()
-            && self.dim.is_none()
-            && self.italic.is_none()
-            && self.underline.is_none()
-            && self.blinking.is_none()
-            && self.inverse.is_none()
-            && self.hidden.is_none()
-            && self.strikethrough.is_none()
-        {
+        if self.no_clears() && self.no_places() {
             Ok(())
         } else {
             FmtWriter::new(f).inject_inline(self)
@@ -53,37 +16,34 @@ impl Display for DisplayedGraphics {
     }
 }
 
-impl DisplayedAnsi for DisplayedGraphics {
-    #[inline]
+impl DisplayedAnsi for Graphics {
     fn style(mut self, style: impl Into<Style>) -> Self {
         use Style::*;
 
         match style.into() {
-            Reset => self.reset = true,
+            Reset => self.reset = self.reset.shift(StyleKind::Place),
 
-            Bold => self.bold = Place,
-            Dim => self.dim = Place,
-            Italic => self.italic = Place,
-            Underline => self.underline = Place,
-            Blinking => self.blinking = Place,
-            Inverse => self.inverse = Place,
-            Hidden => self.hidden = Place,
-            Strikethrough => self.strikethrough = Place,
+            Bold => self.bold = self.bold.shift(StyleKind::Place),
+            Dim => self.dim = self.dim.shift(StyleKind::Place),
+            Italic => self.italic = self.italic.shift(StyleKind::Place),
+            Underline => self.underline = self.underline.shift(StyleKind::Place),
+            Blinking => self.blinking = self.blinking.shift(StyleKind::Place),
+            Inverse => self.inverse = self.inverse.shift(StyleKind::Place),
+            Hidden => self.hidden = self.hidden.shift(StyleKind::Place),
+            Strikethrough => self.strikethrough = self.strikethrough.shift(StyleKind::Place),
 
-            ClearBold => self.bold = Clear,
-            ClearDim => self.dim = Clear,
-            ClearItalic => self.italic = Clear,
-            ClearUnderline => self.underline = Clear,
-            ClearBlinking => self.blinking = Clear,
-            ClearInverse => self.inverse = Clear,
-            ClearHidden => self.hidden = Clear,
-            ClearStrikethrough => self.strikethrough = Clear,
+            ClearBold => self.bold = self.bold.shift(StyleKind::Clear),
+            ClearDim => self.dim = self.dim.shift(StyleKind::Clear),
+            ClearItalic => self.italic = self.italic.shift(StyleKind::Clear),
+            ClearUnderline => self.underline = self.underline.shift(StyleKind::Clear),
+            ClearBlinking => self.blinking = self.blinking.shift(StyleKind::Clear),
+            ClearInverse => self.inverse = self.inverse.shift(StyleKind::Clear),
+            ClearHidden => self.hidden = self.hidden.shift(StyleKind::Clear),
+            ClearStrikethrough => self.strikethrough = self.strikethrough.shift(StyleKind::Clear),
         }
         self
     }
-
-    #[inline]
-    fn color(mut self, color: impl Into<crate::inline::Color>) -> Self {
+    fn color(mut self, color: impl Into<crate::inline::Color>) -> Graphics {
         use {Color::*, ColorKind::*};
 
         match color.into() {
@@ -113,65 +73,20 @@ impl DisplayedAnsi for DisplayedGraphics {
         }
         self
     }
+    fn custom_place(mut self, code: impl Into<u8>) -> Graphics {
+        self.custom_places.push(code.into());
+        self
+    }
 
-    fn custom(mut self, code: impl Into<u8>) -> DisplayedGraphics {
-        self.custom.push(code.into());
+    fn custom_clear(mut self, code: impl Into<u8>) -> Graphics {
+        self.custom_clears.push(code.into());
         self
     }
 
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
-        use ColorKind::*;
         writer.escape()?;
-        if let Some(color) = self.foreground {
-            match color {
-                Black => writer.write_code(30)?,
-                Red => writer.write_code(31)?,
-                Green => writer.write_code(32)?,
-                Yellow => writer.write_code(33)?,
-                Blue => writer.write_code(34)?,
-                Magenta => writer.write_code(35)?,
-                Cyan => writer.write_code(36)?,
-                White => writer.write_code(37)?,
-                EightBit(n) => writer.write_multiple(&[38, 2, n])?,
-                Rgb(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
-                Default => writer.write_code(39)?,
-            }
-        };
-        if let Some(color) = self.background {
-            match color {
-                Black => writer.write_code(40)?,
-                Red => writer.write_code(41)?,
-                Green => writer.write_code(42)?,
-                Yellow => writer.write_code(43)?,
-                Blue => writer.write_code(44)?,
-                Magenta => writer.write_code(45)?,
-                Cyan => writer.write_code(46)?,
-                White => writer.write_code(47)?,
-                EightBit(n) => writer.write_multiple(&[48, 2, n])?,
-                Rgb(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
-                Default => writer.write_code(49)?,
-            }
-        };
-        if self.reset {
-            writer.write_code(0)?;
-        }
-        for (kind, place, clear) in [
-            (self.bold, 1, 22),
-            (self.dim, 2, 22),
-            (self.italic, 3, 23),
-            (self.underline, 4, 24),
-            (self.blinking, 5, 25),
-            (self.inverse, 7, 27),
-            (self.hidden, 8, 28),
-            (self.strikethrough, 9, 29),
-        ] {
-            match kind {
-                None => (),
-                Place | Both => writer.write_code(place)?,
-                Clear => writer.write_code(clear)?,
-            }
-        }
-        writer.write_multiple(&self.custom)?;
+        self.place_ansi(writer)?;
+        self.clear_ansi(writer)?;
         writer.end()
     }
 }
@@ -199,7 +114,7 @@ pub enum Style {
     ClearStrikethrough,
 }
 
-impl std::fmt::Display for Style {
+impl Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = FmtWriter::new(f);
         fmt.escape()?;
@@ -209,14 +124,18 @@ impl std::fmt::Display for Style {
 }
 
 impl DisplayedAnsi for Style {
-    fn style(self, style: impl Into<Style>) -> DisplayedGraphics {
-        DisplayedGraphics::default().style(self).style(style.into())
+    fn style(self, style: impl Into<Style>) -> Graphics {
+        Graphics::default().style(self).style(style.into())
     }
-    fn color(self, color: impl Into<Color>) -> DisplayedGraphics {
-        DisplayedGraphics::default().style(self).color(color.into())
+    fn color(self, color: impl Into<Color>) -> Graphics {
+        Graphics::default().style(self).color(color.into())
     }
-    fn custom(self, code: impl Into<u8>) -> DisplayedGraphics {
-        DisplayedGraphics::default().style(self).custom(code.into())
+    fn custom_place(self, code: impl Into<u8>) -> Graphics {
+        Graphics::default().style(self).custom_place(code)
+    }
+
+    fn custom_clear(self, code: impl Into<u8>) -> Graphics {
+        Graphics::default().style(self).custom_clear(code)
     }
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
         use Style::*;
@@ -270,16 +189,19 @@ pub enum Color {
 }
 
 impl DisplayedAnsi for Color {
-    fn style(self, style: impl Into<Style>) -> DisplayedGraphics {
-        DisplayedGraphics::default().color(self).style(style.into())
+    fn style(self, style: impl Into<Style>) -> Graphics {
+        Graphics::default().color(self).style(style.into())
     }
 
-    fn color(self, color: impl Into<Color>) -> DisplayedGraphics {
-        DisplayedGraphics::default().color(self).color(color.into())
+    fn color(self, color: impl Into<Color>) -> Graphics {
+        Graphics::default().color(self).color(color.into())
+    }
+    fn custom_place(self, code: impl Into<u8>) -> Graphics {
+        Graphics::default().color(self).custom_place(code)
     }
 
-    fn custom(self, code: impl Into<u8>) -> DisplayedGraphics {
-        DisplayedGraphics::default().color(self).custom(code.into())
+    fn custom_clear(self, code: impl Into<u8>) -> Graphics {
+        Graphics::default().color(self).custom_clear(code)
     }
 
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error> {
@@ -324,11 +246,13 @@ impl Display for Color {
 
 pub trait DisplayedAnsi: Display {
     #[must_use]
-    fn style(self, style: impl Into<Style>) -> DisplayedGraphics;
+    fn style(self, style: impl Into<Style>) -> Graphics;
     #[must_use]
-    fn color(self, color: impl Into<Color>) -> DisplayedGraphics;
+    fn color(self, color: impl Into<Color>) -> Graphics;
     #[must_use]
-    fn custom(self, code: impl Into<u8>) -> DisplayedGraphics;
+    fn custom_place(self, code: impl Into<u8>) -> Graphics;
+    #[must_use]
+    fn custom_clear(self, code: impl Into<u8>) -> Graphics;
 
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error>;
 }

@@ -1,8 +1,4 @@
-
-use crate::{
-    inline::{Color, Style},
-    Ansi,
-};
+use crate::Ansi;
 
 use StyleKind::*;
 
@@ -16,7 +12,7 @@ pub struct Graphics {
 
     pub clear: ClearKind,
 
-    pub reset: bool,
+    pub reset: StyleKind,
 
     pub bold: StyleKind,
     pub dim: StyleKind,
@@ -54,7 +50,7 @@ pub enum ColorKind {
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum StyleKind {
     #[default]
-    None,
+    Empty,
     Place,
     Clear,
     Both,
@@ -64,7 +60,7 @@ impl StyleKind {
     #[must_use]
     pub fn shift(&self, other: StyleKind) -> Self {
         match self {
-            None => other,
+            Empty => other,
             Place if other == Clear => Both,
             Clear if other == Place => Both,
             _ => *self,
@@ -72,72 +68,11 @@ impl StyleKind {
     }
     #[must_use]
     pub fn is_none(&self) -> bool {
-        *self == None
+        *self == Empty
     }
 }
 
 impl Graphics {
-    #[inline]
-    #[must_use]
-    pub fn style(mut self, style: impl Into<Style>) -> Self {
-        use Style::*;
-
-        match style.into() {
-            Reset => self.reset = true,
-
-            Bold => self.bold = self.bold.shift(StyleKind::Place),
-            Dim => self.dim = self.dim.shift(StyleKind::Place),
-            Italic => self.italic = self.italic.shift(StyleKind::Place),
-            Underline => self.underline = self.underline.shift(StyleKind::Place),
-            Blinking => self.blinking = self.blinking.shift(StyleKind::Place),
-            Inverse => self.inverse = self.inverse.shift(StyleKind::Place),
-            Hidden => self.hidden = self.hidden.shift(StyleKind::Place),
-            Strikethrough => self.strikethrough = self.strikethrough.shift(StyleKind::Place),
-
-            ClearBold => self.bold = self.bold.shift(StyleKind::Clear),
-            ClearDim => self.dim = self.dim.shift(StyleKind::Clear),
-            ClearItalic => self.italic = self.italic.shift(StyleKind::Clear),
-            ClearUnderline => self.underline = self.underline.shift(StyleKind::Clear),
-            ClearBlinking => self.blinking = self.blinking.shift(StyleKind::Clear),
-            ClearInverse => self.inverse = self.inverse.shift(StyleKind::Clear),
-            ClearHidden => self.hidden = self.hidden.shift(StyleKind::Clear),
-            ClearStrikethrough => self.strikethrough = self.strikethrough.shift(StyleKind::Clear),
-        }
-        self
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn color(mut self, color: impl Into<crate::inline::Color>) -> Graphics {
-        use {Color::*, ColorKind::*};
-
-        match color.into() {
-            FBlack => self.foreground = Some(Black),
-            FRed => self.foreground = Some(Red),
-            FGreen => self.foreground = Some(Green),
-            FYellow => self.foreground = Some(Yellow),
-            FBlue => self.foreground = Some(Blue),
-            FMagenta => self.foreground = Some(Magenta),
-            FCyan => self.foreground = Some(Cyan),
-            FWhite => self.foreground = Some(White),
-            FEightBit(n) => self.foreground = Some(EightBit(n)),
-            FRgb(r, g, b) => self.foreground = Some(Rgb(r, g, b)),
-            FDefault => self.foreground = Some(Default),
-
-            BBlack => self.background = Some(Black),
-            BRed => self.background = Some(Red),
-            BGreen => self.background = Some(Green),
-            BYellow => self.background = Some(Yellow),
-            BBlue => self.background = Some(Blue),
-            BMagenta => self.background = Some(Magenta),
-            BCyan => self.background = Some(Cyan),
-            BWhite => self.background = Some(White),
-            BEightBit(n) => self.background = Some(EightBit(n)),
-            BRgb(r, g, b) => self.background = Some(Rgb(r, g, b)),
-            BDefault => self.background = Some(Default),
-        }
-        self
-    }
     #[inline]
     #[must_use]
     pub fn clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
@@ -154,18 +89,6 @@ impl Graphics {
     #[must_use]
     pub fn background(mut self, color: impl Into<ColorKind>) -> Self {
         self.background = Some(color.into());
-        self
-    }
-    #[inline]
-    #[must_use]
-    pub fn custom_place(mut self, code: u8) -> Self {
-        self.custom_places.push(code);
-        self
-    }
-    #[inline]
-    #[must_use]
-    pub fn custom_clear(mut self, code: u8) -> Self {
-        self.custom_clears.push(code);
         self
     }
 }
@@ -218,7 +141,7 @@ impl Ansi for Graphics {
             (self.strikethrough, 9, 29),
         ] {
             match kind {
-                None => (),
+                Empty => (),
                 Place | Both => writer.write_code(place)?,
                 Clear => writer.write_code(clear)?,
             }
@@ -241,7 +164,7 @@ impl Ansi for Graphics {
                     writer.write_code(49)?;
                 }
 
-                for (kind, place, clear) in [
+                for (kind, clear, place) in [
                     (self.bold, 22, 1),
                     (self.dim, 22, 2),
                     (self.italic, 23, 3),
@@ -252,9 +175,9 @@ impl Ansi for Graphics {
                     (self.strikethrough, 29, 9),
                 ] {
                     match kind {
-                        None => (),
-                        Place | Both => writer.write_code(place)?,
-                        Clear => writer.write_code(clear)?,
+                        Empty => (),
+                        Place | Both => writer.write_code(clear)?,
+                        Clear => writer.write_code(place)?,
                     }
                 }
                 writer.write_multiple(&self.custom_clears)
@@ -265,7 +188,7 @@ impl Ansi for Graphics {
         self.custom_places.is_empty()
             && self.foreground.is_none()
             && self.background.is_none()
-            && !self.reset
+            && self.reset.is_none()
             && self.bold.is_none()
             && self.dim.is_none()
             && self.italic.is_none()

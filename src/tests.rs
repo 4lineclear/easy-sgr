@@ -1,8 +1,7 @@
 use crate::{
-    graphics::ColorKind::*,
+    graphics::{ColorKind::*, ClearKind::*},
     inline::{Color::*, DisplayedAnsi, Style::*},
     AnsiString,
-    ClearKind::*,
 };
 
 const TEXT: &str = "this is sample text";
@@ -83,12 +82,12 @@ fn inline() {
 
     let lots_of_stuff_dense = format!(
         "{}{COMPLEX_TEXT}{}",
-        FRed.color(BBlack).style(Bold).style(Italic).custom(9),
+        FRed.color(BBlack).style(Bold).style(Italic).custom_place(9),
         FDefault
             .color(BDefault)
             .style(ClearBold)
             .style(ClearItalic)
-            .custom(29)
+            .custom_place(29)
     );
 
     assert_eq!(

@@ -4,7 +4,8 @@
 
 use std::fmt::{Display, Write};
 
-use graphics::{ClearKind, Graphics};
+use graphics::{Graphics, ClearKind};
+use inline::DisplayedAnsi;
 use write::FmtWriter;
 
 pub mod graphics;

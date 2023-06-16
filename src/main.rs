@@ -1,12 +1,13 @@
 use std::io::{stdout, Write};
 
 use easy_ansi::{
-    graphics::{ClearKind, ColorKind::*},
+    graphics::ColorKind::*,
     inline::{Color::*, DisplayedAnsi, Style::*},
     write::{AnsiWriter, IoWriter},
     ToAnsiString,
 };
 fn main() {
+    // TODO Documentation
     let string = "This is italic and red".to_ansi_string().foreground(Red);
 
     let test = format!(
@@ -16,8 +17,7 @@ fn main() {
 
     let string2 = "And you can even chain this stuff"
         .foreground(Blue)
-        .style(Bold)
-        .set_clear(ClearKind::Full);
+        .style(Bold);
     let test2 = format!("{}{string2}", Italic.style(Strikethrough).style(Underline));
 
     println!("{test}");

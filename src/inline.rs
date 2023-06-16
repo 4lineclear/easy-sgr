@@ -4,6 +4,7 @@ use crate::{
     graphics::ColorKind,
     write::{AnsiWriter, FmtWriter},
 };
+use StyleKind::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct InlineGraphics {
@@ -14,23 +15,33 @@ pub struct InlineGraphics {
     pub foreground: Option<ColorKind>,
     pub background: Option<ColorKind>,
 
-    pub place_bold: bool,
-    pub place_dim: bool,
-    pub place_italic: bool,
-    pub place_underline: bool,
-    pub place_blinking: bool,
-    pub place_inverse: bool,
-    pub place_hidden: bool,
-    pub place_strikethrough: bool,
+    pub bold: StyleKind,
+    pub dim: StyleKind,
+    pub italic: StyleKind,
+    pub underline: StyleKind,
+    pub blinking: StyleKind,
+    pub inverse: StyleKind,
+    pub hidden: StyleKind,
+    pub strikethrough: StyleKind,
+}
 
-    pub clear_bold: bool,
-    pub clear_dim: bool,
-    pub clear_italic: bool,
-    pub clear_underline: bool,
-    pub clear_blinking: bool,
-    pub clear_inverse: bool,
-    pub clear_hidden: bool,
-    pub clear_strikethrough: bool,
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub enum StyleKind {
+    #[default]
+    None,
+    Place,
+    Clear,
+}
+impl StyleKind {
+    pub fn is_none(&self) -> bool {
+        *self == None
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Custom {
+    Place(u8),
+    Clear(u8),
 }
 
 impl Display for InlineGraphics {
@@ -39,22 +50,14 @@ impl Display for InlineGraphics {
             && !self.reset
             && self.foreground.is_none()
             && self.background.is_none()
-            && !self.place_bold
-            && !self.place_dim
-            && !self.place_italic
-            && !self.place_underline
-            && !self.place_blinking
-            && !self.place_inverse
-            && !self.place_hidden
-            && !self.place_strikethrough
-            && !self.clear_bold
-            && !self.clear_dim
-            && !self.clear_italic
-            && !self.clear_underline
-            && !self.clear_blinking
-            && !self.clear_inverse
-            && !self.clear_hidden
-            && !self.clear_strikethrough
+            && self.bold.is_none()
+            && self.dim.is_none()
+            && self.italic.is_none()
+            && self.underline.is_none()
+            && self.blinking.is_none()
+            && self.inverse.is_none()
+            && self.hidden.is_none()
+            && self.strikethrough.is_none()
         {
             Ok(())
         } else {
@@ -71,23 +74,23 @@ impl DisplayedAnsi for InlineGraphics {
         match style.into() {
             Reset => self.reset = true,
 
-            Bold => self.place_bold = true,
-            Dim => self.place_dim = true,
-            Italic => self.place_italic = true,
-            Underline => self.place_underline = true,
-            Blinking => self.place_blinking = true,
-            Inverse => self.place_inverse = true,
-            Hidden => self.place_hidden = true,
-            Strikethrough => self.place_strikethrough = true,
+            Bold => self.bold = Place,
+            Dim => self.dim = Place,
+            Italic => self.italic = Place,
+            Underline => self.underline = Place,
+            Blinking => self.blinking = Place,
+            Inverse => self.inverse = Place,
+            Hidden => self.hidden = Place,
+            Strikethrough => self.strikethrough = Place,
 
-            ClearBold => self.clear_bold = true,
-            ClearDim => self.clear_dim = true,
-            ClearItalic => self.clear_italic = true,
-            ClearUnderline => self.clear_underline = true,
-            ClearBlinking => self.clear_blinking = true,
-            ClearInverse => self.clear_inverse = true,
-            ClearHidden => self.clear_hidden = true,
-            ClearStrikethrough => self.clear_strikethrough = true,
+            ClearBold => self.bold = Clear,
+            ClearDim => self.dim = Clear,
+            ClearItalic => self.italic = Clear,
+            ClearUnderline => self.underline = Clear,
+            ClearBlinking => self.blinking = Clear,
+            ClearInverse => self.inverse = Clear,
+            ClearHidden => self.hidden = Clear,
+            ClearStrikethrough => self.strikethrough = Clear,
         }
         self
     }
@@ -162,33 +165,23 @@ impl DisplayedAnsi for InlineGraphics {
                 Default => writer.write_code(49)?,
             }
         };
-        for (should_write, code) in [
-            (self.reset, 0),
-            (self.place_bold, 1),
-            (self.place_dim, 2),
-            (self.place_italic, 3),
-            (self.place_underline, 4),
-            (self.place_blinking, 5),
-            (self.place_inverse, 7),
-            (self.place_hidden, 8),
-            (self.place_strikethrough, 9),
-        ] {
-            if should_write {
-                writer.write_code(code)?;
-            }
+        if self.reset {
+            writer.write_code(0)?;
         }
-        for (should_write, code) in [
-            (self.clear_bold, 22),
-            (self.clear_dim, 22),
-            (self.clear_italic, 23),
-            (self.clear_underline, 24),
-            (self.clear_blinking, 25),
-            (self.clear_inverse, 27),
-            (self.clear_hidden, 28),
-            (self.clear_strikethrough, 29),
+        for (kind, place, clear) in [
+            (self.bold, 1, 22),
+            (self.dim, 2, 22),
+            (self.italic, 3, 23),
+            (self.underline, 4, 24),
+            (self.blinking, 5, 25),
+            (self.inverse, 7, 27),
+            (self.hidden, 8, 28),
+            (self.strikethrough, 9, 29),
         ] {
-            if should_write {
-                writer.write_code(code)?;
+            match kind {
+                None => (),
+                Place => writer.write_code(place)?,
+                Clear => writer.write_code(clear)?,
             }
         }
         writer.write_multiple(&self.custom)?;
@@ -229,7 +222,6 @@ impl std::fmt::Display for Style {
 }
 
 impl DisplayedAnsi for Style {
-    
     #[inline]
     #[must_use]
     fn style(self, style: impl Into<Style>) -> InlineGraphics {

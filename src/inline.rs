@@ -229,6 +229,9 @@ impl std::fmt::Display for Style {
 }
 
 impl DisplayedAnsi for Style {
+    
+    #[inline]
+    #[must_use]
     fn style(self, style: impl Into<Style>) -> InlineGraphics {
         InlineGraphics::default().style(self).style(style.into())
     }
@@ -346,8 +349,11 @@ impl Display for Color {
 }
 
 pub trait DisplayedAnsi: Display {
+    #[must_use]
     fn style(self, style: impl Into<Style>) -> InlineGraphics;
+    #[must_use]
     fn color(self, color: impl Into<Color>) -> InlineGraphics;
+    #[must_use]
     fn custom(self, code: impl Into<u8>) -> InlineGraphics;
 
     fn write<W: AnsiWriter>(&self, writer: &mut W) -> Result<(), W::Error>;

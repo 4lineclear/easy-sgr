@@ -1,12 +1,12 @@
-use std::io::{stdout, Write};
+use std::{io::{stdout, Write}, error::Error};
 
 use easy_ansi::{
     graphics::ColorKind::*,
     inline::{Color::*, DisplayedAnsi, Style::*},
     write::{AnsiWriter, IoWriter},
-    ToAnsiString,
+    ToAnsiString, write_ansi,
 };
-fn main() {
+fn main() -> Result<(), Box<dyn Error>>{
     // TODO Documentation
     let string = "This is italic and red".to_ansi_string().foreground(Red);
 
@@ -21,16 +21,16 @@ fn main() {
     let test2 = format!("{}{string2}", Italic.style(Strikethrough).style(Underline));
 
     println!("{test}");
-    println!("{test2}");
+    println!("{test2}{Reset}");
 
     let mut writer = IoWriter::new(stdout().lock());
-    writer.escape().unwrap();
-    writer.write_multiple(&[3, 31]).unwrap();
-    writer.end().unwrap();
+    
+    write_ansi!(writer, FRed, Italic)?;
+    
     writer
         .write_all(b"This writing should be italic red, using the IoWriter!\n")
         .unwrap();
-    writer.escape().unwrap();
-    writer.write_multiple(&[23, 38]).unwrap();
-    writer.end().unwrap();
+
+    write_ansi!(writer, FDefault, ClearItalic)?;
+    Ok(())
 }

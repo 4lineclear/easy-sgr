@@ -1,5 +1,5 @@
 use crate::{
-    inline::{Color, Style},
+    inline::Color,
     Ansi,
 };
 
@@ -15,7 +15,7 @@ pub struct Graphics {
 
     pub clear: ClearKind,
 
-    pub reset: bool,
+    pub reset: StyleKind,
 
     pub bold: StyleKind,
     pub dim: StyleKind,
@@ -28,76 +28,19 @@ pub struct Graphics {
 }
 
 impl Graphics {
-    #[inline]
-    #[must_use]
-    pub fn style(mut self, style: impl Into<Style>) -> Self {
-        use Style::*;
-        match style.into() {
-            Reset => self.reset = true,
-
-            Bold => self.bold = self.bold.shift(Place),
-            Dim => self.dim = self.dim.shift(Place),
-            Italic => self.italic = self.italic.shift(Place),
-            Underline => self.underline = self.underline.shift(Place),
-            Blinking => self.blinking = self.blinking.shift(Place),
-            Inverse => self.inverse = self.inverse.shift(Place),
-            Hidden => self.hidden = self.hidden.shift(Place),
-            Strikethrough => self.strikethrough = self.strikethrough.shift(Place),
-
-            ClearBold => self.bold = self.bold.shift(Clear),
-            ClearDim => self.dim = self.dim.shift(Clear),
-            ClearItalic => self.italic = self.italic.shift(Clear),
-            ClearUnderline => self.underline = self.underline.shift(Clear),
-            ClearBlinking => self.blinking = self.blinking.shift(Clear),
-            ClearInverse => self.inverse = self.inverse.shift(Clear),
-            ClearHidden => self.hidden = self.hidden.shift(Clear),
-            ClearStrikethrough => self.strikethrough = self.strikethrough.shift(Clear),
-        }
-
-
-        self
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn color(mut self, color: impl Into<Color>) -> Graphics {
-        let (foreground, background) = color.into().into();
-        if let Some(foreground) = foreground {
-            self.foreground = Some(foreground);
-        }
-        if let Some(background) = background {
-            self.background = Some(background);
-        }
-        self
-    }
-    #[inline]
     #[must_use]
     pub fn clear(mut self, clear_kind: impl Into<ClearKind>) -> Self {
         self.clear = clear_kind.into();
         self
     }
-    #[inline]
     #[must_use]
     pub fn foreground(mut self, color: impl Into<ColorKind>) -> Self {
         self.foreground = Some(color.into());
         self
     }
-    #[inline]
     #[must_use]
     pub fn background(mut self, color: impl Into<ColorKind>) -> Self {
         self.background = Some(color.into());
-        self
-    }
-    #[inline]
-    #[must_use]
-    pub fn custom_place(mut self, code: u8) -> Self {
-        self.custom_places.push(code);
-        self
-    }
-    #[inline]
-    #[must_use]
-    pub fn custom_clear(mut self, code: u8) -> Self {
-        self.custom_clears.push(code);
         self
     }
 }
@@ -197,7 +140,7 @@ impl Ansi for Graphics {
         self.custom_places.is_empty()
             && self.foreground.is_none()
             && self.background.is_none()
-            && !self.reset
+            && self.reset.is_none()
             && self.bold.is_none()
             && self.dim.is_none()
             && self.italic.is_none()

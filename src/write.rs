@@ -1,5 +1,17 @@
 use crate::{inline::DisplayedAnsi, Ansi, END, ESCAPE};
 
+
+#[macro_export]
+macro_rules! write_ansi {
+    ($writer:expr, $($arg:expr),*) => {{
+        $writer.escape()?;
+        $(
+            $writer.inject_inline(&$arg)?;
+        )*
+        $writer.end()
+    }};
+}
+
 pub struct FmtWriter<W: std::fmt::Write> {
     writer: W,
     first_write: bool,

@@ -47,6 +47,14 @@ pub enum ColorKind {
     #[default]
     Default,
 }
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub enum StyleKind {
+    #[default]
+    None,
+    Place,
+    Clear,
+    Both,
+}
 
 impl Graphics {
     #[inline]

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    graphics::ColorKind,
+    graphics::{ColorKind, StyleKind},
     write::{AnsiWriter, FmtWriter},
 };
 use StyleKind::*;
@@ -25,14 +25,6 @@ pub struct InlineGraphics {
     pub strikethrough: StyleKind,
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub enum StyleKind {
-    #[default]
-    None,
-    Place,
-    Clear,
-    Both
-}
 impl StyleKind {
     pub fn is_none(&self) -> bool {
         *self == None

@@ -53,7 +53,7 @@ impl AnsiString {
             Cyan => writer.write_code(36)?,
             White => writer.write_code(37)?,
             EightBit(n) => writer.write_multiple(&[38, 2, n])?,
-            Rgb(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
+            RGB(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
             Default => writer.write_code(39)?,
             ColorKind::None => (),
         }
@@ -67,7 +67,7 @@ impl AnsiString {
             Cyan => writer.write_code(46)?,
             White => writer.write_code(47)?,
             EightBit(n) => writer.write_multiple(&[48, 2, n])?,
-            Rgb(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
+            RGB(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
             Default => writer.write_code(49)?,
             ColorKind::None => (),
         }
@@ -139,6 +139,16 @@ impl AnsiString {
             _ => Ok(()),
         }
     }
+    /// Checks if any ANSI codes should be written
+    ///
+    /// Is used to prevent an empty ANSI sequence, `\x1b[m`, which
+    /// would be interpreted by most terminals as `\x1b[0m`, resetting
+    /// all.
+    ///
+    /// # Returns
+    ///
+    /// true if there are no ANSI codes to write, else false
+    ///
     #[must_use]
     pub fn no_places(&self) -> bool {
         self.custom_places.is_empty()
@@ -154,7 +164,16 @@ impl AnsiString {
             && self.hidden == StyleKind::None
             && self.strikethrough == StyleKind::None
     }
-
+    /// Checks if any ANSI codes should be written
+    ///
+    /// Is used to prevent an empty ANSI sequence, `\x1b[m`, which
+    /// would be interpreted by most terminals as `\x1b[0m`, resetting
+    /// all.
+    ///
+    /// # Returns
+    ///
+    /// true if there are no ANSI codes to write, else false
+    ///
     #[must_use]
     pub fn no_clears(&self) -> bool {
         self.clear == ClearKind::Skip
@@ -175,7 +194,7 @@ impl AnsiString {
 
 /// A set of methods to turn a type into [`AnsiString`]
 ///
-/// All types that implement `Into<AnsiString>` implement this aswell through
+/// All types that implement `Into<AnsiString>` implement this as well through
 /// the blanket implmentation:
 ///
 /// ```ignore
@@ -190,8 +209,7 @@ pub trait ToAnsiString: Into<AnsiString> {
     ///```
     #[must_use]
     #[inline(always)]
-    fn to_ansi_string(self) -> AnsiString
-    {
+    fn to_ansi_string(self) -> AnsiString {
         self.into()
     }
     #[must_use]
@@ -335,6 +353,6 @@ pub enum ColorKind {
     Cyan,
     White,
     EightBit(u8),
-    Rgb(u8, u8, u8),
+    RGB(u8, u8, u8),
     Default,
 }

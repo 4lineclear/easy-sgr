@@ -12,7 +12,7 @@ use super::{AnsiString, ColorKind, StyleKind, ToAnsiString};
 /// ```ignore
 /// self.into().<graphic>(<graphic>)
 /// ```
-/// Where <graphic> is a type of ANSI graphics code such as [`Style`] or [`Color`]
+/// Where `<graphic>` is a type of ANSI graphics code such as [`Style`] or [`Color`]
 pub trait InlineAnsi: Sized + Display + Into<AnsiString> + ToAnsiString {
     /// Sets the plaintext of the returned [`AnsiString`]  
     #[must_use]
@@ -118,8 +118,8 @@ impl InlineAnsi for AnsiString {
             FgMagenta => self.foreground = Magenta,
             FgCyan => self.foreground = Cyan,
             FgWhite => self.foreground = White,
-            FgEightBit(n) => self.foreground = EightBit(n),
-            FgRgb(r, g, b) => self.foreground = Rgb(r, g, b),
+            Fg8Bit(n) => self.foreground = EightBit(n),
+            FgRGB(r, g, b) => self.foreground = RGB(r, g, b),
             FgDefault => self.foreground = Default,
 
             BgBlack => self.background = Black,
@@ -130,8 +130,8 @@ impl InlineAnsi for AnsiString {
             BgMagenta => self.background = Magenta,
             BgCyan => self.background = Cyan,
             BgWhite => self.background = White,
-            BgEightBit(n) => self.background = EightBit(n),
-            BgRgb(r, g, b) => self.background = Rgb(r, g, b),
+            Bg8Bit(n) => self.background = EightBit(n),
+            BgRGB(r, g, b) => self.background = RGB(r, g, b),
             BgDefault => self.background = Default,
         }
         self
@@ -246,11 +246,11 @@ pub enum Color {
     /// Represents the ANSI codes `38;2;<n>`
     ///
     /// Where `<n>` is specified in use
-    FgEightBit(u8),
+    Fg8Bit(u8),
     /// Represents the ANSI codes `38;2;<n1>;<n2>;<n3>`
     ///
     /// Where `<n1>`,`<n2>`,`<n3>` are specified in use
-    FgRgb(u8, u8, u8),
+    FgRGB(u8, u8, u8),
     /// Represents the ANSI code `39`
     FgDefault,
 
@@ -273,11 +273,11 @@ pub enum Color {
     /// Represents the ANSI codes `48;2;<n>`
     ///
     /// Where `<n>` is specified in use
-    BgEightBit(u8),
+    Bg8Bit(u8),
     /// Represents the ANSI codes `38;2;<n1>;<n2>;<n3>`
     ///
     /// Where `<n1>`,`<n2>`,`<n3>` are specified in use
-    BgRgb(u8, u8, u8),
+    BgRGB(u8, u8, u8),
     /// Represents the ANSI code `49`
     BgDefault,
 }
@@ -303,8 +303,8 @@ impl InlineAnsi for Color {
             FgMagenta => writer.write_code(35),
             FgCyan => writer.write_code(36),
             FgWhite => writer.write_code(37),
-            FgEightBit(n) => writer.write_multiple(&[38, 2, *n]),
-            FgRgb(r, g, b) => writer.write_multiple(&[38, 5, *r, *g, *b]),
+            Fg8Bit(n) => writer.write_multiple(&[38, 2, *n]),
+            FgRGB(r, g, b) => writer.write_multiple(&[38, 5, *r, *g, *b]),
             FgDefault => writer.write_code(39),
 
             BgBlack => writer.write_code(40),
@@ -315,8 +315,8 @@ impl InlineAnsi for Color {
             BgMagenta => writer.write_code(45),
             BgCyan => writer.write_code(46),
             BgWhite => writer.write_code(47),
-            BgEightBit(n) => writer.write_multiple(&[48, 2, *n]),
-            BgRgb(r, g, b) => writer.write_multiple(&[48, 5, *r, *g, *b]),
+            Bg8Bit(n) => writer.write_multiple(&[48, 2, *n]),
+            BgRGB(r, g, b) => writer.write_multiple(&[48, 5, *r, *g, *b]),
             BgDefault => writer.write_code(49),
         }
     }

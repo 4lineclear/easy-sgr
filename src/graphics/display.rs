@@ -23,10 +23,22 @@ pub trait InlineAnsi: Sized + Display + Into<AnsiString> + ToAnsiString {
     fn custom(self, code: impl Into<u8>) -> AnsiString {
         self.into().custom(code)
     }
-
+    // TODO link 'Escapes' and 'ends'
+    /// Writes a set of ansi codes to given [`AnsiWriter`]
+    /// 
+    /// Escapes and ends the sequence
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing to the given write fails
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: AnsiWriter;
+    /// Writes to the given [`Formatter`](std::fmt::Formatter) the ANSI sequence
+    ///
+    /// # Errors
+    ///
+    /// Return an error if writing to the [`Formatter`](std::fmt::Formatter) fails
     fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = FmtWriter::new(f);
         fmt.escape()?;
@@ -231,7 +243,6 @@ impl InlineAnsi for Color {
         W: AnsiWriter,
     {
         use Color::*;
-
         match self {
             FgBlack => writer.write_code(30),
             FgRed => writer.write_code(31),

@@ -25,6 +25,11 @@ pub struct AnsiString {
 }
 
 impl AnsiString {
+    /// Writes the contained ANSI codes to the given [`AnsiWriter`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
     pub fn place<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: AnsiWriter,
@@ -83,7 +88,13 @@ impl AnsiString {
         writer.write_multiple(&self.custom_places)?;
         writer.end()
     }
-
+    /// Writes the contained ANSI codes to the given [`AnsiWriter`]
+    ///
+    /// Reverses the effects of [`AnsiString::place`], depending on [`AnsiString.clear`]
+    /// 
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
     pub fn clean<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: AnsiWriter,
@@ -125,6 +136,7 @@ impl AnsiString {
             _ => Ok(()),
         }
     }
+    #[must_use]
     pub fn no_places(&self) -> bool {
         self.custom_places.is_empty()
             && self.foreground == ColorKind::None
@@ -140,6 +152,7 @@ impl AnsiString {
             && self.strikethrough == StyleKind::None
     }
 
+    #[must_use]
     pub fn no_clears(&self) -> bool {
         self.clear == ClearKind::Skip
             || (self.custom_cleans.is_empty()

@@ -91,14 +91,14 @@ pub trait AnsiWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error>;
     /// Writes a str to the inner writer
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn write_inner<'a>(&mut self, string: impl Into<&'a str>) -> Result<(), Self::Error>;
     /// Writes the ansi sequence starting characters '\x1b['
     ///
@@ -107,7 +107,7 @@ pub trait AnsiWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn escape(&mut self) -> Result<(), Self::Error> {
         self.write_inner("\x1b[")
     }
@@ -118,16 +118,16 @@ pub trait AnsiWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn end(&mut self) -> Result<(), Self::Error> {
         self.write_inner("m")
     }
-    /// Writes a set of codes throught calling [`AnsiWrite::write_code`]
+    /// Writes a set of codes throught calling [`AnsiWriter::write_code`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn write_multiple(&mut self, codes: &[u8]) -> Result<(), Self::Error> {
         codes.iter().try_for_each(|code| self.write_code(*code))
     }
@@ -136,7 +136,7 @@ pub trait AnsiWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn place_ansi(&mut self, ansi: &AnsiString) -> Result<(), Self::Error> {
         ansi.place(self)
     }
@@ -147,7 +147,7 @@ pub trait AnsiWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn clean_ansi(&mut self, ansi: &AnsiString) -> Result<(), Self::Error> {
         ansi.clean(self)
     }
@@ -156,7 +156,7 @@ pub trait AnsiWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::error`]
+    /// Error type specified by [`AnsiWriter::Error`]
     fn inline_ansi(&mut self, ansi: &impl InlineAnsi) -> Result<(), Self::Error> {
         ansi.write(self)
     }

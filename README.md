@@ -14,4 +14,4 @@ Still under works.
     - [ ] Add examples to docs
 - [ ] Parser
 - [ ] Macros
-- [ ] Add BufWriter to [writing module](src/writing.rs)
+- [x] Add BufWriter to [writing module](src/writing.rs)

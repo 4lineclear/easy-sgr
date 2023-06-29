@@ -1,11 +1,12 @@
 use crate::graphics::{display::InlineAnsi, AnsiString};
 
+/// [`AnsiWriter`] for [`std::fmt::Write`]
 pub struct FmtWriter<W: std::fmt::Write> {
     writer: W,
     first_write: bool,
 }
-
 impl<W: std::fmt::Write> FmtWriter<W> {
+    /// Creates a writer with the given [`std::fmt::Write`]
     pub fn new(writer: W) -> Self {
         Self {
             writer,
@@ -39,13 +40,13 @@ impl<W: std::fmt::Write> AnsiWriter for FmtWriter<W> {
         self.writer.write_str(string.into())
     }
 }
-
+/// [`AnsiWriter`] for [`std::io::Write`]
 pub struct IoWriter<W: std::io::Write> {
     writer: W,
     first_write: bool,
 }
-
 impl<W: std::io::Write> IoWriter<W> {
+    /// Creates a writer with the given [`std::io::Write`]
     pub fn new(writer: W) -> Self {
         Self {
             writer,
@@ -63,7 +64,6 @@ impl<W: std::io::Write> std::io::Write for IoWriter<W> {
         self.writer.flush()
     }
 }
-
 impl<W: std::io::Write> AnsiWriter for IoWriter<W> {
     type Error = std::io::Error;
 
@@ -80,7 +80,9 @@ impl<W: std::io::Write> AnsiWriter for IoWriter<W> {
         self.writer.write_all(string.into().as_bytes())
     }
 }
-
+/// A writer built with ANSI code integration
+///
+/// Provides a set of functions to make writing ANSI codes easier
 pub trait AnsiWriter: Sized /*W*/ {
     /// The type of error returned by trait methods
     ///

@@ -1,7 +1,10 @@
+use std::ops::Deref;
+
 use crate::writing::AnsiWriter;
 
 pub mod display;
 
+/// A String with added ANSI codes
 #[derive(Default, Debug)]
 pub struct AnsiString {
     pub text: String,
@@ -90,8 +93,8 @@ impl AnsiString {
     }
     /// Writes the contained ANSI codes to the given [`AnsiWriter`]
     ///
-    /// Reverses the effects of [`AnsiString::place`], depending on [`AnsiString.clear`]
-    /// 
+    /// Reverses the effects of [`AnsiString::place`], depending on [`clear`](#structfield.clear)
+    ///
     /// # Errors
     ///
     /// Returns an error if writing fails
@@ -170,8 +173,27 @@ impl AnsiString {
     }
 }
 
+/// A set of methods to turn a type into [`AnsiString`]
+///
+/// All types that implement `Into<AnsiString>` implement this aswell through
+/// the blanket implmentation:
+///
+/// ```ignore
+/// impl<I: Into<AnsiString>> ToAnsiString for I {}
+/// ```
 pub trait ToAnsiString: Into<AnsiString> {
-    fn to_ansi_string(self) -> AnsiString;
+    /// Turns self into [`AnsiString`]
+    ///
+    /// Equivalant to calling
+    ///```ignore
+    /// Into::<AnsiString>::into(self)
+    ///```
+    #[must_use]
+    #[inline(always)]
+    fn to_ansi_string(self) -> AnsiString
+    {
+        self.into()
+    }
     #[must_use]
     fn clear(self, clear: impl Into<ClearKind>) -> AnsiString {
         let mut this = self.into();
@@ -258,11 +280,7 @@ pub trait ToAnsiString: Into<AnsiString> {
     }
 }
 
-impl<I: Into<AnsiString>> ToAnsiString for I {
-    fn to_ansi_string(self) -> AnsiString {
-        self.into()
-    }
-}
+impl<I: Into<AnsiString>> ToAnsiString for I {}
 
 impl From<&str> for AnsiString {
     fn from(value: &str) -> Self {

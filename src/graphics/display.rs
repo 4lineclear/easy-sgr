@@ -6,26 +6,37 @@ use crate::writing::{AnsiWriter, FmtWriter};
 
 use super::{AnsiString, ColorKind, StyleKind, ToAnsiString};
 
+/// Allows for chaining types that implement it
+///
+/// Works by calling
+/// ```ignore
+/// self.into().<graphic>(<graphic>)
+/// ```
+/// Where <graphic> is a type of ANSI graphics code such as [`Style`] or [`Color`]
 pub trait InlineAnsi: Sized + Display + Into<AnsiString> + ToAnsiString {
+    /// Sets the plaintext of the returned [`AnsiString`]  
     #[must_use]
     fn text(self, text: impl Into<String>) -> AnsiString {
         self.into().text(text)
     }
+    /// Adds a style to the returned [`AnsiString`]  
     #[must_use]
     fn style(self, style: impl Into<Style>) -> AnsiString {
         self.into().style(style)
     }
+    /// Adds a color(foreground or background) to the returned [`AnsiString`]  
     #[must_use]
     fn color(self, color: impl Into<Color>) -> AnsiString {
         self.into().color(color)
     }
+    /// Adds a custom code to the returned [`AnsiString`]  
     #[must_use]
     fn custom(self, code: impl Into<u8>) -> AnsiString {
         self.into().custom(code)
     }
     // TODO link 'Escapes' and 'ends'
-    /// Writes a set of ansi codes to given [`AnsiWriter`]
-    /// 
+    /// Writes a set of ansi codes to the given [`AnsiWriter`]
+    ///
     /// Escapes and ends the sequence
     ///
     /// # Errors
@@ -84,8 +95,7 @@ impl InlineAnsi for AnsiString {
             Hidden => self.hidden = Place,
             Strikethrough => self.strikethrough = Place,
 
-            ClearBold => self.bold = Clear,
-            ClearDim => self.dim = Clear,
+            ClearBoldDim => self.bold = Clear,
             ClearItalic => self.italic = Clear,
             ClearUnderline => self.underline = Clear,
             ClearBlinking => self.blinking = Clear,
@@ -148,26 +158,43 @@ impl InlineAnsi for AnsiString {
     }
 }
 
+/// A set of ANSI code sequences
 #[derive(Debug, Clone)]
 pub enum Style {
-    Reset,
-    Bold,
-    Dim,
-    Italic,
-    Underline,
-    Blinking,
-    Inverse,
-    Hidden,
-    Strikethrough,
-
-    ClearBold,
-    ClearDim,
-    ClearItalic,
-    ClearUnderline,
-    ClearBlinking,
-    ClearInverse,
-    ClearHidden,
-    ClearStrikethrough,
+    /// Represents the ANSI code `0`
+    Reset = 0,
+    /// Represents the ANSI code `1`
+    Bold = 1,
+    /// Represents the ANSI code `2`
+    Dim = 2,
+    /// Represents the ANSI code `3`
+    Italic = 3,
+    /// Represents the ANSI code `4`
+    Underline = 4,
+    /// Represents the ANSI code `5`
+    Blinking = 5,
+    /// Represents the ANSI code `7`
+    Inverse = 7,
+    /// Represents the ANSI code `8`
+    Hidden = 8,
+    /// Represents the ANSI code `9`
+    Strikethrough = 9,
+    /// Represents the ANSI code `2`
+    ///
+    /// Works for either Bold and Dim(for most terminals)
+    ClearBoldDim = 22,
+    /// Represents the ANSI code `3`
+    ClearItalic = 23,
+    /// Represents the ANSI code `4`
+    ClearUnderline = 24,
+    /// Represents the ANSI code `5`
+    ClearBlinking = 25,
+    /// Represents the ANSI code `7`
+    ClearInverse = 27,
+    /// Represents the ANSI code `8`
+    ClearHidden = 28,
+    /// Represents the ANSI code `9`
+    ClearStrikethrough = 29,
 }
 
 impl Display for Style {
@@ -177,57 +204,81 @@ impl Display for Style {
 }
 
 impl InlineAnsi for Style {
+    /// Writes a set of ansi codes to given [`AnsiWriter`]
+    ///
+    /// Escapes and ends the sequence
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing to the given write fails
+    ///
+    /// # Safety
+    ///
+    /// Uses unsafe pointer casting to reliably access the discriminant
+    /// See [here](https://doc.rust-lang.org/reference/items/enumerations.html#pointer-casting)
+    ///
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: AnsiWriter,
     {
-        use Style::*;
-        writer.write_code(match self {
-            Reset => 0,
-            Bold => 1,
-            Dim => 2,
-            Italic => 3,
-            Underline => 4,
-            Blinking => 5,
-            Inverse => 7,
-            Hidden => 8,
-            Strikethrough => 9,
-
-            ClearBold | ClearDim => 22,
-            ClearItalic => 23,
-            ClearUnderline => 24,
-            ClearBlinking => 25,
-            ClearInverse => 27,
-            ClearHidden => 28,
-            ClearStrikethrough => 29,
-        })
+        writer.write_code(unsafe { *(self as *const Self as *const u8) })
     }
 }
-
+/// A ANSI color code
 #[derive(Debug, Clone)]
 pub enum Color {
+    /// Represents the ANSI code `30`
     FgBlack,
+    /// Represents the ANSI code `31`
     FgRed,
+    /// Represents the ANSI code `32`
     FgGreen,
+    /// Represents the ANSI code `33`
     FgYellow,
+    /// Represents the ANSI code `34`
     FgBlue,
+    /// Represents the ANSI code `35`
     FgMagenta,
+    /// Represents the ANSI code `36`
     FgCyan,
+    /// Represents the ANSI code `37`
     FgWhite,
+    /// Represents the ANSI codes `38;2;<n>`
+    ///
+    /// Where `<n>` is specified in use
     FgEightBit(u8),
+    /// Represents the ANSI codes `38;2;<n1>;<n2>;<n3>`
+    ///
+    /// Where `<n1>`,`<n2>`,`<n3>` are specified in use
     FgRgb(u8, u8, u8),
+    /// Represents the ANSI code `39`
     FgDefault,
 
+    /// Represents the ANSI code `40`
     BgBlack,
+    /// Represents the ANSI code `41`
     BgRed,
+    /// Represents the ANSI code `42`
     BgGreen,
+    /// Represents the ANSI code `43`
     BgYellow,
+    /// Represents the ANSI code `44`
     BgBlue,
+    /// Represents the ANSI code `45`
     BgMagenta,
+    /// Represents the ANSI code `46`
     BgCyan,
+    /// Represents the ANSI code `47`
     BgWhite,
+    /// Represents the ANSI codes `48;2;<n>`
+    ///
+    /// Where `<n>` is specified in use
     BgEightBit(u8),
+    /// Represents the ANSI codes `38;2;<n1>;<n2>;<n3>`
+    ///
+    /// Where `<n1>`,`<n2>`,`<n3>` are specified in use
     BgRgb(u8, u8, u8),
+    /// Represents the ANSI code `49`
     BgDefault,
 }
 

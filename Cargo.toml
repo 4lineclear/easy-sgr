@@ -1,15 +1,15 @@
 [package]
-name = "easy-ansi"
-version = "0.0.1"
+name = "flc-easy-sgr"
+version = "0.0.0"
 authors = ["Tamim Hakimi <tamimhakimi21@gmail.com>"]
-description = "A (hopefully) easy to use Ansi library"
+description = "A (hopefully) easy to use Select Graphics Rendition(SGR) library"
 edition = "2021"
-homepage = "https://github.com/4lineclear/ansi-graphics/tree/master"
-repository = "https://github.com/4lineclear/ansi-graphics/tree/master"
+homepage = "https://github.com/4lineclear/easy-sgr/tree/master"
+repository = "https://github.com/4lineclear/easy-sgr/tree/master"
 readme = "README.md"
 license = "MIT"
 categories = ["command-line-interface"]
-keywords = ["ansi", "cli", "color", "terminal", "text"]
+keywords = ["SGR", "cli", "color", "terminal", "text"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -1,11 +1,11 @@
 use std::io::{BufWriter, Write};
 
-use crate::graphics::{display::InlineAnsi, AnsiString};
+use crate::graphics::{inline::InlineSGR, SGRString};
 
-/// A writer built with ANSI code integration
+/// A writer built with SGR code integration
 ///
-/// Provides a set of functions to make writing ANSI codes easier
-pub trait AnsiWriter: Sized /*W*/ {
+/// Provides a set of functions to make writing SGR codes easier
+pub trait SGRWriter: Sized /*W*/ {
     /// The type of error returned by trait methods
     ///
     /// Will typically be [`std::io::Error`] or [`std::fmt::Error`]
@@ -15,77 +15,78 @@ pub trait AnsiWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
+    /// Error type specified by [`SGRWriter::Error`]
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error>;
     /// Writes a str to the inner writer
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
+    /// Error type specified by [`SGRWriter::Error`]
     fn write_inner<'a>(&mut self, string: impl Into<&'a str>) -> Result<(), Self::Error>;
-    /// Writes the ansi sequence starting characters '\x1b['
+    /// Writes the SGR sequence starting characters '\x1b['
     ///
-    /// Uses [`AnsiWriter::write_inner`]
+    /// Uses [`SGRWriter::write_inner`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
+    /// Error type specified by [`SGRWriter::Error`]
     fn escape(&mut self) -> Result<(), Self::Error> {
         self.write_inner("\x1b[")
     }
-    /// Writes the ansi sequence ending character 'm'
+    /// Writes the SGR sequence ending character 'm'
     ///
-    /// Uses [`AnsiWriter::write_inner`]
+    /// Uses [`SGRWriter::write_inner`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
+    /// Error type specified by [`SGRWriter::Error`]
     fn end(&mut self) -> Result<(), Self::Error> {
         self.write_inner("m")
     }
-    /// Writes a set of codes throught calling [`AnsiWriter::write_code`]
+    /// Writes a set of codes throught calling [`SGRWriter::write_code`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
+    /// Error type specified by [`SGRWriter::Error`]
     fn write_multiple(&mut self, codes: &[u8]) -> Result<(), Self::Error> {
         codes.iter().try_for_each(|code| self.write_code(*code))
     }
-    /// Writes the contained ANSI codes to the writer through calling [`AnsiString::place`]
+    /// Writes the contained SGR codes to the writer through calling [`SGRString::place`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
-    fn place_ansi(&mut self, ansi: &AnsiString) -> Result<(), Self::Error> {
-        ansi.place(self)
+    /// Error type specified by [`SGRWriter::Error`]
+    fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
+        sgr.place(self)
     }
-    /// Writes the contained ANSI codes to the writer through calling [`AnsiString::clean`]
+    /// Writes the contained SGR codes to the writer through calling [`SGRString::clean`]
     ///
-    /// Supposed to reverse the effects made by [`AnsiString::place`]
+    /// Supposed to reverse the effects made by [`SGRString::place`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
-    fn clean_ansi(&mut self, ansi: &AnsiString) -> Result<(), Self::Error> {
-        ansi.clean(self)
+    /// Error type specified by [`SGRWriter::Error`]
+    fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
+        sgr.clean(self)
     }
-    /// Writes the contained ANSI codes to the writer throught calling [`InlineAnsi::write`]
+    /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`AnsiWriter::Error`]
-    fn inline_ansi(&mut self, ansi: &impl InlineAnsi) -> Result<(), Self::Error> {
-        ansi.write(self)
+    /// Error type specified by [`SGRWriter::Error`]
+    fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), Self::Error> {
+        sgr.write(self)
     }
 }
-/// [`AnsiWriter`] for [`std::fmt::Write`]
+/// [`SGRWriter`] for [`std::fmt::Write`]
+#[derive(Debug)]
 pub struct FmtWriter<W: std::fmt::Write> {
     /// The internal writer
     pub writer: W,
@@ -105,7 +106,7 @@ impl<W: std::fmt::Write> std::fmt::Write for FmtWriter<W> {
         self.writer.write_str(s)
     }
 }
-impl<W: std::fmt::Write> AnsiWriter for FmtWriter<W> {
+impl<W: std::fmt::Write> SGRWriter for FmtWriter<W> {
     type Error = std::fmt::Error;
 
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error>
@@ -124,7 +125,8 @@ impl<W: std::fmt::Write> AnsiWriter for FmtWriter<W> {
         self.writer.write_str(string.into())
     }
 }
-/// [`AnsiWriter`] for [`std::io::Write`]
+/// [`SGRWriter`] for [`std::io::Write`]
+#[derive(Debug)]
 pub struct IoWriter<W: std::io::Write> {
     /// The internal writer
     pub writer: W,
@@ -148,7 +150,7 @@ impl<W: std::io::Write> std::io::Write for IoWriter<W> {
         self.writer.flush()
     }
 }
-impl<W: std::io::Write> AnsiWriter for IoWriter<W> {
+impl<W: std::io::Write> SGRWriter for IoWriter<W> {
     type Error = std::io::Error;
 
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error> {
@@ -164,13 +166,14 @@ impl<W: std::io::Write> AnsiWriter for IoWriter<W> {
         self.writer.write_all(string.into().as_bytes())
     }
 }
-/// A [`BufWriter`] implementation with [`AnsiWriter`] functionality
-pub struct AnsiBufWriter<W: std::io::Write> {
+/// A [`BufWriter`] implementation with [`SGRWriter`] functionality
+#[derive(Debug)]
+pub struct SGRBufWriter<W: std::io::Write> {
     /// The internal writer
     pub writer: BufWriter<W>,
     first_write: bool,
 }
-impl<W: std::io::Write> std::io::Write for AnsiBufWriter<W> {
+impl<W: std::io::Write> std::io::Write for SGRBufWriter<W> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.writer.write(buf)
     }
@@ -179,7 +182,7 @@ impl<W: std::io::Write> std::io::Write for AnsiBufWriter<W> {
         self.writer.flush()
     }
 }
-impl<W: std::io::Write> AnsiWriter for AnsiBufWriter<W> {
+impl<W: std::io::Write> SGRWriter for SGRBufWriter<W> {
     type Error = std::io::Error;
 
     fn write_code(&mut self, code: u8) -> Result<(), Self::Error> {

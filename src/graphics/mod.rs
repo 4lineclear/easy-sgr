@@ -1,41 +1,81 @@
-use std::ops::Deref;
+use std::fmt::{Display, Write};
 
-use crate::writing::AnsiWriter;
+use crate::writing::{FmtWriter, SGRWriter};
 
-pub mod display;
+use self::inline::{Color, Style};
 
-/// A String with added ANSI codes
+/// Implements whats supposed to be used inline of a string literal
+pub mod inline;
+
+/// A String encapsulating SGR codes
+///
+/// SGR codes are applied when the [`Display`] trait is used,
+/// or when the [`SGRString::place`] or [`SGRString::clean`]
+/// functions are called.
 #[derive(Default, Debug)]
-pub struct AnsiString {
+pub struct SGRString {
+    /// The actual text
     pub text: String,
+    /// The type of clean to apply after the string
+    ///
+    /// By default [`ClearKind::None`], meaning nothing is done
     pub clear: ClearKind,
 
+    /// Any custom codes added
+    ///
+    /// These codes are written before the string when
+    /// the [`Display`] trait is called
     pub custom_places: Vec<u8>,
+    /// Any custom codes added
+    ///
+    /// These codes are written after the string when
+    /// the [`Display`] trait is called
     pub custom_cleans: Vec<u8>,
 
+    /// The color of the foreground
+    ///
+    /// By default [`ColorKind::None`], meaning nothing is applied.
+    /// This differs from [`ColorKind::Default`], where the default SGR
+    /// code for foreground is applied.
     pub foreground: ColorKind,
+    /// The color of the background
+    ///
+    /// By default [`ColorKind::None`], meaning nothing is applied.
+    /// This differs from [`ColorKind::Default`], where the default SGR
+    /// code for background is applied.
     pub background: ColorKind,
 
-    pub reset: StyleKind,
+    /// Determines whether the clear code `0` is to be applied to the beggining
+    ///
+    /// Not be confused with [`SGRString.clear`], this only has effect on [`SGRString::place`]
+    pub reset: bool,
+    /// Refer to [`StyleKind`]
     pub bold: StyleKind,
+    /// Refer to [`StyleKind`]
     pub dim: StyleKind,
+    /// Refer to [`StyleKind`]
     pub italic: StyleKind,
+    /// Refer to [`StyleKind`]
     pub underline: StyleKind,
+    /// Refer to [`StyleKind`]
     pub blinking: StyleKind,
+    /// Refer to [`StyleKind`]
     pub inverse: StyleKind,
+    /// Refer to [`StyleKind`]
     pub hidden: StyleKind,
+    /// Refer to [`StyleKind`]
     pub strikethrough: StyleKind,
 }
 
-impl AnsiString {
-    /// Writes the contained ANSI codes to the given [`AnsiWriter`]
+impl SGRString {
+    /// Writes the contained SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
     pub fn place<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: AnsiWriter,
+        W: SGRWriter,
     {
         use ColorKind::*;
         use StyleKind::*;
@@ -52,8 +92,8 @@ impl AnsiString {
             Magenta => writer.write_code(35)?,
             Cyan => writer.write_code(36)?,
             White => writer.write_code(37)?,
-            EightBit(n) => writer.write_multiple(&[38, 2, n])?,
-            RGB(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
+            Byte(n) => writer.write_multiple(&[38, 2, n])?,
+            Rgb(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
             Default => writer.write_code(39)?,
             ColorKind::None => (),
         }
@@ -66,12 +106,14 @@ impl AnsiString {
             Magenta => writer.write_code(45)?,
             Cyan => writer.write_code(46)?,
             White => writer.write_code(47)?,
-            EightBit(n) => writer.write_multiple(&[48, 2, n])?,
-            RGB(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
+            Byte(n) => writer.write_multiple(&[48, 2, n])?,
+            Rgb(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
             Default => writer.write_code(49)?,
             ColorKind::None => (),
         }
-
+        if self.reset {
+            writer.write_code(0)?;
+        }
         for (kind, place, clear) in [
             (&self.bold, 1, 22),
             (&self.dim, 2, 22),
@@ -85,22 +127,22 @@ impl AnsiString {
             match kind {
                 StyleKind::None => (),
                 Place => writer.write_code(place)?,
-                Clear => writer.write_code(clear)?,
+                Clean => writer.write_code(clear)?,
             }
         }
         writer.write_multiple(&self.custom_places)?;
         writer.end()
     }
-    /// Writes the contained ANSI codes to the given [`AnsiWriter`]
+    /// Writes the contained SGR codes to the given [`SGRWriter`]
     ///
-    /// Reverses the effects of [`AnsiString::place`], depending on [`clear`](#structfield.clear)
+    /// Reverses the effects of [`SGRString::place`], depending on [`clear`](#structfield.clear)
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
     pub fn clean<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: AnsiWriter,
+        W: SGRWriter,
     {
         match self.clear {
             ClearKind::Full => {
@@ -130,7 +172,7 @@ impl AnsiString {
                     match kind {
                         StyleKind::None => (),
                         StyleKind::Place => writer.write_code(place)?,
-                        StyleKind::Clear => writer.write_code(clear)?,
+                        StyleKind::Clean => writer.write_code(clear)?,
                     }
                 }
                 writer.write_multiple(&self.custom_cleans)?;
@@ -139,22 +181,22 @@ impl AnsiString {
             _ => Ok(()),
         }
     }
-    /// Checks if any ANSI codes should be written
+    /// Checks if any SGR codes should be written
     ///
-    /// Is used to prevent an empty ANSI sequence, `\x1b[m`, which
+    /// Is used to prevent an empty SGR sequence, `\x1b[m`, which
     /// would be interpreted by most terminals as `\x1b[0m`, resetting
     /// all.
     ///
     /// # Returns
     ///
-    /// true if there are no ANSI codes to write, else false
+    /// true if there are no SGR codes to write, else false
     ///
     #[must_use]
     pub fn no_places(&self) -> bool {
         self.custom_places.is_empty()
             && self.foreground == ColorKind::None
             && self.background == ColorKind::None
-            && self.reset == StyleKind::None
+            && !self.reset
             && self.bold == StyleKind::None
             && self.dim == StyleKind::None
             && self.italic == StyleKind::None
@@ -164,23 +206,22 @@ impl AnsiString {
             && self.hidden == StyleKind::None
             && self.strikethrough == StyleKind::None
     }
-    /// Checks if any ANSI codes should be written
+    /// Checks if any SGR codes should be written
     ///
-    /// Is used to prevent an empty ANSI sequence, `\x1b[m`, which
+    /// Is used to prevent an empty SGR sequence, `\x1b[m`, which
     /// would be interpreted by most terminals as `\x1b[0m`, resetting
     /// all.
     ///
     /// # Returns
     ///
-    /// true if there are no ANSI codes to write, else false
+    /// true if there are no SGR codes to write, else false
     ///
     #[must_use]
     pub fn no_clears(&self) -> bool {
-        self.clear == ClearKind::Skip
+        self.clear == ClearKind::None
             || (self.custom_cleans.is_empty()
                 && self.foreground == ColorKind::None
                 && self.background == ColorKind::None
-                && self.reset == StyleKind::None
                 && self.bold == StyleKind::None
                 && self.dim == StyleKind::None
                 && self.italic == StyleKind::None
@@ -191,116 +232,17 @@ impl AnsiString {
                 && self.strikethrough == StyleKind::None)
     }
 }
-
-/// A set of methods to turn a type into [`AnsiString`]
-///
-/// All types that implement `Into<AnsiString>` implement this as well through
-/// the blanket implmentation:
-///
-/// ```ignore
-/// impl<I: Into<AnsiString>> ToAnsiString for I {}
-/// ```
-pub trait ToAnsiString: Into<AnsiString> {
-    /// Turns self into [`AnsiString`]
-    ///
-    /// Equivalant to calling
-    ///```ignore
-    /// Into::<AnsiString>::into(self)
-    ///```
-    #[must_use]
-    #[inline(always)]
-    fn to_ansi_string(self) -> AnsiString {
-        self.into()
-    }
-    #[must_use]
-    fn clear(self, clear: impl Into<ClearKind>) -> AnsiString {
-        let mut this = self.into();
-        this.clear = clear.into();
-        this
-    }
-    #[must_use]
-    fn custom_place(self, code: impl Into<u8>) -> AnsiString {
-        let mut this = self.into();
-        this.custom_places.push(code.into());
-        this
-    }
-    #[must_use]
-    fn custom_clean(self, code: impl Into<u8>) -> AnsiString {
-        let mut this = self.into();
-        this.custom_cleans.push(code.into());
-        this
-    }
-    #[must_use]
-    fn foreground(self, color: impl Into<ColorKind>) -> AnsiString {
-        let mut this = self.into();
-        this.foreground = color.into();
-        this
-    }
-    #[must_use]
-    fn background(self, color: impl Into<ColorKind>) -> AnsiString {
-        let mut this = self.into();
-        this.background = color.into();
-        this
-    }
-    #[must_use]
-    fn reset(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.reset = style;
-        this
-    }
-    #[must_use]
-    fn bold(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.bold = style;
-        this
-    }
-    #[must_use]
-    fn dim(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.dim = style;
-        this
-    }
-    #[must_use]
-    fn italic(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.italic = style;
-        this
-    }
-    #[must_use]
-    fn underline(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.underline = style;
-        this
-    }
-    #[must_use]
-    fn blinking(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.blinking = style;
-        this
-    }
-    #[must_use]
-    fn inverse(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.inverse = style;
-        this
-    }
-    #[must_use]
-    fn hidden(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.hidden = style;
-        this
-    }
-    #[must_use]
-    fn strikethrough(self, style: StyleKind) -> AnsiString {
-        let mut this = self.into();
-        this.strikethrough = style;
-        this
+impl From<Color> for SGRString {
+    fn from(value: Color) -> Self {
+        Self::default().color(value)
     }
 }
-
-impl<I: Into<AnsiString>> ToAnsiString for I {}
-
-impl From<&str> for AnsiString {
+impl From<Style> for SGRString {
+    fn from(value: Style) -> Self {
+        Self::default().style(value)
+    }
+}
+impl From<&str> for SGRString {
     fn from(value: &str) -> Self {
         Self {
             text: String::from(value),
@@ -308,7 +250,7 @@ impl From<&str> for AnsiString {
         }
     }
 }
-impl From<String> for AnsiString {
+impl From<String> for SGRString {
     fn from(value: String) -> Self {
         Self {
             text: value,
@@ -316,7 +258,7 @@ impl From<String> for AnsiString {
         }
     }
 }
-impl From<&String> for AnsiString {
+impl From<&String> for SGRString {
     fn from(value: &String) -> Self {
         Self {
             text: String::from(value),
@@ -324,24 +266,44 @@ impl From<&String> for AnsiString {
         }
     }
 }
+impl Display for SGRString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut fmt = FmtWriter::new(f);
+        fmt.place_sgr(self)?;
+        fmt.write_str(&self.text)?;
+        fmt.clean_sgr(self)
+    }
+}
 
+/// The type of clear to apply
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum ClearKind {
-    #[default]
-    Skip,
-    Full,
-    Clean,
-}
-#[derive(Debug, Default, PartialEq, Eq)]
-pub enum StyleKind {
+    /// Do nothing
     #[default]
     None,
+    /// Full apply the reset all code
+    Full,
+    /// Applies a reversing effect to everything.
+    /// This is dependant on where its used
+    Clean,
+}
+/// Component of [`SGRString`]; yhe type of style to apply
+#[derive(Debug, Default, PartialEq, Eq)]
+pub enum StyleKind {
+    /// Do nothing
+    #[default]
+    None,
+    /// Apply the style
     Place,
-    Clear,
+    /// Apply what reverses the style
+    Clean,
 }
 
+/// Component of [`SGRString`]; the type of color
 #[derive(Debug, Default, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum ColorKind {
+    /// Does nothing
     #[default]
     None,
     Black,
@@ -352,7 +314,212 @@ pub enum ColorKind {
     Magenta,
     Cyan,
     White,
-    EightBit(u8),
-    RGB(u8, u8, u8),
+    Byte(u8),
+    Rgb(u8, u8, u8),
+    /// Applies the default `SGR` color
     Default,
+}
+
+impl<I: Into<SGRString>> EasySGR for I {}
+/// Allows for chaining types that implement it
+///
+/// Inner workins are:
+/// ```ignore
+/// self.into().<graphic>(<graphic>)
+/// ```
+/// Where `<graphic>` is a type of SGR graphics code such as [`Style`] or [`Color`]
+#[allow(missing_docs)]
+pub trait EasySGR: Into<SGRString> {
+    /// Turns self into [`SGRString`]
+    ///
+    /// Equivalant to calling
+    ///```ignore
+    /// Into::<SGRString>::into(self)
+    ///```
+    #[must_use]
+    #[inline]
+    fn to_sgr(self) -> SGRString {
+        self.into()
+    }
+    /// Sets the plaintext of the returned [`SGRString`]  
+    #[must_use]
+    #[inline]
+    fn text(self, text: impl Into<String>) -> SGRString {
+        SGRString {
+            text: text.into(),
+            ..Default::default()
+        }
+    }
+    /// Adds a style to the returned [`SGRString`]  
+    #[must_use]
+    #[inline]
+    fn style(self, style: impl Into<inline::Style>) -> SGRString {
+        use Style::*;
+        use StyleKind::*;
+
+        let mut this = self.into();
+        match style.into() {
+            Reset => this.reset = true,
+            Bold => this.bold = Place,
+            Dim => this.dim = Place,
+            Italic => this.italic = Place,
+            Underline => this.underline = Place,
+            Blinking => this.blinking = Place,
+            Inverse => this.inverse = Place,
+            Hidden => this.hidden = Place,
+            Strikethrough => this.strikethrough = Place,
+
+            ClearBold => this.bold = Clean,
+            ClearDim => this.dim = Clean,
+            ClearItalic => this.italic = Clean,
+            ClearUnderline => this.underline = Clean,
+            ClearBlinking => this.blinking = Clean,
+            ClearInverse => this.inverse = Clean,
+            ClearHidden => this.hidden = Clean,
+            ClearStrikethrough => this.strikethrough = Clean,
+        }
+        this
+    }
+    /// Adds a color(foreground or background) to the returned [`SGRString`]  
+    #[must_use]
+    #[inline]
+    fn color(self, color: impl Into<inline::Color>) -> SGRString {
+        use {Color::*, ColorKind::*};
+
+        let mut this = self.into();
+        match color.into() {
+            BlackFg => this.foreground = Black,
+            RedFg => this.foreground = Red,
+            GreenFg => this.foreground = Green,
+            YellowFg => this.foreground = Yellow,
+            BlueFg => this.foreground = Blue,
+            MagentaFg => this.foreground = Magenta,
+            CyanFg => this.foreground = Cyan,
+            WhiteFg => this.foreground = White,
+            ByteFg(n) => this.foreground = Byte(n),
+            RgbFg(r, g, b) => this.foreground = Rgb(r, g, b),
+            DefaultFg => this.foreground = Default,
+
+            BlackBg => this.background = Black,
+            RedBg => this.background = Red,
+            GreenBg => this.background = Green,
+            YellowBg => this.background = Yellow,
+            BlueBg => this.background = Blue,
+            MagentaBg => this.background = Magenta,
+            CyanBg => this.background = Cyan,
+            WhiteBg => this.background = White,
+            ByteBg(n) => this.background = Byte(n),
+            RgbBg(r, g, b) => this.background = Rgb(r, g, b),
+            DefaultBg => this.background = Default,
+        }
+        this
+    }
+    /// Adds a custom code to the returned [`SGRString`]
+    ///
+    /// Adds to the [`clear`](SGRString#structfield.custom_places)
+    #[must_use]
+    #[inline]
+    fn custom(self, code: impl Into<u8>) -> SGRString {
+        let mut this = self.into();
+        this.custom_places.push(code.into());
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn clear(self, clear: impl Into<ClearKind>) -> SGRString {
+        let mut this = self.into();
+        this.clear = clear.into();
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn custom_place(self, code: impl Into<u8>) -> SGRString {
+        let mut this = self.into();
+        this.custom_places.push(code.into());
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn custom_clean(self, code: impl Into<u8>) -> SGRString {
+        let mut this = self.into();
+        this.custom_cleans.push(code.into());
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn foreground(self, color: impl Into<ColorKind>) -> SGRString {
+        let mut this = self.into();
+        this.foreground = color.into();
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn background(self, color: impl Into<ColorKind>) -> SGRString {
+        let mut this = self.into();
+        this.background = color.into();
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn reset(self, reset: bool) -> SGRString {
+        let mut this = self.into();
+        this.reset = reset;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn bold(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.bold = style;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn dim(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.dim = style;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn italic(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.italic = style;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn underline(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.underline = style;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn blinking(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.blinking = style;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn inverse(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.inverse = style;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn hidden(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.hidden = style;
+        this
+    }
+    #[must_use]
+    #[inline]
+    fn strikethrough(self, style: StyleKind) -> SGRString {
+        let mut this = self.into();
+        this.strikethrough = style;
+        this
+    }
 }

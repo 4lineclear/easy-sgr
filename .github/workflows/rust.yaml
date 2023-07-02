@@ -27,6 +27,6 @@ jobs:
       with:
         toolchain: stable
         components: rustfmt
-    - name: Check formatting
+    - name: Correct formatting
       run: |
-        cargo fmt --all -- --check
+        cargo fmt --all

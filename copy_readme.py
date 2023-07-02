@@ -7,7 +7,10 @@ with open('./src/lib.rs', 'r') as lib_file:
 
 with open('./src/lib.rs', 'w') as lib_file:
     for line in open('./README.md').readlines()[2:]:
-        lib_file.write(f'//! {line}')
+        if len(line) == 0:
+            lib_file.write(f'//!')
+        else:
+            lib_file.write(f'//! {line}')
 
     for line in lines:
         lib_file.write(line)

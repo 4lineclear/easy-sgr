@@ -179,11 +179,11 @@
 #![warn(missing_debug_implementations)]
 
 /// Contains the standard SGR implementations.
-/// 
+///
 /// Makes use of the [`writers`](writing) to write `SGR` codes to a writer
 pub mod graphics;
 /// Contains various SGR writers, most importantly the [`SGRWriter`](writing::SGRWriter) trait
 pub mod writing;
 
-pub use graphics::*;
 pub use graphics::inline::*;
+pub use graphics::*;

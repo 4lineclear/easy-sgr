@@ -1,5 +1,5 @@
 //! A library for help in using [SGR][SGR] escape sequences.
-//! Its main strength is the number of ways this is done.
+//! Its main strength is the multitude of methods that is provided.
 //! 
 //! This library does not support usage of non [SGR][SGR] ANSI escape sequences
 //! 
@@ -17,7 +17,7 @@
 //! 
 //! The simplest way to color text, using these two `enums` allows you to
 //! work inline of a string literal when using a macro such as
-//! `println!`, `writeln!` or `format!`.
+//! `println!`, `writeln!` or `format!`:
 //! 
 //! ```rust
 //! use flc_easy_sgr::{Color::*, Style::*};
@@ -26,11 +26,16 @@
 //! ```
 //! 
 //! `Color` and `Style` are both `enums` that implement `Display`, meaning when they
-//! are printed a matching [SGR][SGR] code is written. `Reset` is also a style,
+//! are printed a matching [SGR][SGR] code is written. The `Reset` at the end is also a `style`,
 //! it resets everything including any applied colors
 //! 
-//! This method is the best when it comes to simplicity, but has drawbacks:
-//! using it rewrites the Escape sequence `\x1b[` and the sequence End `m` repeatedly.
+//! This method is the best when it comes to simplicity, but has drawbacks;
+//! using it rewrites the Escape sequence `\x1b[` and the sequence End `m` repeatedly,
+//! in this example this is what would be written:
+//! 
+//! ```plain
+//! \x1b[3m\x1b[31mThis should be italic & red!\x1b[0m
+//! ```
 //! 
 //! ### `EasySGR` trait
 //! 
@@ -43,14 +48,17 @@
 //! ```rust
 //! use flc_easy_sgr::{Color::*, EasySGR, Style::*};
 //! 
-//! println!("{}This should be italic & red!{Reset}", Italic.color(RedFg));
+//! let sgr = Italic.color(RedFg);
+//! 
+//! println!("{sgr}This should be italic & red!{Reset}");
 //! ```
 //! 
-//! Doing this avoids the issue of rewriting the Escape and End sequences.
+//! Doing this avoids the issue of rewriting the Escape and End sequences,
+//! though is more expensive to use as it makes use of `SGRString`.
 //! 
 //! ### Using `SGRString`
 //! 
-//! `SGRString` is the type returned by all `EasySGR`, it encapsulates all
+//! `SGRString` is the type returned by all `EasySGR` functions, it encapsulates all
 //! possible SGR sequences. You can use it to reproduce the previous examples as such:
 //! 
 //! ```rust
@@ -67,7 +75,8 @@
 //! ```
 //! 
 //! You can actually forgo `.to_sgr()`, as all functions in the `EasySGR`
-//! work for anything that implements `Into<SGRString>`.
+//! work for anything that implements `Into<SGRString>`, so `.style(..)` and
+//! `.color(..)` can be directly called on the string literal.
 //! 
 //! The method above still uses the `EasySGR` trait, you can go without it as shown below:
 //! 
@@ -97,6 +106,26 @@
 //! let mut writer = IoWriter::new(stdout().lock());
 //! writer.place_sgr(&Italic.color(RedFg)).unwrap();
 //! writer.write(b"This should be italic & red!").unwrap();
+//! writer.inline_sgr(&Reset).unwrap();
+//! ```
+//! 
+//! or, when writing to a String
+//! 
+//! ```rust
+//! use std::io::{stdout, Write};
+//! use flc_easy_sgr::{
+//!     writing::{FmtWriter, SGRWriter},
+//!     Color::*,
+//!     EasySGR,
+//!     Style::*,
+//! };
+//! 
+//! let mut stylized_string = String::new();
+//! 
+//! let mut writer = FmtWriter::new(stylized_string);
+//! 
+//! writer.place_sgr(&Italic.color(RedFg)).unwrap();
+//! writer.write_inner("This should be italic & red!").unwrap();
 //! writer.inline_sgr(&Reset).unwrap();
 //! ```
 //! 
@@ -143,7 +172,9 @@
 #![warn(rustdoc::all)]
 #![warn(missing_debug_implementations)]
 
-/// Contains the standard SGR implementations except the writers
+/// Contains the standard SGR implementations.
+/// 
+/// Makes use of the [`writers`](writing) to write `SGR` codes to a writer
 pub mod graphics;
 /// Contains various SGR writers, most importantly the [`SGRWriter`](writing::SGRWriter) trait
 pub mod writing;

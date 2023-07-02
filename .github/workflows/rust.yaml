@@ -2,31 +2,40 @@ name: test suite
 on: [push, pull_request]
 
 jobs:
+  copyreadme:
+    name: copyreadme
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
+      - run: python copy_readme.py
   test:
     name: tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10' 
-      - run: python copy_readme.py
       - run: cargo build --verbose
       - run: cargo doc --verbose
       - run: cargo test --all-features --verbose
-
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: stable
-        components: rustfmt
-    - name: Correct formatting
-      run: |
-        cargo fmt --all
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          components: rustfmt
+      - run: cargo fmt --all
+      
+  copylibrs:
+    name: copylibrs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
+      - run: python copy_librs.py

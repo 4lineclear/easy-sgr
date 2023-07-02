@@ -9,7 +9,7 @@ with open('./README.md', 'w') as readme_file:
     readme_file.write('# easy-sgr\n\n')
     for line in lines:
         line = line[4:]
-        if len(line) == 0 :
+        if len(line) == 0:
             readme_file.write('\n')
         else:
             readme_file.write(line)

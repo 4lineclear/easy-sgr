@@ -1,3 +1,5 @@
+//! [![Build status](https://github.com/4lineclear/easy-sgr/actions/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions)
+//!
 //! An easy to use library for adding [SGR][SGR] escape sequences to your project.
 //! Its main strengths are the multitude of methods that is provided, and the
 //! lack of dependencies; compile times should be pretty good.
@@ -169,6 +171,7 @@
 //!     - [x] [graphics module](src/graphics/mod.rs) docs
 //!     - [ ] Clean up all docs
 //!     - [ ] Add examples to docs
+//! - [ ] Rewrite [`writers`](src/writing.rs)
 //! - [ ] Parser (`deSGR`)
 //! - [ ] Macros (`SGRise`)
 //! - [ ] Unique Clear behaviours

@@ -1,4 +1,4 @@
-//! A library for help in using [SGR][SGR] escape sequences.
+//! A library for help in adding [SGR][SGR] escape sequences to your project.
 //! Its main strength is the multitude of methods that is provided.
 //! 
 //! This library does not support usage of non [SGR][SGR] ANSI escape sequences
@@ -10,6 +10,12 @@
 //! ## Installation
 //! 
 //! Not yet published
+//! 
+//! ## Why `flc-easy-sgr`
+//! 
+//! `flc` stands for my user name, 4lineclear. I'm unsure if I will be maintaining
+//! this project, so I have prepended `flc` in case anyone
+//! else would like to create a crate by this name.
 //! 
 //! ## Usage
 //! 

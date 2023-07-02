@@ -1,6 +1,16 @@
-use flc_easy_sgr::{Color::*, ColorKind, EasySGR, SGRString, Style::*, StyleKind};
+use std::io::{stdout, Write};
 
+use flc_easy_sgr::{
+    writing::{IoWriter, SGRWriter},
+    Color::*,
+    ColorKind, EasySGR, SGRString,
+    Style::*,
+    StyleKind,
+};
+
+#[allow(clippy::all)]
 fn main() {
+    println!("Tests starting\n");
     println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 
     println!("{}This should be italic & red!{Reset}", Italic.color(RedFg));
@@ -15,4 +25,10 @@ fn main() {
     text.italic = StyleKind::Place;
     text.foreground = ColorKind::Red;
     println!("{text}");
+
+    let mut writer = IoWriter::new(stdout().lock());
+    writer.place_sgr(&Italic.color(RedFg)).unwrap();
+    writer.write(b"This should be italic & red!").unwrap();
+    writer.inline_sgr(&Reset).unwrap();
+    println!("\n\nTests complete")
 }

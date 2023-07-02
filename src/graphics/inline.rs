@@ -30,9 +30,7 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     #[inline]
     fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = FmtWriter::new(f);
-        fmt.escape()?;
-        fmt.inline_sgr(self)?;
-        fmt.end()
+        fmt.inline_sgr(self)
     }
 }
 /// A set of SGR code sequences

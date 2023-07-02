@@ -83,6 +83,25 @@ text.foreground = ColorKind::Red;
 println!("{text}")
 ```
 
+### `SGRWriter`
+
+The writer can also be used directly, instead of a using the above methods:
+
+```rust
+use std::io::{stdout, Write};
+use flc_easy_sgr::{
+    writing::{IoWriter, SGRWriter},
+    Color::*,
+    EasySGR,
+    Style::*,
+};
+
+let mut writer = IoWriter::new(stdout().lock());
+writer.place_sgr(&Italic.color(RedFg)).unwrap();
+writer.write(b"This should be italic & red!").unwrap();
+writer.inline_sgr(&Reset).unwrap();
+```
+
 ## Structure
 
 <!-- - Style

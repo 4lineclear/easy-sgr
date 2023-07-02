@@ -1,5 +1,4 @@
-# Prepends README.md to lib.rs
-# Ignores any 
+# Prepends README.md to lib.rs 
 
 print('Copying start')
 

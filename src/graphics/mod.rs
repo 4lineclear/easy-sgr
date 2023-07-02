@@ -1,4 +1,4 @@
-use std::fmt::{Display, Write};
+use std::fmt::{Display, Write, Debug};
 
 use crate::writing::{FmtWriter, SGRWriter};
 
@@ -232,6 +232,7 @@ impl SGRString {
                 && self.strikethrough == StyleKind::None)
     }
 }
+
 impl From<Color> for SGRString {
     fn from(value: Color) -> Self {
         Self::default().color(value)
@@ -320,7 +321,7 @@ pub enum ColorKind {
     Default,
 }
 
-impl<I: Into<SGRString>> EasySGR for I {}
+impl<I: Into<SGRString> + Debug> EasySGR for I {}
 /// Allows for chaining types that implement it
 ///
 /// Inner workins are:
@@ -329,7 +330,7 @@ impl<I: Into<SGRString>> EasySGR for I {}
 /// ```
 /// Where `<graphic>` is a type of SGR graphics code such as [`Style`] or [`Color`]
 #[allow(missing_docs)]
-pub trait EasySGR: Into<SGRString> {
+pub trait EasySGR: Into<SGRString> + Debug {
     /// Turns self into [`SGRString`]
     ///
     /// Equivalant to calling

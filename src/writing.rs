@@ -82,7 +82,9 @@ pub trait SGRWriter: Sized /*W*/ {
     /// Returns an error if writing fails.
     /// Error type specified by [`SGRWriter::Error`]
     fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), Self::Error> {
-        sgr.write(self)
+        self.escape()?;
+        sgr.write(self)?;
+        self.end()
     }
 }
 /// [`SGRWriter`] for [`std::fmt::Write`]

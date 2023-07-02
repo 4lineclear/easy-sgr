@@ -55,25 +55,25 @@ pub trait SGRWriter: Sized /*W*/ {
     fn write_multiple(&mut self, codes: &[u8]) -> Result<(), Self::Error> {
         codes.iter().try_for_each(|code| self.write_code(*code))
     }
-    /// Writes the contained SGR codes to the writer through calling [`SGRString::place`]
+    /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
     /// Error type specified by [`SGRWriter::Error`]
     fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
-        sgr.place(self)
+        sgr.place_all(self)
     }
-    /// Writes the contained SGR codes to the writer through calling [`SGRString::clean`]
+    /// Writes the contained SGR codes to the writer through calling [`SGRString::clean_all`]
     ///
-    /// Supposed to reverse the effects made by [`SGRString::place`]
+    /// Supposed to reverse the effects made by [`SGRString::place_all`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
     /// Error type specified by [`SGRWriter::Error`]
     fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
-        sgr.clean(self)
+        sgr.clean_all(self)
     }
     /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
     ///

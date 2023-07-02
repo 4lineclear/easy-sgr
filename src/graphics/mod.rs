@@ -1,4 +1,4 @@
-use std::fmt::{Display, Write, Debug};
+use std::fmt::{Debug, Display, Write};
 
 use crate::writing::{FmtWriter, SGRWriter};
 
@@ -10,7 +10,7 @@ pub mod inline;
 /// A String encapsulating SGR codes
 ///
 /// SGR codes are applied when the [`Display`] trait is used,
-/// or when the [`SGRString::place`] or [`SGRString::clean`]
+/// or when the [`SGRString::place_all`] or [`SGRString::clean_all`]
 /// functions are called.
 #[derive(Default, Debug)]
 pub struct SGRString {
@@ -47,7 +47,7 @@ pub struct SGRString {
 
     /// Determines whether the clear code `0` is to be applied to the beggining
     ///
-    /// Not be confused with [`SGRString.clear`], this only has effect on [`SGRString::place`]
+    /// Not be confused with [`SGRString.clear`], this only has effect on [`SGRString::place_all`]
     pub reset: bool,
     /// Refer to [`StyleKind`]
     pub bold: StyleKind,
@@ -68,21 +68,37 @@ pub struct SGRString {
 }
 
 impl SGRString {
-    /// Writes the contained SGR codes to the given [`SGRWriter`]
+    /// Writes all contained SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
-        use ColorKind::*;
-        use StyleKind::*;
         if self.no_places() {
             return Ok(());
         }
         writer.escape()?;
+        if self.reset {
+            writer.write_code(0)?;
+        }
+        self.place_colors(writer)?;
+        self.place_styles(writer)?;
+        self.place_custom(writer)?;
+        writer.end()
+    }
+    /// Writes SGR color codes to the given [`SGRWriter`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
+    pub fn place_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: SGRWriter,
+    {
+        use ColorKind::*;
         match self.foreground {
             Black => writer.write_code(30)?,
             Red => writer.write_code(31)?,
@@ -111,9 +127,18 @@ impl SGRString {
             Default => writer.write_code(49)?,
             ColorKind::None => (),
         }
-        if self.reset {
-            writer.write_code(0)?;
-        }
+        Ok(())
+    }
+    /// Writes SGR style codes to the given [`SGRWriter`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
+    pub fn place_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: SGRWriter,
+    {
+        use StyleKind::*;
         for (kind, place, clear) in [
             (&self.bold, 1, 22),
             (&self.dim, 2, 22),
@@ -125,22 +150,32 @@ impl SGRString {
             (&self.strikethrough, 9, 29),
         ] {
             match kind {
-                StyleKind::None => (),
+                None => (),
                 Place => writer.write_code(place)?,
                 Clean => writer.write_code(clear)?,
             }
         }
-        writer.write_multiple(&self.custom_places)?;
-        writer.end()
+        Ok(())
     }
-    /// Writes the contained SGR codes to the given [`SGRWriter`]
-    ///
-    /// Reverses the effects of [`SGRString::place`], depending on [`clear`](#structfield.clear)
+    /// Writes custom SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: SGRWriter,
+    {
+        writer.write_multiple(&self.custom_places)
+    }
+    /// Writes the contained SGR codes to the given [`SGRWriter`]
+    ///
+    /// Reverses the effects of [`SGRString::place_all`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
+    pub fn clean_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -152,34 +187,74 @@ impl SGRString {
             }
             ClearKind::Clean if !self.no_clears() => {
                 writer.escape()?;
-                if self.foreground != ColorKind::None {
-                    writer.write_code(39)?;
-                }
-                if self.background != ColorKind::None {
-                    writer.write_code(49)?;
-                }
-
-                for (kind, place, clear) in [
-                    (&self.bold, 22, 1),
-                    (&self.dim, 22, 2),
-                    (&self.italic, 23, 3),
-                    (&self.underline, 24, 4),
-                    (&self.blinking, 25, 5),
-                    (&self.inverse, 27, 7),
-                    (&self.hidden, 28, 8),
-                    (&self.strikethrough, 29, 9),
-                ] {
-                    match kind {
-                        StyleKind::None => (),
-                        StyleKind::Place => writer.write_code(place)?,
-                        StyleKind::Clean => writer.write_code(clear)?,
-                    }
-                }
-                writer.write_multiple(&self.custom_cleans)?;
+                self.clean_colors(writer)?;
+                self.clean_styles(writer)?;
+                self.clean_custom(writer)?;
                 writer.end()
             }
             _ => Ok(()),
         }
+    }
+    /// Writes SGR color codes to the given [`SGRWriter`]
+    ///
+    /// Reverses the effects of [`SGRString::place_colors`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
+    pub fn clean_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: SGRWriter,
+    {
+        if self.foreground != ColorKind::None {
+            writer.write_code(39)?;
+        }
+        if self.background != ColorKind::None {
+            writer.write_code(49)?;
+        }
+        Ok(())
+    }
+    /// Writes SGR style codes to the given [`SGRWriter`]
+    ///
+    /// Reverses the effects of [`SGRString::place_styles`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
+    pub fn clean_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: SGRWriter,
+    {
+        for (kind, place, clear) in [
+            (&self.bold, 22, 1),
+            (&self.dim, 22, 2),
+            (&self.italic, 23, 3),
+            (&self.underline, 24, 4),
+            (&self.blinking, 25, 5),
+            (&self.inverse, 27, 7),
+            (&self.hidden, 28, 8),
+            (&self.strikethrough, 29, 9),
+        ] {
+            match kind {
+                StyleKind::None => (),
+                StyleKind::Place => writer.write_code(place)?,
+                StyleKind::Clean => writer.write_code(clear)?,
+            }
+        }
+        Ok(())
+    }
+    /// Writes SGR codes to the given [`SGRWriter`]
+    ///
+    /// Reverses the effects of [`SGRString::place_custom`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails
+    pub fn clean_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: SGRWriter,
+    {
+        writer.write_multiple(&self.custom_cleans)
     }
     /// Checks if any SGR codes should be written
     ///

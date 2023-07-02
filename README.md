@@ -1,7 +1,8 @@
 # easy-sgr
 
-A library for help in adding [SGR][SGR] escape sequences to your project.
-Its main strength is the multitude of methods that is provided.
+An easy to use library for adding [SGR][SGR] escape sequences to your project.
+Its main strengths are the multitude of methods that is provided, and the
+lack of dependencies; compile times should be pretty good.
 
 This library does not support usage of non [SGR][SGR] ANSI escape sequences
 
@@ -17,7 +18,8 @@ Not yet published
 
 `flc` stands for my user name, 4lineclear. I'm unsure if I will be maintaining
 this project, so I have prepended `flc` in case anyone
-else would like to create a crate by this name.
+else would like to create a crate called `easy-sgr`.
+I also doubt many will use this crate.
 
 ## Usage
 
@@ -169,6 +171,7 @@ writer.inline_sgr(&Reset).unwrap();
     - [x] [graphics module](src/graphics/mod.rs) docs
     - [ ] Clean up all docs
     - [ ] Add examples to docs
+- [ ] Rewrite [`writers`](src/writing.rs)
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
 - [ ] Unique Clear behaviours

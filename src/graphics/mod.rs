@@ -363,7 +363,7 @@ pub enum ClearKind {
     /// This is dependant on where its used
     Clean,
 }
-/// Component of [`SGRString`]; yhe type of style to apply
+/// Component of [`SGRString`]; the type of style to apply
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum StyleKind {
     /// Do nothing

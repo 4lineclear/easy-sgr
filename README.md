@@ -1,5 +1,7 @@
 # easy-sgr
 
+[![Build status](https://github.com/4lineclear/easy-sgr/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions)
+
 An easy to use library for adding [SGR][SGR] escape sequences to your project.
 Its main strengths are the multitude of methods that is provided, and the
 lack of dependencies; compile times should be pretty good.

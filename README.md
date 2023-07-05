@@ -165,16 +165,19 @@ writer.inline_sgr(&Reset).unwrap();
 
 [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 
-## Todo
+## TODO goals to publish
 
 - [ ] Docs
     - [x] [Crate](src/lib.rs) level docs
     - [x] Module level docs
     - [x] [graphics module](src/graphics/mod.rs) docs
+    - [ ] [writing module](src/writing.rs) docs
     - [ ] Clean up all docs
     - [ ] Add examples to docs
 - [ ] Rewrite [`writers`](src/writing.rs)
+    - [ ] Docs
+    - [ ] Add `BufWriter`
+    - [ ] Add `SGRBuilder`
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
 - [ ] Unique Clear behaviours
-- [x] Add `BufWriter` to [writing module](src/writing.rs)

@@ -2,9 +2,22 @@
 
 use std::fmt::Display;
 
-use crate::writing::{FmtWriter, SGRWriter};
+use crate::writing::{SGRWriter, StandardWriter};
 
 use super::EasySGR;
+// use super::EasySGR;
+
+/// Represents
+#[derive(Debug)]
+pub enum Clear {
+    /// Prints \x1b[0m
+    Full,
+    /// Prints nothing
+    ///
+    /// When used in a writer,
+    /// should reverse effects back to previous SGR state
+    Clean,
+}
 
 /// Represents SGR sequences that can be used Inline.
 #[allow(clippy::module_name_repetitions)]
@@ -18,7 +31,7 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     ///
     /// Returns an error if writing to the given write fails
     ///
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn write<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter;
     /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
@@ -29,8 +42,7 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     ///
     #[inline]
     fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut fmt = FmtWriter::new(f);
-        fmt.inline_sgr(self)
+        StandardWriter::fmt(f).inline_sgr(self)
     }
 }
 /// A set of SGR code sequences
@@ -87,7 +99,7 @@ impl InlineSGR for Style {
     ///
     /// Returns an error if writing to the given write fails
     ///
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn write<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -177,7 +189,7 @@ impl Display for Color {
 }
 
 impl InlineSGR for Color {
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn write<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {

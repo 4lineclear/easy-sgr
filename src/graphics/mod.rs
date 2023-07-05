@@ -1,6 +1,6 @@
-use std::fmt::{Debug, Display, Write};
+use std::fmt::{Debug, Display};
 
-use crate::writing::{FmtWriter, SGRWriter};
+use crate::writing::{SGRWriter, StandardWriter};
 
 use self::inline::{Color, Style};
 
@@ -73,7 +73,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_all<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -94,7 +94,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_colors<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -134,7 +134,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_styles<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -162,7 +162,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_custom<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -175,7 +175,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_all<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -202,7 +202,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_colors<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -221,7 +221,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_styles<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -250,7 +250,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_custom<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
         W: SGRWriter,
     {
@@ -344,9 +344,9 @@ impl From<&String> for SGRString {
 }
 impl Display for SGRString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut fmt = FmtWriter::new(f);
+        let mut fmt = StandardWriter::fmt(f);
         fmt.place_sgr(self)?;
-        fmt.write_str(&self.text)?;
+        fmt.write_inner(&self.text)?;
         fmt.clean_sgr(self)
     }
 }

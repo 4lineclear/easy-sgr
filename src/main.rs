@@ -1,7 +1,8 @@
-use std::io::{stdout, Write};
+use std::{error::Error, io::stdout};
 
 use flc_easy_sgr::{
-    writing::{IoWriter, SGRWriter},
+    writing::{SGRWriter, StandardWriter},
+    ClearKind,
     Color::*,
     ColorKind, EasySGR, SGRString,
     Style::*,
@@ -9,26 +10,59 @@ use flc_easy_sgr::{
 };
 
 #[allow(clippy::all)]
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     println!("Tests starting\n");
-    println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 
-    println!("{}This should be italic & red!{Reset}", Italic.color(RedFg));
+    let text1 = format!("{Italic}{RedFg}This should be italic & red!{Reset}");
 
-    let text = "This should be italic & red!"
-        .to_sgr()
-        .style(Italic)
-        .color(RedFg);
-    println!("{text}");
+    let text2 = format!("{}This should be italic & red!{Reset}", Italic.color(RedFg));
 
-    let mut text = SGRString::from("This should be italic & red!");
-    text.italic = StyleKind::Place;
-    text.foreground = ColorKind::Red;
-    println!("{text}");
+    let text3 = format!(
+        "{}",
+        "This should be italic & red!"
+            .to_sgr()
+            .style(Italic)
+            .color(RedFg)
+            .clear(ClearKind::Full)
+    );
 
-    let mut writer = IoWriter::new(stdout().lock());
-    writer.place_sgr(&Italic.color(RedFg)).unwrap();
-    writer.write(b"This should be italic & red!").unwrap();
-    writer.inline_sgr(&Reset).unwrap();
-    println!("\n\nTests complete")
+    let mut text4 = SGRString::from("This should be italic & red!");
+    text4.italic = StyleKind::Place;
+    text4.foreground = ColorKind::Red;
+    text4.clear = ClearKind::Full;
+
+    let text4 = format!("{text4}");
+
+    let text5 = String::new();
+    let text5 = {
+        let mut writer = StandardWriter::fmt(text5);
+
+        writer.escape()?;
+        writer.write_multiple(&[3, 31])?;
+        writer.end()?;
+
+        writer.write_inner("This should be italic & red!")?;
+        writer.escape()?;
+        writer.write_code(0)?;
+        writer.end()?;
+        writer.writer.0
+    };
+    
+    dbg!(format!("{text1}"));
+    dbg!(format!("{text2}"));
+    dbg!(format!("{text3}"));
+    dbg!(format!("{text4}"));
+    dbg!(format!("{text5}"));
+
+    println!();
+    
+    println!("{text1}");
+    println!("{text2}");
+    println!("{text3}");
+    println!("{text4}");
+    println!("{text5}");
+
+    println!("\nTests complete");
+
+    Ok(())
 }

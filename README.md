@@ -171,7 +171,9 @@ let stylized_string = {
     - [ ] Clean up all docs
     - [ ] Add examples to docs
 - [ ] Rewrite [`writers`](src/writing.rs)
-    - [ ] Docs
+    - [x] Do the rewrite
+    - [ ] Add Advanced Writer
+    - [ ] Write docs
     - [ ] Add `BufWriter`
     - [ ] Add `SGRBuilder`
 - [ ] Parser (`deSGR`)

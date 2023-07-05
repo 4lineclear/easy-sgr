@@ -1,4 +1,4 @@
-use std::{error::Error, io::stdout};
+use std::error::Error;
 
 use flc_easy_sgr::{
     writing::{SGRWriter, StandardWriter},
@@ -37,17 +37,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let text5 = {
         let mut writer = StandardWriter::fmt(text5);
 
-        writer.escape()?;
-        writer.write_multiple(&[3, 31])?;
-        writer.end()?;
-
+        writer.place_sgr(&Italic.color(RedFg))?;
         writer.write_inner("This should be italic & red!")?;
-        writer.escape()?;
-        writer.write_code(0)?;
-        writer.end()?;
+        writer.inline_sgr(&Reset)?;
         writer.writer.0
     };
-    
+
     dbg!(format!("{text1}"));
     dbg!(format!("{text2}"));
     dbg!(format!("{text3}"));
@@ -55,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     dbg!(format!("{text5}"));
 
     println!();
-    
+
     println!("{text1}");
     println!("{text2}");
     println!("{text3}");

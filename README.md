@@ -108,37 +108,33 @@ The writer can also be used directly, instead of a using the above methods:
 
 ```rust
 use std::io::{stdout, Write};
+
 use flc_easy_sgr::{
-    writing::{IoWriter, SGRWriter},
-    Color::*,
-    EasySGR,
+    writing::{StandardWriter, SGRWriter},
+    Color::*, EasySGR,
     Style::*,
 };
-
-let mut writer = IoWriter::new(stdout().lock());
+let mut writer = StandardWriter::io(stdout());
 writer.place_sgr(&Italic.color(RedFg)).unwrap();
-writer.write(b"This should be italic & red!").unwrap();
+writer.write_inner("This should be italic & red!").unwrap();
 writer.inline_sgr(&Reset).unwrap();
 ```
 
 or, when writing to a String
 
 ```rust
-use std::io::{stdout, Write};
 use flc_easy_sgr::{
-    writing::{FmtWriter, SGRWriter},
-    Color::*,
-    EasySGR,
+    writing::{StandardWriter, SGRWriter},
+    Color::*, EasySGR,
     Style::*,
 };
-
-let mut stylized_string = String::new();
-
-let mut writer = FmtWriter::new(stylized_string);
-
-writer.place_sgr(&Italic.color(RedFg)).unwrap();
-writer.write_inner("This should be italic & red!").unwrap();
-writer.inline_sgr(&Reset).unwrap();
+let stylized_string = {
+    let mut writer = StandardWriter::fmt(String::new());
+    writer.place_sgr(&Italic.color(RedFg)).unwrap();
+    writer.write_inner("This should be italic & red!").unwrap();
+    writer.inline_sgr(&Reset).unwrap();
+    writer.writer.0
+};
 ```
 
 ## Structure

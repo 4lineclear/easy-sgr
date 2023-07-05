@@ -106,37 +106,33 @@
 //!
 //! ```rust
 //! use std::io::{stdout, Write};
+//!
 //! use flc_easy_sgr::{
-//!     writing::{IoWriter, SGRWriter},
-//!     Color::*,
-//!     EasySGR,
+//!     writing::{StandardWriter, SGRWriter},
+//!     Color::*, EasySGR,
 //!     Style::*,
 //! };
-//!
-//! let mut writer = IoWriter::new(stdout().lock());
+//! let mut writer = StandardWriter::io(stdout());
 //! writer.place_sgr(&Italic.color(RedFg)).unwrap();
-//! writer.write(b"This should be italic & red!").unwrap();
+//! writer.write_inner("This should be italic & red!").unwrap();
 //! writer.inline_sgr(&Reset).unwrap();
 //! ```
 //!
 //! or, when writing to a String
 //!
 //! ```rust
-//! use std::io::{stdout, Write};
 //! use flc_easy_sgr::{
-//!     writing::{FmtWriter, SGRWriter},
-//!     Color::*,
-//!     EasySGR,
+//!     writing::{StandardWriter, SGRWriter},
+//!     Color::*, EasySGR,
 //!     Style::*,
 //! };
-//!
-//! let mut stylized_string = String::new();
-//!
-//! let mut writer = FmtWriter::new(stylized_string);
-//!
-//! writer.place_sgr(&Italic.color(RedFg)).unwrap();
-//! writer.write_inner("This should be italic & red!").unwrap();
-//! writer.inline_sgr(&Reset).unwrap();
+//! let stylized_string = {
+//!     let mut writer = StandardWriter::fmt(String::new());
+//!     writer.place_sgr(&Italic.color(RedFg)).unwrap();
+//!     writer.write_inner("This should be italic & red!").unwrap();
+//!     writer.inline_sgr(&Reset).unwrap();
+//!     writer.writer.0
+//! };
 //! ```
 //!
 //! ## Structure
@@ -163,19 +159,22 @@
 //!
 //! [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 //!
-//! ## Todo
+//! ## TODO goals to publish
 //!
 //! - [ ] Docs
 //!     - [x] [Crate](src/lib.rs) level docs
 //!     - [x] Module level docs
 //!     - [x] [graphics module](src/graphics/mod.rs) docs
+//!     - [ ] [writing module](src/writing.rs) docs
 //!     - [ ] Clean up all docs
 //!     - [ ] Add examples to docs
 //! - [ ] Rewrite [`writers`](src/writing.rs)
+//!     - [ ] Docs
+//!     - [ ] Add `BufWriter`
+//!     - [ ] Add `SGRBuilder`
 //! - [ ] Parser (`deSGR`)
 //! - [ ] Macros (`SGRise`)
 //! - [ ] Unique Clear behaviours
-//! - [x] Add `BufWriter` to [writing module](src/writing.rs)
 #![deny(clippy::all, clippy::pedantic)]
 #![warn(clippy::cargo)]
 #![allow(clippy::enum_glob_use)]

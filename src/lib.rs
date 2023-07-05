@@ -188,7 +188,7 @@
 ///
 /// Makes use of the [`writers`](writing) to write `SGR` codes to a writer
 pub mod graphics;
-/// Contains various SGR writers, most importantly the [`SGRWriter`](writing::SGRWriter) trait
+/// Contains various SGR writers, most importantly the [`CapableWriter`](writing::CapableWriter) trait
 pub mod writing;
 
 pub use graphics::inline::*;

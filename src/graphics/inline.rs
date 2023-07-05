@@ -23,7 +23,7 @@ pub enum Clear {
 #[allow(clippy::module_name_repetitions)]
 pub trait InlineSGR: Sized + Display + EasySGR {
     // TODO link 'Escapes' and 'ends'
-    /// Writes a set of SGR codes to the given [`SGRWriter`]
+    /// Writes a set of SGR codes to the given [`StandardWriter`]
     ///
     /// Escapes and ends the sequence
     ///
@@ -91,7 +91,7 @@ impl Display for Style {
 }
 
 impl InlineSGR for Style {
-    /// Writes a set of SGR codes to given [`SGRWriter`]
+    /// Writes a set of SGR codes to given [`StandardWriter`]
     ///
     /// Escapes and ends the sequence
     ///

@@ -15,7 +15,7 @@ pub trait CapableWriter: Sized {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error>;
 }
 
@@ -52,7 +52,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     pub fn write_code(&mut self, code: u8) -> Result<(), W::Error> {
         if self.first_write {
             self.first_write = false;
@@ -66,7 +66,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     pub fn write_multiple(&mut self, codes: &[u8]) -> Result<(), W::Error> {
         if codes.is_empty() {
             return Ok(());
@@ -84,7 +84,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     pub fn escape(&mut self) -> Result<(), W::Error> {
         self.first_write = true;
         self.write_inner("\x1b[")
@@ -96,7 +96,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     pub fn end(&mut self) -> Result<(), W::Error> {
         self.write_inner("m")
     }
@@ -105,7 +105,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     pub fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), W::Error> {
         sgr.place_all(self)
     }
@@ -116,7 +116,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     pub fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), W::Error> {
         sgr.clean_all(self)
     }
@@ -125,7 +125,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
     pub fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), W::Error> {
         self.write_inner("\x1b[")?;
         sgr.write(self)?;
@@ -187,12 +187,12 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
     }
 }
 
-// pub struct SGRBuilder<'a, W: SGRWriter> {
+// pub struct SGRBuilder<'a, W: CapableWriter> {
 //     writer: &'a mut StandardWriter<W>,
 //     codes: Vec<u8>,
 // }
 
-// impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
+// impl<'a, W: CapableWriter> SGRBuilder<'a, W> {
 //     pub fn write_codes(&mut self, codes: &[u8]) -> &mut Self {
 //         self.codes.extend_from_slice(codes);
 //         self

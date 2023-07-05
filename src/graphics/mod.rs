@@ -68,7 +68,7 @@ pub struct SGRString {
 }
 
 impl SGRString {
-    /// Writes all contained SGR codes to the given [`SGRWriter`]
+    /// Writes all contained SGR codes to the given [`CapableWriter`]
     ///
     /// # Errors
     ///
@@ -89,7 +89,7 @@ impl SGRString {
         self.place_custom(writer)?;
         writer.end()
     }
-    /// Writes SGR color codes to the given [`SGRWriter`]
+    /// Writes SGR color codes to the given [`CapableWriter`]
     ///
     /// # Errors
     ///
@@ -129,7 +129,7 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes SGR style codes to the given [`SGRWriter`]
+    /// Writes SGR style codes to the given [`CapableWriter`]
     ///
     /// # Errors
     ///
@@ -157,7 +157,7 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes custom SGR codes to the given [`SGRWriter`]
+    /// Writes custom SGR codes to the given [`CapableWriter`]
     ///
     /// # Errors
     ///
@@ -168,7 +168,7 @@ impl SGRString {
     {
         writer.write_multiple(&self.custom_places)
     }
-    /// Writes the contained SGR codes to the given [`SGRWriter`]
+    /// Writes the contained SGR codes to the given [`CapableWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_all`]
     ///
@@ -195,7 +195,7 @@ impl SGRString {
             _ => Ok(()),
         }
     }
-    /// Writes SGR color codes to the given [`SGRWriter`]
+    /// Writes SGR color codes to the given [`CapableWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_colors`]
     ///
@@ -214,7 +214,7 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes SGR style codes to the given [`SGRWriter`]
+    /// Writes SGR style codes to the given [`CapableWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_styles`]
     ///
@@ -243,7 +243,7 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes SGR codes to the given [`SGRWriter`]
+    /// Writes SGR codes to the given [`CapableWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_custom`]
     ///

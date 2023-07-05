@@ -110,7 +110,7 @@ The writer can also be used directly, instead of a using the above methods:
 use std::io::{stdout, Write};
 
 use flc_easy_sgr::{
-    writing::{StandardWriter, SGRWriter},
+    writing::{StandardWriter, CapableWriter},
     Color::*, EasySGR,
     Style::*,
 };
@@ -124,7 +124,7 @@ or, when writing to a String
 
 ```rust
 use flc_easy_sgr::{
-    writing::{StandardWriter, SGRWriter},
+    writing::{StandardWriter, CapableWriter},
     Color::*, EasySGR,
     Style::*,
 };
@@ -173,7 +173,7 @@ let stylized_string = {
 - [ ] Rewrite [`writers`](src/writing.rs)
     - [x] Do the rewrite
     - [ ] Add Advanced Writer
-    - [ ] Write docs
+    - [x] Write docs
     - [ ] Add `BufWriter`
     - [ ] Add `SGRBuilder`
 - [ ] Parser (`deSGR`)

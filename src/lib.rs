@@ -108,7 +108,7 @@
 //! use std::io::{stdout, Write};
 //!
 //! use flc_easy_sgr::{
-//!     writing::{StandardWriter, SGRWriter},
+//!     writing::{StandardWriter, CapableWriter},
 //!     Color::*, EasySGR,
 //!     Style::*,
 //! };
@@ -122,7 +122,7 @@
 //!
 //! ```rust
 //! use flc_easy_sgr::{
-//!     writing::{StandardWriter, SGRWriter},
+//!     writing::{StandardWriter, CapableWriter},
 //!     Color::*, EasySGR,
 //!     Style::*,
 //! };
@@ -169,7 +169,9 @@
 //!     - [ ] Clean up all docs
 //!     - [ ] Add examples to docs
 //! - [ ] Rewrite [`writers`](src/writing.rs)
-//!     - [ ] Docs
+//!     - [x] Do the rewrite
+//!     - [ ] Add Advanced Writer
+//!     - [x] Write docs
 //!     - [ ] Add `BufWriter`
 //!     - [ ] Add `SGRBuilder`
 //! - [ ] Parser (`deSGR`)

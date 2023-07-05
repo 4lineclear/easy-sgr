@@ -2,18 +2,39 @@ use std::{fmt, io};
 
 use crate::graphics::{inline::InlineSGR, SGRString};
 
-pub trait SGRWriter: Sized {
+/// An interfeace for an [`StandardWriter`] to work with
+///
+/// Does not provide SGR writing capability itself
+pub trait CapableWriter: Sized {
+    /// The type of error returned by trait methods
+    ///
+    /// Will typically be [`std::io::Error`] or [`std::fmt::Error`]
     type Error: std::error::Error;
-
+    /// Writes a [`str`] to the inner writer
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`SGRWriter::Error`]
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error>;
 }
 
-pub struct StandardWriter<W: SGRWriter> {
+/// A Standard SGR writer
+#[derive(Debug)]
+pub struct StandardWriter<W: CapableWriter> {
+    /// A writer capable of writing [`str`]
     pub writer: W,
+    /// Keeps track f whether it is currently the first write
+    ///
+    /// This variable is used to make sure the seperator character ';'
+    /// is written when it supposed to
     first_write: bool,
 }
 
-impl<W: SGRWriter> StandardWriter<W> {
+impl<W: CapableWriter> StandardWriter<W> {
+    /// Creates a new [`StandardWriter<W>`].
+    ///
+    /// Probably better to use [`StandardWriter::io`] or [`StandardWriter::fmt`]
     pub fn new(writer: W) -> Self {
         Self {
             writer,
@@ -26,28 +47,56 @@ impl<W: SGRWriter> StandardWriter<W> {
     //         codes: Vec::new(),
     //     }
     // }
+    /// Writes a code to the inner writer
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`SGRWriter::Error`]
     pub fn write_code(&mut self, code: u8) -> Result<(), W::Error> {
-        if !self.first_write {
-            self.write_inner(";")?;
+        if self.first_write {
+            self.first_write = false;
         } else {
-            self.first_write = false
+            self.write_inner(";")?;
         }
         self.write_inner(&code.to_string())
     }
+    /// Writes a set of codes throught calling [`StandardWriter::write_code`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`SGRWriter::Error`]
     pub fn write_multiple(&mut self, codes: &[u8]) -> Result<(), W::Error> {
         if codes.is_empty() {
             return Ok(());
         }
-        self.write_code(codes[0]);
+        self.write_code(codes[0])?;
         for code in &codes[1..] {
             self.write_code(*code)?;
         }
         Ok(())
     }
+    /// Writes the SGR sequence starting characters '\x1b['
+    ///
+    /// Should be eventually followed by [`StandardWriter::end`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`SGRWriter::Error`]
     pub fn escape(&mut self) -> Result<(), W::Error> {
         self.first_write = true;
         self.write_inner("\x1b[")
     }
+    /// Writes the SGR sequence ending character 'm'
+    ///
+    /// Should be used sometime after [`StandardWriter::escape`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`SGRWriter::Error`]
     pub fn end(&mut self) -> Result<(), W::Error> {
         self.write_inner("m")
     }
@@ -84,6 +133,9 @@ impl<W: SGRWriter> StandardWriter<W> {
     }
 }
 impl<W: std::io::Write> StandardWriter<IoWriter<W>> {
+    /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::io::Write)
+    ///
+    /// Uses [`IoWriter`]
     pub fn io(writer: W) -> Self {
         Self {
             writer: IoWriter(writer),
@@ -92,6 +144,9 @@ impl<W: std::io::Write> StandardWriter<IoWriter<W>> {
     }
 }
 impl<W: std::fmt::Write> StandardWriter<FmtWriter<W>> {
+    /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::fmt::Write)
+    ///
+    /// Uses [`FmtWriter`]
     pub fn fmt(writer: W) -> Self {
         Self {
             writer: FmtWriter(writer),
@@ -100,7 +155,7 @@ impl<W: std::fmt::Write> StandardWriter<FmtWriter<W>> {
     }
 }
 
-impl<W: SGRWriter> SGRWriter for StandardWriter<W> {
+impl<W: CapableWriter> CapableWriter for StandardWriter<W> {
     type Error = W::Error;
 
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error> {
@@ -108,9 +163,11 @@ impl<W: SGRWriter> SGRWriter for StandardWriter<W> {
     }
 }
 
+/// Used to implement [`CapableWriter`] for [`Write`](std::io::Write)
+#[derive(Debug)]
 pub struct IoWriter<W: std::io::Write>(pub W);
 
-impl<W: std::io::Write> SGRWriter for IoWriter<W> {
+impl<W: std::io::Write> CapableWriter for IoWriter<W> {
     type Error = io::Error;
 
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error> {
@@ -118,9 +175,11 @@ impl<W: std::io::Write> SGRWriter for IoWriter<W> {
     }
 }
 
+/// Used to implement [`CapableWriter`] for [`Write`](std::fmt::Write)
+#[derive(Debug)]
 pub struct FmtWriter<W: std::fmt::Write>(pub W);
 
-impl<W: std::fmt::Write> SGRWriter for FmtWriter<W> {
+impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
     type Error = fmt::Error;
 
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error> {

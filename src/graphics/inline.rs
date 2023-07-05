@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use crate::writing::{SGRWriter, StandardWriter};
+use crate::writing::{CapableWriter, StandardWriter};
 
 use super::EasySGR;
 // use super::EasySGR;
@@ -33,7 +33,7 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     ///
     fn write<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
-        W: SGRWriter;
+        W: CapableWriter;
     /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
     ///
     /// # Errors
@@ -101,7 +101,7 @@ impl InlineSGR for Style {
     ///
     fn write<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
-        W: SGRWriter,
+        W: CapableWriter,
     {
         use Style::*;
         writer.write_code(match self {
@@ -191,7 +191,7 @@ impl Display for Color {
 impl InlineSGR for Color {
     fn write<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
-        W: SGRWriter,
+        W: CapableWriter,
     {
         use Color::*;
         match self {

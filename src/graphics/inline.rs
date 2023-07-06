@@ -56,7 +56,7 @@ impl InlineSGR for Clear {
     {
         match self {
             Clear::Reset => writer.write_code(0),
-            Clear::Clean => todo!("Advanced writer not yet made"),
+            Clear::Clean => writer.smart_clean(),
         }
     }
 }

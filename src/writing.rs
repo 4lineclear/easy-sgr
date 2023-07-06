@@ -33,7 +33,7 @@ pub trait SGRWriter: CapableWriter {
     /// Sets first_write to the inputted variable
     fn set_first_write(&mut self, first_write: bool);
     /// Returns whether the writer can do a smart clean
-    fn can_smart_clean(&mut self) -> bool;
+    fn smart_clean(&mut self) -> Result<(), Self::Error>;
     /// Writes a [`str`] to the inner writer
     ///
     /// # Errors
@@ -208,8 +208,8 @@ impl<W: CapableWriter> SGRWriter for StandardWriter<W> {
         self.first_write = first_write;
     }
     #[inline]
-    fn can_smart_clean(&mut self) -> bool {
-        false
+    fn smart_clean(&mut self) -> Result<(), <W as CapableWriter>::Error> {
+        Ok(())
     }
 }
 /// Used to implement [`CapableWriter`] for [`std::io::Write`]
@@ -287,8 +287,8 @@ impl<W: CapableWriter> SGRWriter for AdvancedWriter<W> {
         self.writer.set_first_write(first_write)
     }
     #[inline]
-    fn can_smart_clean(&mut self) -> bool {
-        true
+    fn smart_clean(&mut self) -> Result<(), <W as CapableWriter>::Error> {
+        Ok(())
     }
 }
 

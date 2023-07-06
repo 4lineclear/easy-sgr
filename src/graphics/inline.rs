@@ -33,11 +33,33 @@ pub trait InlineSGR: Sized + Display + EasySGR {
         fmt.inline_sgr(self)
     }
 }
-/// A set of SGR code sequences
-#[derive(Debug, Clone)]
-pub enum Style {
-    /// Represents the SGR code `0`
+
+#[derive(Debug)]
+/// A type of clear
+pub enum Clear {
+    /// Clears all
     Reset,
+    /// Resets to previous
+    Clean,
+}
+impl Display for Clear {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.standard_display(f)
+    }
+}
+impl InlineSGR for Clear {
+    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where
+        W: SGRWriter {
+        match self {
+            Clear::Reset => writer.write_code(0),
+            Clear::Clean => todo!(),
+        }
+    }
+}
+/// A set of SGR code sequences
+#[derive(Debug)]
+pub enum Style {
     /// Represents the SGR code `1`
     Bold,
     /// Represents the SGR code `2`
@@ -93,7 +115,6 @@ impl InlineSGR for Style {
     {
         use Style::*;
         writer.write_code(match self {
-            Reset => 0,
             Bold => 1,
             Dim => 2,
             Italic => 3,
@@ -113,7 +134,7 @@ impl InlineSGR for Style {
     }
 }
 /// A SGR color code
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Color {
     /// Represents the SGR code `30`
     BlackFg,

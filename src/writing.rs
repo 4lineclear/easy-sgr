@@ -2,7 +2,7 @@ use std::{fmt, io};
 
 use crate::graphics::{inline::InlineSGR, SGRString};
 
-/// An interfeace for an [`StandardWriter`] to work with
+/// An interfeace for an [`SGRWriter`] to work with
 ///
 /// Does not provide SGR writing capability itself
 pub trait CapableWriter: Sized {
@@ -18,7 +18,7 @@ pub trait CapableWriter: Sized {
     /// Error type specified by [`CapableWriter::Error`]
     fn write(&mut self, s: &str) -> Result<(), Self::Error>;
 }
-/// A writer built on top of [`CapableWriter`]
+/// A writer built on top of a [`CapableWriter`]
 /// that has the ability to work with SGR codes
 pub trait SGRWriter: CapableWriter {
     // pub fn escape<'a>(&'a mut self) -> SGRBuilder<'a, W> {
@@ -32,6 +32,8 @@ pub trait SGRWriter: CapableWriter {
     fn first_write(&self) -> bool;
     /// Sets first_write to the inputted variable
     fn set_first_write(&mut self, first_write: bool);
+    /// Returns whether the writer can do a smart clean
+    fn can_smart_clean(&mut self) -> bool;
     /// Writes a [`str`] to the inner writer
     ///
     /// # Errors
@@ -205,6 +207,10 @@ impl<W: CapableWriter> SGRWriter for StandardWriter<W> {
     fn set_first_write(&mut self, first_write: bool) {
         self.first_write = first_write;
     }
+    #[inline]
+    fn can_smart_clean(&mut self) -> bool {
+        false
+    }
 }
 /// Used to implement [`CapableWriter`] for [`Write`](std::io::Write)
 #[derive(Debug)]
@@ -226,6 +232,65 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
     #[inline]
     fn write(&mut self, s: &str) -> Result<(), Self::Error> {
         self.0.write_str(s)
+    }
+}
+/// A more advenced [`StandardWriter`]
+///
+/// Has the ability to do a smart clean
+#[derive(Debug)]
+pub struct AdvancedWriter<W: CapableWriter> {
+    /// A writer capable of writing SGR codes
+    pub writer: StandardWriter<W>,
+}
+impl<W: CapableWriter> AdvancedWriter<W> {
+    /// Creates a new [`AdvancedWriter<W>`].
+    ///
+    /// Probably better to use [`AdvancedWriter::io`] or [`AdvancedWriter::fmt`]
+    pub fn new(writer: W) -> Self {
+        Self {
+            writer: StandardWriter::new(writer),
+        }
+    }
+}
+impl<W: std::io::Write> AdvancedWriter<IoWriter<W>> {
+    /// Creates a new [`AdvancedWriter<W>`] with the provided [`Write`](std::io::Write)
+    ///
+    /// Uses [`IoWriter`]
+    pub fn io(writer: W) -> Self {
+        Self {
+            writer: StandardWriter::io(writer),
+        }
+    }
+}
+impl<W: std::fmt::Write> AdvancedWriter<FmtWriter<W>> {
+    /// Creates a new [`AdvancedWriter<W>`] with the provided [`Write`](std::fmt::Write)
+    ///
+    /// Uses [`FmtWriter`]
+    pub fn fmt(writer: W) -> Self {
+        Self {
+            writer: StandardWriter::fmt(writer),
+        }
+    }
+}
+impl<W: CapableWriter> CapableWriter for AdvancedWriter<W> {
+    type Error = W::Error;
+    #[inline]
+    fn write(&mut self, s: &str) -> Result<(), Self::Error> {
+        self.writer.write(s)
+    }
+}
+impl<W: CapableWriter> SGRWriter for AdvancedWriter<W> {
+    #[inline]
+    fn first_write(&self) -> bool {
+        self.writer.first_write()
+    }
+    #[inline]
+    fn set_first_write(&mut self, first_write: bool) {
+        self.writer.set_first_write(first_write)
+    }
+    #[inline]
+    fn can_smart_clean(&mut self) -> bool {
+        true
     }
 }
 

@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::writing::{CapableWriter, StandardWriter};
+use crate::writing::{CapableWriter, StandardWriter, Clear};
 
 use self::inline::{Color, Style};
 
@@ -180,7 +180,7 @@ impl SGRString {
         W: CapableWriter,
     {
         match self.clear {
-            ClearKind::Full => {
+            ClearKind::Reset => {
                 writer.escape()?;
                 writer.write_code(0)?;
                 writer.end()
@@ -307,7 +307,11 @@ impl SGRString {
                 && self.strikethrough == StyleKind::None)
     }
 }
-
+impl From<Clear> for SGRString {
+    fn from(value: Clear) -> Self {
+        Self::default().clear(value)
+    }
+}
 impl From<Color> for SGRString {
     fn from(value: Color) -> Self {
         Self::default().color(value)
@@ -357,11 +361,19 @@ pub enum ClearKind {
     /// Do nothing
     #[default]
     None,
-    /// Full apply the reset all code
-    Full,
+    /// Apply the reset all code
+    Reset,
     /// Applies a reversing effect to everything.
     /// This is dependant on where its used
     Clean,
+}
+impl From<Clear> for ClearKind {
+    fn from(value: Clear) -> Self {
+        match value {
+            Clear::Reset => Self::Reset,
+            Clear::Clean => Self::Clean,
+        }
+    }
 }
 /// Component of [`SGRString`]; the type of style to apply
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -435,7 +447,6 @@ pub trait EasySGR: Into<SGRString> + Debug {
 
         let mut this = self.into();
         match style.into() {
-            Reset => this.reset = true,
             Bold => this.bold = Place,
             Dim => this.dim = Place,
             Italic => this.italic = Place,
@@ -519,83 +530,6 @@ pub trait EasySGR: Into<SGRString> + Debug {
     fn custom_clean(self, code: impl Into<u8>) -> SGRString {
         let mut this = self.into();
         this.custom_cleans.push(code.into());
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn foreground(self, color: impl Into<ColorKind>) -> SGRString {
-        let mut this = self.into();
-        this.foreground = color.into();
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn background(self, color: impl Into<ColorKind>) -> SGRString {
-        let mut this = self.into();
-        this.background = color.into();
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn reset(self, reset: bool) -> SGRString {
-        let mut this = self.into();
-        this.reset = reset;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn bold(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.bold = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn dim(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.dim = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn italic(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.italic = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn underline(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.underline = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn blinking(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.blinking = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn inverse(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.inverse = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn hidden(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.hidden = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn strikethrough(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.strikethrough = style;
         this
     }
 }

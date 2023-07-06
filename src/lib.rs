@@ -30,7 +30,7 @@
 //! `println!`, `writeln!` or `format!`:
 //!
 //! ```rust
-//! use flc_easy_sgr::{Color::*, Style::*};
+//! use flc_easy_sgr::{Clear::Reset, Color::*, Style::*};
 //!
 //! println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 //! ```
@@ -56,7 +56,10 @@
 //! The example above can be achieved using it as such:
 //!
 //! ```rust
-//! use flc_easy_sgr::{Color::*, EasySGR, Style::*};
+//! use flc_easy_sgr::{
+//!     Clear::Reset, Color::*,
+//!     Style::*, EasySGR,
+//! };
 //!
 //! let sgr = Italic.color(RedFg);
 //!
@@ -72,9 +75,9 @@
 //! possible SGR sequences. You can use it to reproduce the previous examples as such:
 //!
 //! ```rust
-//! use flc_easy_sgr::graphics::{
-//!     inline::{Color::*, Style::*},
-//!     EasySGR,
+//! use flc_easy_sgr::{
+//!     Clear::Reset, Color::*,
+//!     Style::*, EasySGR,
 //! };
 //!
 //! let text = "This should be italic & red!"
@@ -91,7 +94,7 @@
 //! The method above still uses the `EasySGR` trait, you can go without it as shown below:
 //!
 //! ```rust
-//! use flc_easy_sgr::{ColorKind, SGRString, StyleKind};
+//! use flc_easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
 //!
 //! let mut text = SGRString::from("This should be italic & red!");
 //! text.italic = StyleKind::Place;
@@ -109,7 +112,9 @@
 //!
 //! use flc_easy_sgr::{
 //!     writing::{StandardWriter, CapableWriter},
-//!     Color::*, EasySGR,
+//!     Clear::Reset,
+//!     Color::*,
+//!     EasySGR,
 //!     Style::*,
 //! };
 //! let mut writer = StandardWriter::io(stdout());
@@ -123,7 +128,9 @@
 //! ```rust
 //! use flc_easy_sgr::{
 //!     writing::{StandardWriter, CapableWriter},
-//!     Color::*, EasySGR,
+//!     Clear::Reset,
+//!     Color::*,
+//!     EasySGR,
 //!     Style::*,
 //! };
 //! let stylized_string = {

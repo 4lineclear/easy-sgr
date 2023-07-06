@@ -32,7 +32,7 @@ work inline of a string literal when using a macro such as
 `println!`, `writeln!` or `format!`:
 
 ```rust
-use flc_easy_sgr::{Color::*, Style::*};
+use flc_easy_sgr::{Clear::Reset, Color::*, Style::*};
 
 println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 ```
@@ -58,7 +58,10 @@ It's main purpose is to provide functions for chaining `SGR` codes.
 The example above can be achieved using it as such:
 
 ```rust
-use flc_easy_sgr::{Color::*, EasySGR, Style::*};
+use flc_easy_sgr::{
+    Clear::Reset, Color::*,
+    Style::*, EasySGR,
+};
 
 let sgr = Italic.color(RedFg);
 
@@ -74,9 +77,9 @@ though is more expensive to use as it makes use of `SGRString`.
 possible SGR sequences. You can use it to reproduce the previous examples as such:
 
 ```rust
-use flc_easy_sgr::graphics::{
-    inline::{Color::*, Style::*},
-    EasySGR,
+use flc_easy_sgr::{
+    Clear::Reset, Color::*,
+    Style::*, EasySGR,
 };
 
 let text = "This should be italic & red!"
@@ -93,7 +96,7 @@ work for anything that implements `Into<SGRString>`, so `.style(..)` and
 The method above still uses the `EasySGR` trait, you can go without it as shown below:
 
 ```rust
-use flc_easy_sgr::{ColorKind, SGRString, StyleKind};
+use flc_easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
 
 let mut text = SGRString::from("This should be italic & red!");
 text.italic = StyleKind::Place;
@@ -111,7 +114,9 @@ use std::io::{stdout, Write};
 
 use flc_easy_sgr::{
     writing::{StandardWriter, CapableWriter},
-    Color::*, EasySGR,
+    Clear::Reset,
+    Color::*,
+    EasySGR,
     Style::*,
 };
 let mut writer = StandardWriter::io(stdout());
@@ -125,7 +130,9 @@ or, when writing to a String
 ```rust
 use flc_easy_sgr::{
     writing::{StandardWriter, CapableWriter},
-    Color::*, EasySGR,
+    Clear::Reset,
+    Color::*,
+    EasySGR,
     Style::*,
 };
 let stylized_string = {

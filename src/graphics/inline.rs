@@ -10,7 +10,7 @@ use super::EasySGR;
 #[allow(clippy::module_name_repetitions)]
 pub trait InlineSGR: Sized + Display + EasySGR {
     // TODO link 'Escapes' and 'ends'
-    /// Writes a set of SGR codes to the given [`StandardWriter`]
+    /// Writes a set of SGR codes to the given [`SGRWriter`]
     ///
     /// Escapes and ends the sequence
     ///
@@ -32,13 +32,12 @@ pub trait InlineSGR: Sized + Display + EasySGR {
         StandardWriter::fmt(f).inline_sgr(self)
     }
 }
-
 #[derive(Debug)]
 /// A type of clear
 pub enum Clear {
-    /// Clears all
+    /// Clears all by writing `\x1b[0m`
     Reset,
-    /// Resets to previous style smartly,
+    /// Resets to previous style smartly
     /// when used with advanced writer
     Clean,
 }
@@ -54,11 +53,11 @@ impl InlineSGR for Clear {
     {
         match self {
             Clear::Reset => writer.write_code(0),
-            Clear::Clean => todo!(),
+            Clear::Clean => todo!("Advanced writer not yet made"),
         }
     }
 }
-/// A set of SGR code sequences
+/// A SGR style code
 #[derive(Debug)]
 pub enum Style {
     /// Represents the SGR code `1`
@@ -94,13 +93,11 @@ pub enum Style {
     /// Represents the SGR code `29`
     ClearStrikethrough,
 }
-
 impl Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.standard_display(f)
     }
 }
-
 impl InlineSGR for Style {
     /// Writes a set of SGR codes to given [`StandardWriter`]
     ///
@@ -191,13 +188,11 @@ pub enum Color {
     /// Represents the SGR code `49`
     DefaultBg,
 }
-
 impl Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.standard_display(f)
     }
 }
-
 impl InlineSGR for Color {
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where

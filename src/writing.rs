@@ -18,7 +18,6 @@ pub trait CapableWriter: Sized {
     /// Error type specified by [`CapableWriter::Error`]
     fn write(&mut self, s: &str) -> Result<(), Self::Error>;
 }
-
 /// A writer built on top of [`CapableWriter`]
 /// that has the ability to work with SGR codes
 pub trait SGRWriter: CapableWriter {
@@ -135,7 +134,6 @@ pub trait SGRWriter: CapableWriter {
         self.end()
     }
 }
-
 /// A Standard SGR writer
 #[derive(Debug)]
 pub struct StandardWriter<W: CapableWriter> {
@@ -147,7 +145,6 @@ pub struct StandardWriter<W: CapableWriter> {
     /// is written when it supposed to
     first_write: bool,
 }
-
 impl<W: CapableWriter> StandardWriter<W> {
     /// Creates a new [`StandardWriter<W>`].
     ///
@@ -181,7 +178,6 @@ impl<W: std::fmt::Write> StandardWriter<FmtWriter<W>> {
         }
     }
 }
-
 impl<W: CapableWriter> CapableWriter for StandardWriter<W> {
     type Error = W::Error;
     #[inline]
@@ -189,7 +185,6 @@ impl<W: CapableWriter> CapableWriter for StandardWriter<W> {
         self.writer.write(s)
     }
 }
-
 impl<W: CapableWriter> SGRWriter for StandardWriter<W> {
     #[inline]
     fn first_write(&self) -> bool {
@@ -200,11 +195,9 @@ impl<W: CapableWriter> SGRWriter for StandardWriter<W> {
         self.first_write = first_write;
     }
 }
-
 /// Used to implement [`CapableWriter`] for [`Write`](std::io::Write)
 #[derive(Debug)]
 pub struct IoWriter<W: std::io::Write>(pub W);
-
 impl<W: std::io::Write> CapableWriter for IoWriter<W> {
     type Error = io::Error;
 
@@ -213,11 +206,9 @@ impl<W: std::io::Write> CapableWriter for IoWriter<W> {
         self.0.write_all(s.as_bytes())
     }
 }
-
 /// Used to implement [`CapableWriter`] for [`Write`](std::fmt::Write)
 #[derive(Debug)]
 pub struct FmtWriter<W: std::fmt::Write>(pub W);
-
 impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
     type Error = fmt::Error;
 

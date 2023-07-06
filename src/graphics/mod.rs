@@ -69,7 +69,6 @@ pub struct SGRString {
     /// Refer to [`StyleKind`]
     pub strikethrough: StyleKind,
 }
-
 impl SGRString {
     /// Writes all contained SGR codes to the given [`SGRWriter`]
     ///
@@ -357,7 +356,6 @@ impl Display for SGRString {
         fmt.clean_sgr(self)
     }
 }
-
 /// The type of clear to apply
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum ClearKind {
@@ -389,7 +387,6 @@ pub enum StyleKind {
     /// Apply what reverses the style
     Clean,
 }
-
 /// Component of [`SGRString`]; the type of color
 #[derive(Debug, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -410,22 +407,22 @@ pub enum ColorKind {
     /// Applies the default `SGR` color
     Default,
 }
-
-impl<I: Into<SGRString> + Debug> EasySGR for I {}
-/// Allows for chaining types that implement it
+impl<I: Into<SGRString>> EasySGR for I {}
+/// Allows for chaining SGR code types
 ///
-/// Inner workins are:
-/// ```ignore
-/// self.into().<graphic>(<graphic>)
-/// ```
-/// Where `<graphic>` is a type of SGR graphics code such as [`Style`] or [`Color`]
+/// Methods return a [`SGRString`]
 #[allow(missing_docs)]
-pub trait EasySGR: Into<SGRString> + Debug {
+pub trait EasySGR: Into<SGRString> {
     /// Turns self into [`SGRString`]
     ///
     /// Equivalant to calling
-    ///```ignore
-    /// Into::<SGRString>::into(self)
+    ///```rust
+    /// # use flc_easy_sgr::SGRString;
+    /// # pub trait EasySGR: Into<SGRString> {
+    /// # fn to_sgr(self) -> SGRString {
+    ///Into::<SGRString>::into(self)
+    /// # }
+    /// # }
     ///```
     #[must_use]
     #[inline]
@@ -438,7 +435,7 @@ pub trait EasySGR: Into<SGRString> + Debug {
     fn text(self, text: impl Into<String>) -> SGRString {
         SGRString {
             text: text.into(),
-            ..Default::default()
+            ..self.into()
         }
     }
     /// Adds a style to the returned [`SGRString`]  

@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    writing::{StandardWriter, SGRWriter, CapableWriter},
+    writing::{StandardWriter, SGRWriter},
     Clear,
 };
 

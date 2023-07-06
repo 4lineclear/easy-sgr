@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use flc_easy_sgr::{
-    writing::{CapableWriter, StandardWriter, SGRWriter},
+    writing::{StandardWriter, SGRWriter},
     Clear::Reset,
     ClearKind,
     Color::*,

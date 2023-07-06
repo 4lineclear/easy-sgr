@@ -1,6 +1,9 @@
 use std::fmt::{Debug, Display};
 
-use crate::writing::{CapableWriter, StandardWriter, Clear};
+use crate::{
+    writing::{CapableWriter, StandardWriter},
+    Clear,
+};
 
 use self::inline::{Color, Style};
 

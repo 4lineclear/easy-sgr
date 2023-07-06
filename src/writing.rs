@@ -127,6 +127,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     pub fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), W::Error> {
+        self.first_write = true;
         self.write_inner("\x1b[")?;
         sgr.write(self)?;
         self.write_inner("m")

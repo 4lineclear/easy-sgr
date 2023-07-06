@@ -2,7 +2,8 @@ use std::error::Error;
 
 use flc_easy_sgr::{
     writing::{CapableWriter, StandardWriter},
-    ClearKind::Reset,
+    Clear::Reset,
+    ClearKind,
     Color::*,
     ColorKind, EasySGR, SGRString,
     Style::*,
@@ -23,13 +24,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             .to_sgr()
             .style(Italic)
             .color(RedFg)
-            .clear(ClearKind::Full)
+            .clear(ClearKind::Reset)
     );
 
     let mut text4 = SGRString::from("This should be italic & red!");
     text4.italic = StyleKind::Place;
     text4.foreground = ColorKind::Red;
-    text4.clear = ClearKind::Full;
+    text4.clear = ClearKind::Reset;
 
     let text4 = format!("{text4}");
 

@@ -5,19 +5,6 @@ use std::fmt::Display;
 use crate::writing::{CapableWriter, StandardWriter};
 
 use super::EasySGR;
-// use super::EasySGR;
-
-/// Represents
-#[derive(Debug)]
-pub enum Clear {
-    /// Prints \x1b[0m
-    Full,
-    /// Prints nothing
-    ///
-    /// When used in a writer,
-    /// should reverse effects back to previous SGR state
-    Clean,
-}
 
 /// Represents SGR sequences that can be used Inline.
 #[allow(clippy::module_name_repetitions)]
@@ -51,7 +38,8 @@ pub trait InlineSGR: Sized + Display + EasySGR {
 pub enum Clear {
     /// Clears all
     Reset,
-    /// Resets to previous
+    /// Resets to previous style smartly,
+    /// when used with advanced writer
     Clean,
 }
 impl Display for Clear {
@@ -60,9 +48,9 @@ impl Display for Clear {
     }
 }
 impl InlineSGR for Clear {
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn write<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
     where
-        W: SGRWriter,
+        W: CapableWriter,
     {
         match self {
             Clear::Reset => writer.write_code(0),

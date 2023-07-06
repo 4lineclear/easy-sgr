@@ -113,7 +113,7 @@ The writer can also be used directly, instead of a using the above methods:
 use std::io::{stdout, Write};
 
 use flc_easy_sgr::{
-    writing::{StandardWriter, CapableWriter},
+    writing::{SGRWriter, StandardWriter},
     Clear::Reset,
     Color::*,
     EasySGR,
@@ -129,7 +129,7 @@ or, when writing to a String
 
 ```rust
 use flc_easy_sgr::{
-    writing::{StandardWriter, CapableWriter},
+    writing::{SGRWriter, StandardWriter},
     Clear::Reset,
     Color::*,
     EasySGR,

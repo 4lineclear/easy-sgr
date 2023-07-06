@@ -111,7 +111,7 @@
 //! use std::io::{stdout, Write};
 //!
 //! use flc_easy_sgr::{
-//!     writing::{StandardWriter, CapableWriter},
+//!     writing::{SGRWriter, StandardWriter},
 //!     Clear::Reset,
 //!     Color::*,
 //!     EasySGR,
@@ -127,7 +127,7 @@
 //!
 //! ```rust
 //! use flc_easy_sgr::{
-//!     writing::{StandardWriter, CapableWriter},
+//!     writing::{SGRWriter, StandardWriter},
 //!     Clear::Reset,
 //!     Color::*,
 //!     EasySGR,

@@ -165,20 +165,23 @@
 //!     - [x] [Crate](src/lib.rs) level docs
 //!     - [x] Module level docs
 //!     - [x] [graphics module](src/graphics/mod.rs) docs
-//!     - [ ] [writing module](src/writing.rs) docs
+//!     - [x] [writing module](src/writing.rs) docs
 //!     - [ ] Clean up all docs
 //!     - [ ] Add examples to docs
 //! - [ ] Rewrite [`writers`](src/writing.rs)
 //!     - [x] Do the rewrite
 //!     - [x] Add trait
 //!     - [x] Fix docs after adding trait
-//!     - [ ] Add Advanced Writer
+//!     - [x] Add Advanced Writer
 //!     - [x] Write docs
 //!     - [ ] Add `BufWriter`
 //!     - [ ] Add `SGRBuilder`
+//! - [ ] Unique Clear behaviours
+//!
+//! ## TODO goals past publishing
+//!
 //! - [ ] Parser (`deSGR`)
 //! - [ ] Macros (`SGRise`)
-//! - [ ] Unique Clear behaviours
 #![deny(clippy::all, clippy::pedantic)]
 #![warn(clippy::cargo)]
 #![allow(clippy::enum_glob_use)]

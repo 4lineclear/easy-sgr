@@ -9,10 +9,9 @@ use super::EasySGR;
 /// Represents SGR sequences that can be used Inline.
 #[allow(clippy::module_name_repetitions)]
 pub trait InlineSGR: Sized + Display + EasySGR {
-    // TODO link 'Escapes' and 'ends'
     /// Writes a set of SGR codes to the given [`SGRWriter`]
     ///
-    /// Escapes and ends the sequence
+    /// [Escapes](SGRWriter::escape) and [Ends](SGRWriter::end) the sequence
     ///
     /// # Errors
     ///
@@ -22,6 +21,10 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     where
         W: SGRWriter;
     /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
+    ///
+    /// Uses [`SGRWriter::inline_sgr`]
+    ///
+    /// [Escapes](SGRWriter::escape) and [Ends](SGRWriter::end) the sequence
     ///
     /// # Errors
     ///

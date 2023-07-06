@@ -44,6 +44,8 @@ pub trait SGRWriter: CapableWriter {
     }
     /// Writes a code to the inner writer
     ///
+    /// Does not [Escape](SGRWriter::escape) or [End](SGRWriter::end) the sequence
+    ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
@@ -58,6 +60,9 @@ pub trait SGRWriter: CapableWriter {
         self.write(&code.to_string())
     }
     /// Writes a set of codes throught calling [`StandardWriter::write_code`]
+    ///
+    ///
+    /// Does not [Escape](SGRWriter::escape) or [End](SGRWriter::end) the sequence
     ///
     /// # Errors
     ///
@@ -101,6 +106,8 @@ pub trait SGRWriter: CapableWriter {
     }
     /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
     ///
+    /// Does not [Escape](SGRWriter::escape) or [End](SGRWriter::end) the sequence
+    ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
@@ -113,6 +120,8 @@ pub trait SGRWriter: CapableWriter {
     ///
     /// Supposed to reverse the effects made by [`SGRString::place_all`]
     ///
+    /// Does not [Escape](SGRWriter::escape) or [End](SGRWriter::end) the sequence
+    ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
@@ -122,6 +131,8 @@ pub trait SGRWriter: CapableWriter {
         sgr.clean_all(self)
     }
     /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
+    ///
+    /// [Escapes](SGRWriter::escape) and [Ends](SGRWriter::end) the sequence
     ///
     /// # Errors
     ///

@@ -212,23 +212,21 @@ impl<W: CapableWriter> SGRWriter for StandardWriter<W> {
         false
     }
 }
-/// Used to implement [`CapableWriter`] for [`Write`](std::io::Write)
+/// Used to implement [`CapableWriter`] for [`std::io::Write`]
 #[derive(Debug)]
 pub struct IoWriter<W: std::io::Write>(pub W);
 impl<W: std::io::Write> CapableWriter for IoWriter<W> {
     type Error = io::Error;
-
     #[inline]
     fn write(&mut self, s: &str) -> Result<(), Self::Error> {
         self.0.write_all(s.as_bytes())
     }
 }
-/// Used to implement [`CapableWriter`] for [`Write`](std::fmt::Write)
+/// Used to implement [`CapableWriter`] for [`std::fmt::Write`]
 #[derive(Debug)]
 pub struct FmtWriter<W: std::fmt::Write>(pub W);
 impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
     type Error = fmt::Error;
-
     #[inline]
     fn write(&mut self, s: &str) -> Result<(), Self::Error> {
         self.0.write_str(s)

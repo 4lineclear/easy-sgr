@@ -19,6 +19,103 @@ pub trait CapableWriter: Sized {
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error>;
 }
 
+pub trait SGRWriter : CapableWriter{
+
+    // pub fn escape<'a>(&'a mut self) -> SGRBuilder<'a, W> {
+    //     SGRBuilder {
+    //         writer: self,
+    //         codes: Vec::new(),
+    //     }
+    // }
+    fn first_write(&self) -> bool;
+    fn set_first_write(&mut self, first_write: bool);
+    /// Writes a code to the inner writer
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn write_code(&mut self, code: u8) -> Result<(), Self::Error> {
+        if self.first_write() {
+            self.set_first_write(false);
+        } else {
+            self.write_inner(";")?;
+        }
+        self.write_inner(&code.to_string())
+    }
+    /// Writes a set of codes throught calling [`StandardWriter::write_code`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn write_multiple(&mut self, codes: &[u8]) -> Result<(), Self::Error> {
+        if codes.is_empty() {
+            return Ok(());
+        }
+        self.write_code(codes[0])?;
+        for code in &codes[1..] {
+            self.write_code(*code)?;
+        }
+        Ok(())
+    }
+    /// Writes the SGR sequence starting characters '\x1b['
+    ///
+    /// Should be eventually followed by [`StandardWriter::end`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn escape(&mut self) -> Result<(), Self::Error> {
+        self.set_first_write(true);
+        self.write_inner("\x1b[")
+    }
+    /// Writes the SGR sequence ending character 'm'
+    ///
+    /// Should be used sometime after [`StandardWriter::escape`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn end(&mut self) -> Result<(), Self::Error> {
+        self.write_inner("m")
+    }
+    /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
+        sgr.place_all(self)
+    }
+    /// Writes the contained SGR codes to the writer through calling [`SGRString::clean_all`]
+    ///
+    /// Supposed to reverse the effects made by [`SGRString::place_all`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
+        sgr.clean_all(self)
+    }
+    /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), Self::Error> {
+        self.set_first_write(true);
+        self.write_inner("\x1b[")?;
+        sgr.write(self)?;
+        self.write_inner("m")
+    }
+}
+
 /// A Standard SGR writer
 #[derive(Debug)]
 pub struct StandardWriter<W: CapableWriter> {
@@ -40,97 +137,6 @@ impl<W: CapableWriter> StandardWriter<W> {
             writer,
             first_write: true,
         }
-    }
-    // pub fn escape<'a>(&'a mut self) -> SGRBuilder<'a, W> {
-    //     SGRBuilder {
-    //         writer: self,
-    //         codes: Vec::new(),
-    //     }
-    // }
-    /// Writes a code to the inner writer
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`CapableWriter::Error`]
-    pub fn write_code(&mut self, code: u8) -> Result<(), W::Error> {
-        if self.first_write {
-            self.first_write = false;
-        } else {
-            self.write_inner(";")?;
-        }
-        self.write_inner(&code.to_string())
-    }
-    /// Writes a set of codes throught calling [`StandardWriter::write_code`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`CapableWriter::Error`]
-    pub fn write_multiple(&mut self, codes: &[u8]) -> Result<(), W::Error> {
-        if codes.is_empty() {
-            return Ok(());
-        }
-        self.write_code(codes[0])?;
-        for code in &codes[1..] {
-            self.write_code(*code)?;
-        }
-        Ok(())
-    }
-    /// Writes the SGR sequence starting characters '\x1b['
-    ///
-    /// Should be eventually followed by [`StandardWriter::end`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`CapableWriter::Error`]
-    pub fn escape(&mut self) -> Result<(), W::Error> {
-        self.first_write = true;
-        self.write_inner("\x1b[")
-    }
-    /// Writes the SGR sequence ending character 'm'
-    ///
-    /// Should be used sometime after [`StandardWriter::escape`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`CapableWriter::Error`]
-    pub fn end(&mut self) -> Result<(), W::Error> {
-        self.write_inner("m")
-    }
-    /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`CapableWriter::Error`]
-    pub fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), W::Error> {
-        sgr.place_all(self)
-    }
-    /// Writes the contained SGR codes to the writer through calling [`SGRString::clean_all`]
-    ///
-    /// Supposed to reverse the effects made by [`SGRString::place_all`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`CapableWriter::Error`]
-    pub fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), W::Error> {
-        sgr.clean_all(self)
-    }
-    /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`CapableWriter::Error`]
-    pub fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), W::Error> {
-        self.first_write = true;
-        self.write_inner("\x1b[")?;
-        sgr.write(self)?;
-        self.write_inner("m")
     }
 }
 impl<W: std::io::Write> StandardWriter<IoWriter<W>> {
@@ -161,6 +167,17 @@ impl<W: CapableWriter> CapableWriter for StandardWriter<W> {
 
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error> {
         self.writer.write_inner(s)
+    }
+}
+
+impl<W: CapableWriter> SGRWriter for StandardWriter<W> {
+
+    fn first_write(&self) -> bool {
+        self.first_write
+    }
+
+    fn set_first_write(&mut self, first_write: bool) {
+        self.first_write = first_write;
     }
 }
 

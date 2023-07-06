@@ -2,8 +2,8 @@ use std::io::{stdout, Write};
 
 use flc_easy_sgr::{
     writing::{IoWriter, SGRWriter},
-    Color::*,
     Clear::Reset,
+    Color::*,
     ColorKind, EasySGR, SGRString,
     Style::*,
     StyleKind,

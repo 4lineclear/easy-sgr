@@ -50,7 +50,8 @@ impl Display for Clear {
 impl InlineSGR for Clear {
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: SGRWriter {
+        W: SGRWriter,
+    {
         match self {
             Clear::Reset => writer.write_code(0),
             Clear::Clean => todo!(),

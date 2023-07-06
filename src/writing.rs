@@ -239,6 +239,9 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
 pub struct AdvancedWriter<W: CapableWriter> {
     /// A writer capable of writing SGR codes
     pub writer: StandardWriter<W>,
+    /// The previous state of graphics
+    #[allow(dead_code)]
+    previous_state: Vec<u8>,
 }
 impl<W: CapableWriter> AdvancedWriter<W> {
     /// Creates a new [`AdvancedWriter<W>`].
@@ -247,6 +250,7 @@ impl<W: CapableWriter> AdvancedWriter<W> {
     pub fn new(writer: W) -> Self {
         Self {
             writer: StandardWriter::new(writer),
+            previous_state: Default::default(),
         }
     }
 }
@@ -257,6 +261,7 @@ impl<W: std::io::Write> AdvancedWriter<IoWriter<W>> {
     pub fn io(writer: W) -> Self {
         Self {
             writer: StandardWriter::io(writer),
+            previous_state: Default::default(),
         }
     }
 }
@@ -267,6 +272,7 @@ impl<W: std::fmt::Write> AdvancedWriter<FmtWriter<W>> {
     pub fn fmt(writer: W) -> Self {
         Self {
             writer: StandardWriter::fmt(writer),
+            previous_state: Default::default(),
         }
     }
 }

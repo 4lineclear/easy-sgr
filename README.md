@@ -92,8 +92,8 @@ The method above still uses the `EasySGR` trait, you can go without it as shown 
 use easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
 
 let mut text = SGRString::from("This should be italic & red!");
-text.graphics.italic = StyleKind::Place;
-text.graphics.foreground = ColorKind::Red;
+text.italic = StyleKind::Place;
+text.foreground = ColorKind::Red;
 
 println!("{text}")
 ```

@@ -28,9 +28,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let mut text4 = SGRString::from("This should be italic & red!");
-    text4.graphics.italic = StyleKind::Place;
-    text4.graphics.foreground = ColorKind::Red;
-    text4.graphics.clear = ClearKind::Reset;
+    text4.italic = StyleKind::Place;
+    text4.foreground = ColorKind::Red;
+    text4.clear = ClearKind::Reset;
 
     let text4 = format!("{text4}");
 

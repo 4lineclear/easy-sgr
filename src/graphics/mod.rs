@@ -417,7 +417,7 @@ pub trait EasySGR: Into<SGRString> {
     ///
     /// Equivalant to calling
     ///```rust
-    /// # use flc_easy_sgr::SGRString;
+    /// # use easy_sgr::SGRString;
     /// # pub trait EasySGR: Into<SGRString> {
     /// # fn to_sgr(self) -> SGRString {
     ///Into::<SGRString>::into(self)

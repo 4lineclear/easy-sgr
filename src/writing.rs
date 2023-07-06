@@ -19,10 +19,9 @@ pub trait CapableWriter: Sized {
     fn write(&mut self, s: &str) -> Result<(), Self::Error>;
 }
 
-/// A writer built on top of [`CapableWriter`] 
+/// A writer built on top of [`CapableWriter`]
 /// that has the ability to work with SGR codes
-pub trait SGRWriter : CapableWriter{
-
+pub trait SGRWriter: CapableWriter {
     // pub fn escape<'a>(&'a mut self) -> SGRBuilder<'a, W> {
     //     SGRBuilder {
     //         writer: self,

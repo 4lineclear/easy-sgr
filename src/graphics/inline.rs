@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use crate::writing::{StandardWriter, SGRWriter};
+use crate::writing::{SGRWriter, StandardWriter};
 
 use super::EasySGR;
 

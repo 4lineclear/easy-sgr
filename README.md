@@ -16,13 +16,6 @@ Not yet made
 
 Not yet published
 
-## Why `flc-easy-sgr`
-
-`flc` stands for my user name, 4lineclear. I'm unsure if I will be maintaining
-this project, so I have prepended `flc` in case anyone
-else would like to create a crate called `easy-sgr`.
-I also doubt many will use this crate.
-
 ## Usage
 
 ### `Color` and `Style`
@@ -32,7 +25,7 @@ work inline of a string literal when using a macro such as
 `println!`, `writeln!` or `format!`:
 
 ```rust
-use flc_easy_sgr::{Clear::Reset, Color::*, Style::*};
+use easy_sgr::{Clear::Reset, Color::*, Style::*};
 
 println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 ```
@@ -58,7 +51,7 @@ It's main purpose is to provide functions for chaining `SGR` codes.
 The example above can be achieved using it as such:
 
 ```rust
-use flc_easy_sgr::{
+use easy_sgr::{
     Clear::Reset, Color::*,
     Style::*, EasySGR,
 };
@@ -77,7 +70,7 @@ though is more expensive to use as it makes use of `SGRString`.
 possible SGR sequences. You can use it to reproduce the previous examples as such:
 
 ```rust
-use flc_easy_sgr::{
+use easy_sgr::{
     Clear::Reset, Color::*,
     Style::*, EasySGR,
 };
@@ -96,7 +89,7 @@ work for anything that implements `Into<SGRString>`, so `.style(..)` and
 The method above still uses the `EasySGR` trait, you can go without it as shown below:
 
 ```rust
-use flc_easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
+use easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
 
 let mut text = SGRString::from("This should be italic & red!");
 text.italic = StyleKind::Place;
@@ -112,8 +105,8 @@ The writer can also be used directly, instead of a using the above methods:
 ```rust
 use std::io::{stdout, Write};
 
-use flc_easy_sgr::{
-    writing::{StandardWriter, CapableWriter},
+use easy_sgr::{
+    writing::{SGRWriter, StandardWriter},
     Clear::Reset,
     Color::*,
     EasySGR,
@@ -128,8 +121,8 @@ writer.inline_sgr(&Reset).unwrap();
 or, when writing to a String
 
 ```rust
-use flc_easy_sgr::{
-    writing::{StandardWriter, CapableWriter},
+use easy_sgr::{
+    writing::{SGRWriter, StandardWriter},
     Clear::Reset,
     Color::*,
     EasySGR,
@@ -179,6 +172,8 @@ let stylized_string = {
     - [ ] Add examples to docs
 - [ ] Rewrite [`writers`](src/writing.rs)
     - [x] Do the rewrite
+    - [x] Add trait
+    - [ ] Fix docs after adding trait
     - [ ] Add Advanced Writer
     - [x] Write docs
     - [ ] Add `BufWriter`

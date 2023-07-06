@@ -14,13 +14,6 @@
 //!
 //! Not yet published
 //!
-//! ## Why `flc-easy-sgr`
-//!
-//! `flc` stands for my user name, 4lineclear. I'm unsure if I will be maintaining
-//! this project, so I have prepended `flc` in case anyone
-//! else would like to create a crate called `easy-sgr`.
-//! I also doubt many will use this crate.
-//!
 //! ## Usage
 //!
 //! ### `Color` and `Style`
@@ -30,7 +23,7 @@
 //! `println!`, `writeln!` or `format!`:
 //!
 //! ```rust
-//! use flc_easy_sgr::{Clear::Reset, Color::*, Style::*};
+//! use easy_sgr::{Clear::Reset, Color::*, Style::*};
 //!
 //! println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 //! ```
@@ -56,7 +49,7 @@
 //! The example above can be achieved using it as such:
 //!
 //! ```rust
-//! use flc_easy_sgr::{
+//! use easy_sgr::{
 //!     Clear::Reset, Color::*,
 //!     Style::*, EasySGR,
 //! };
@@ -75,7 +68,7 @@
 //! possible SGR sequences. You can use it to reproduce the previous examples as such:
 //!
 //! ```rust
-//! use flc_easy_sgr::{
+//! use easy_sgr::{
 //!     Clear::Reset, Color::*,
 //!     Style::*, EasySGR,
 //! };
@@ -94,7 +87,7 @@
 //! The method above still uses the `EasySGR` trait, you can go without it as shown below:
 //!
 //! ```rust
-//! use flc_easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
+//! use easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
 //!
 //! let mut text = SGRString::from("This should be italic & red!");
 //! text.italic = StyleKind::Place;
@@ -110,8 +103,8 @@
 //! ```rust
 //! use std::io::{stdout, Write};
 //!
-//! use flc_easy_sgr::{
-//!     writing::{StandardWriter, CapableWriter},
+//! use easy_sgr::{
+//!     writing::{SGRWriter, StandardWriter},
 //!     Clear::Reset,
 //!     Color::*,
 //!     EasySGR,
@@ -126,8 +119,8 @@
 //! or, when writing to a String
 //!
 //! ```rust
-//! use flc_easy_sgr::{
-//!     writing::{StandardWriter, CapableWriter},
+//! use easy_sgr::{
+//!     writing::{SGRWriter, StandardWriter},
 //!     Clear::Reset,
 //!     Color::*,
 //!     EasySGR,
@@ -177,6 +170,8 @@
 //!     - [ ] Add examples to docs
 //! - [ ] Rewrite [`writers`](src/writing.rs)
 //!     - [x] Do the rewrite
+//!     - [x] Add trait
+//!     - [ ] Fix docs after adding trait
 //!     - [ ] Add Advanced Writer
 //!     - [x] Write docs
 //!     - [ ] Add `BufWriter`

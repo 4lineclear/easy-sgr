@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    writing::{CapableWriter, StandardWriter},
+    writing::{SGRWriter, StandardWriter},
     Clear,
 };
 
@@ -69,16 +69,15 @@ pub struct SGRString {
     /// Refer to [`StyleKind`]
     pub strikethrough: StyleKind,
 }
-
 impl SGRString {
-    /// Writes all contained SGR codes to the given [`CapableWriter`]
+    /// Writes all contained SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_all<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn place_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         if self.no_places() {
             return Ok(());
@@ -92,14 +91,14 @@ impl SGRString {
         self.place_custom(writer)?;
         writer.end()
     }
-    /// Writes SGR color codes to the given [`CapableWriter`]
+    /// Writes SGR color codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_colors<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn place_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         use ColorKind::*;
         match self.foreground {
@@ -132,14 +131,14 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes SGR style codes to the given [`CapableWriter`]
+    /// Writes SGR style codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_styles<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn place_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         use StyleKind::*;
         for (kind, place, clear) in [
@@ -160,27 +159,27 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes custom SGR codes to the given [`CapableWriter`]
+    /// Writes custom SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_custom<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn place_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         writer.write_multiple(&self.custom_places)
     }
-    /// Writes the contained SGR codes to the given [`CapableWriter`]
+    /// Writes the contained SGR codes to the given [`SGRWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_all`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_all<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn clean_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         match self.clear {
             ClearKind::Reset => {
@@ -198,16 +197,16 @@ impl SGRString {
             _ => Ok(()),
         }
     }
-    /// Writes SGR color codes to the given [`CapableWriter`]
+    /// Writes SGR color codes to the given [`SGRWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_colors`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_colors<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn clean_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         if self.foreground != ColorKind::None {
             writer.write_code(39)?;
@@ -217,16 +216,16 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes SGR style codes to the given [`CapableWriter`]
+    /// Writes SGR style codes to the given [`SGRWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_styles`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_styles<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn clean_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         for (kind, place, clear) in [
             (&self.bold, 22, 1),
@@ -246,16 +245,16 @@ impl SGRString {
         }
         Ok(())
     }
-    /// Writes SGR codes to the given [`CapableWriter`]
+    /// Writes SGR codes to the given [`SGRWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_custom`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_custom<W>(&self, writer: &mut StandardWriter<W>) -> Result<(), W::Error>
+    pub fn clean_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
-        W: CapableWriter,
+        W: SGRWriter,
     {
         writer.write_multiple(&self.custom_cleans)
     }
@@ -357,7 +356,6 @@ impl Display for SGRString {
         fmt.clean_sgr(self)
     }
 }
-
 /// The type of clear to apply
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum ClearKind {
@@ -389,7 +387,6 @@ pub enum StyleKind {
     /// Apply what reverses the style
     Clean,
 }
-
 /// Component of [`SGRString`]; the type of color
 #[derive(Debug, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -410,22 +407,22 @@ pub enum ColorKind {
     /// Applies the default `SGR` color
     Default,
 }
-
-impl<I: Into<SGRString> + Debug> EasySGR for I {}
-/// Allows for chaining types that implement it
+impl<I: Into<SGRString>> EasySGR for I {}
+/// Allows for chaining SGR code types
 ///
-/// Inner workins are:
-/// ```ignore
-/// self.into().<graphic>(<graphic>)
-/// ```
-/// Where `<graphic>` is a type of SGR graphics code such as [`Style`] or [`Color`]
+/// Methods return a [`SGRString`]
 #[allow(missing_docs)]
-pub trait EasySGR: Into<SGRString> + Debug {
+pub trait EasySGR: Into<SGRString> {
     /// Turns self into [`SGRString`]
     ///
     /// Equivalant to calling
-    ///```ignore
-    /// Into::<SGRString>::into(self)
+    ///```rust
+    /// # use easy_sgr::SGRString;
+    /// # pub trait EasySGR: Into<SGRString> {
+    /// # fn to_sgr(self) -> SGRString {
+    ///Into::<SGRString>::into(self)
+    /// # }
+    /// # }
     ///```
     #[must_use]
     #[inline]
@@ -438,7 +435,7 @@ pub trait EasySGR: Into<SGRString> + Debug {
     fn text(self, text: impl Into<String>) -> SGRString {
         SGRString {
             text: text.into(),
-            ..Default::default()
+            ..self.into()
         }
     }
     /// Adds a style to the returned [`SGRString`]  

@@ -52,10 +52,7 @@
 //! The example above can be achieved using it as such:
 //!
 //! ```rust
-//! use easy_sgr::{
-//!     Clean::Reset, Color::*,
-//!     Style::*, EasySGR,
-//! };
+//! use easy_sgr::{Clean::Reset, Color::*, EasySGR, Style::*};
 //!
 //! let sgr = Italic.color(RedFg);
 //!
@@ -71,10 +68,7 @@
 //! possible SGR sequences. You can use it to reproduce the previous examples as such:
 //!
 //! ```rust
-//! use easy_sgr::{
-//!     Clean::Reset, Color::*,
-//!     Style::*, EasySGR,
-//! };
+//! use easy_sgr::{Clean::Reset, Color::*, EasySGR, Style::*};
 //!
 //! let text = "This should be italic & red!"
 //!     .to_sgr()
@@ -105,14 +99,8 @@
 //!
 //! ```rust
 //! use std::io::{stdout, Write};
+//! use easy_sgr::{Clean::Reset, Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
 //!
-//! use easy_sgr::{
-//!     writing::{SGRWriter, StandardWriter},
-//!     Clean::Reset,
-//!     Color::*,
-//!     EasySGR,
-//!     Style::*,
-//! };
 //! let mut writer = StandardWriter::io(stdout());
 //! writer.place_sgr(&Italic.color(RedFg)).unwrap();
 //! writer.write_inner("This should be italic & red!").unwrap();
@@ -122,13 +110,8 @@
 //! or, when writing to a String
 //!
 //! ```rust
-//! use easy_sgr::{
-//!     writing::{SGRWriter, StandardWriter},
-//!     Clean::Reset,
-//!     Color::*,
-//!     EasySGR,
-//!     Style::*,
-//! };
+//! use easy_sgr::{Clean::Reset, Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
+//!
 //! let stylized_string = {
 //!     let mut writer = StandardWriter::fmt(String::new());
 //!     writer.place_sgr(&Italic.color(RedFg)).unwrap();
@@ -195,8 +178,9 @@
 ///
 /// Makes use of the [`writers`](writing) to write `SGR` codes to a writer
 pub mod graphics;
-/// Contains various SGR writers, most importantly the [`CapableWriter`](writing::CapableWriter) trait
+/// Contains various structs and traits to help in writing `SGR` codes
 pub mod writing;
 
 pub use graphics::discrete::*;
 pub use graphics::*;
+pub use writing::*;

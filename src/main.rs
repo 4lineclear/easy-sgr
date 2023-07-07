@@ -1,11 +1,11 @@
 use std::error::Error;
 
 use easy_sgr::{
-    writing::{AdvancedWriter, SGRWriter, StandardWriter},
+    AdvancedWriter,
     Clean::{Reset, Reverse},
     CleanKind,
     Color::*,
-    ColorKind, EasySGR, SGRString,
+    ColorKind, EasySGR, SGRString, SGRWriter, StandardWriter,
     Style::*,
     StyleKind,
 };

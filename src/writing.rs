@@ -21,10 +21,11 @@ pub trait CapableWriter: Sized {
 /// A writer built on top of a [`CapableWriter`]
 /// that has the ability to work with SGR codes
 pub trait SGRWriter: CapableWriter {
-    /// Returns whether the writer can do a smart clean
+    /// Returns the previous codes
     fn previous_codes(&self) -> Option<&Vec<u8>> {
         None
     }
+    /// Sets the previous codes
     fn set_previous_codes(&mut self, _graphics: Vec<u8>) {}
     /// Writes a [`str`] to the inner writer
     ///
@@ -38,6 +39,7 @@ pub trait SGRWriter: CapableWriter {
     fn write_inner(&mut self, s: &str) -> Result<(), Self::Error> {
         self.write(s)
     }
+    /// Returns a [`SGRBuilder`] to allow for writing SGR codes
     fn escape<'a>(&'a mut self) -> SGRBuilder<'a, Self> {
         SGRBuilder {
             writer: self,
@@ -45,8 +47,6 @@ pub trait SGRWriter: CapableWriter {
         }
     }
     /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
-    ///
-    /// Does not [Escape](SGRWriter::escape) or [End](SGRWriter::end) the sequence
     ///
     /// # Errors
     ///
@@ -62,8 +62,6 @@ pub trait SGRWriter: CapableWriter {
     ///
     /// Supposed to reverse the effects made by [`SGRString::place_all`]
     ///
-    /// Does not [Escape](SGRWriter::escape) or [End](SGRWriter::end) the sequence
-    ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
@@ -75,8 +73,6 @@ pub trait SGRWriter: CapableWriter {
         builder.end()
     }
     /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
-    ///
-    /// [Escapes](SGRWriter::escape) and [Ends](SGRWriter::end) the sequence
     ///
     /// # Errors
     ///
@@ -212,6 +208,7 @@ impl<W: CapableWriter> SGRWriter for AdvancedWriter<W> {
         self.previous_codes.push(graphics);
     }
 }
+/// Builds a SGR sequence
 #[derive(Debug)]
 pub struct SGRBuilder<'a, W: SGRWriter> {
     writer: &'a mut W,
@@ -219,31 +216,41 @@ pub struct SGRBuilder<'a, W: SGRWriter> {
 }
 
 impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
+    /// Writes a code to the internal buffer
     #[inline]
     pub fn write_code(&mut self, code: u8) {
         self.codes.push(code);
     }
+    /// Writes codes to the internal buffer
     #[inline]
     pub fn write_codes(&mut self, codes: &[u8]) {
         self.codes.extend_from_slice(codes);
     }
+    /// Writes a code to the internal buffer
+    ///
+    /// Returns self to allow for chaining
     #[inline]
     pub fn chain_code(&mut self, code: u8) -> &mut Self {
         self.codes.push(code);
         self
     }
+    /// Writes codes to the internal buffer
+    ///
+    /// Returns self to allow for chainin
     #[inline]
     pub fn chain_codes(&mut self, codes: &[u8]) -> &mut Self {
         self.codes.extend_from_slice(codes);
         self
     }
+    /// Writes a cleaning sequence to the internal buffer
     #[inline]
     pub fn smart_clean(&mut self) {
         self.codes = match self.writer.previous_codes() {
-            Some(codes) if codes.len() != 0 => codes.clone(),
+            Some(codes) if codes.is_empty() => codes.clone(),
             _ => vec![0],
         }
     }
+    /// Writes buffered codes to the writer
     pub fn end(&mut self) -> Result<(), W::Error> {
         self.writer.set_previous_codes(self.codes.clone());
 

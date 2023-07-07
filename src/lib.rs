@@ -23,7 +23,7 @@
 //! `println!`, `writeln!` or `format!`:
 //!
 //! ```rust
-//! use easy_sgr::{Clear::Reset, Color::*, Style::*};
+//! use easy_sgr::{Clean::Reset, Color::*, Style::*};
 //!
 //! println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 //! ```
@@ -50,7 +50,7 @@
 //!
 //! ```rust
 //! use easy_sgr::{
-//!     Clear::Reset, Color::*,
+//!     Clean::Reset, Color::*,
 //!     Style::*, EasySGR,
 //! };
 //!
@@ -69,7 +69,7 @@
 //!
 //! ```rust
 //! use easy_sgr::{
-//!     Clear::Reset, Color::*,
+//!     Clean::Reset, Color::*,
 //!     Style::*, EasySGR,
 //! };
 //!
@@ -87,7 +87,7 @@
 //! The method above still uses the `EasySGR` trait, you can go without it as shown below:
 //!
 //! ```rust
-//! use easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
+//! use easy_sgr::{ColorKind, Clean::Reset, SGRString, StyleKind};
 //!
 //! let mut text = SGRString::from("This should be italic & red!");
 //! text.italic = StyleKind::Place;
@@ -105,7 +105,7 @@
 //!
 //! use easy_sgr::{
 //!     writing::{SGRWriter, StandardWriter},
-//!     Clear::Reset,
+//!     Clean::Reset,
 //!     Color::*,
 //!     EasySGR,
 //!     Style::*,
@@ -121,7 +121,7 @@
 //! ```rust
 //! use easy_sgr::{
 //!     writing::{SGRWriter, StandardWriter},
-//!     Clear::Reset,
+//!     Clean::Reset,
 //!     Color::*,
 //!     EasySGR,
 //!     Style::*,

@@ -25,7 +25,7 @@ work inline of a string literal when using a macro such as
 `println!`, `writeln!` or `format!`:
 
 ```rust
-use easy_sgr::{Clear::Reset, Color::*, Style::*};
+use easy_sgr::{Clean::Reset, Color::*, Style::*};
 
 println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 ```
@@ -52,7 +52,7 @@ The example above can be achieved using it as such:
 
 ```rust
 use easy_sgr::{
-    Clear::Reset, Color::*,
+    Clean::Reset, Color::*,
     Style::*, EasySGR,
 };
 
@@ -71,7 +71,7 @@ possible SGR sequences. You can use it to reproduce the previous examples as suc
 
 ```rust
 use easy_sgr::{
-    Clear::Reset, Color::*,
+    Clean::Reset, Color::*,
     Style::*, EasySGR,
 };
 
@@ -89,7 +89,7 @@ work for anything that implements `Into<SGRString>`, so `.style(..)` and
 The method above still uses the `EasySGR` trait, you can go without it as shown below:
 
 ```rust
-use easy_sgr::{ColorKind, Clear::Reset, SGRString, StyleKind};
+use easy_sgr::{ColorKind, Clean::Reset, SGRString, StyleKind};
 
 let mut text = SGRString::from("This should be italic & red!");
 text.italic = StyleKind::Place;
@@ -107,7 +107,7 @@ use std::io::{stdout, Write};
 
 use easy_sgr::{
     writing::{SGRWriter, StandardWriter},
-    Clear::Reset,
+    Clean::Reset,
     Color::*,
     EasySGR,
     Style::*,
@@ -123,7 +123,7 @@ or, when writing to a String
 ```rust
 use easy_sgr::{
     writing::{SGRWriter, StandardWriter},
-    Clear::Reset,
+    Clean::Reset,
     Color::*,
     EasySGR,
     Style::*,

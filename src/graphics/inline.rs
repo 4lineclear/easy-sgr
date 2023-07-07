@@ -11,8 +11,6 @@ use super::EasySGR;
 pub trait InlineSGR: Sized + Display + EasySGR {
     /// Writes a set of SGR codes to the given [`SGRWriter`]
     ///
-    /// [Escapes](SGRWriter::escape) and [Ends](SGRWriter::end) the sequence
-    ///
     /// # Errors
     ///
     /// Returns an error if writing to the given write fails
@@ -23,8 +21,6 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
     ///
     /// Uses [`SGRWriter::inline_sgr`]
-    ///
-    /// [Escapes](SGRWriter::escape) and [Ends](SGRWriter::end) the sequence
     ///
     /// # Errors
     ///

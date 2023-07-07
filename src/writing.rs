@@ -1,6 +1,6 @@
 use std::{fmt, io};
 
-use crate::graphics::{inline::InlineSGR, SGRString};
+use crate::graphics::{discrete::InlineSGR, SGRString};
 
 /// An interfeace for an [`SGRWriter`] to work with
 ///

@@ -198,5 +198,5 @@ pub mod graphics;
 /// Contains various SGR writers, most importantly the [`CapableWriter`](writing::CapableWriter) trait
 pub mod writing;
 
-pub use graphics::inline::*;
+pub use graphics::discrete::*;
 pub use graphics::*;

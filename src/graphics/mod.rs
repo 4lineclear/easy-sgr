@@ -5,10 +5,10 @@ use crate::{
     Clean,
 };
 
-use self::inline::{Color, Style};
+use self::discrete::{Color, Style};
 
 /// Implements whats supposed to be used inline of a string literal
-pub mod inline;
+pub mod discrete;
 
 /// A String encapsulating SGR codes
 ///
@@ -429,7 +429,7 @@ pub trait EasySGR: Into<SGRString> {
     /// Adds a style to the returned [`SGRString`]  
     #[must_use]
     #[inline]
-    fn style(self, style: impl Into<inline::Style>) -> SGRString {
+    fn style(self, style: impl Into<discrete::Style>) -> SGRString {
         use Style::*;
         use StyleKind::*;
 
@@ -458,7 +458,7 @@ pub trait EasySGR: Into<SGRString> {
     /// Adds a color(foreground or background) to the returned [`SGRString`]  
     #[must_use]
     #[inline]
-    fn color(self, color: impl Into<inline::Color>) -> SGRString {
+    fn color(self, color: impl Into<discrete::Color>) -> SGRString {
         use {Color::*, ColorKind::*};
 
         let mut this = self.into();

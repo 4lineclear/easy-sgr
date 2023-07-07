@@ -165,7 +165,7 @@ let stylized_string = {
     - [x] Add Advanced Writer
     - [x] Write docs
     - [x] Add `SGRBuilder`
-- [x] Unique Clear behaviours
+- [x] Unique Clear behaviors
 
 ## TODO goals past publishing
 

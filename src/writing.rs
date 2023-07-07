@@ -2,7 +2,7 @@ use std::{fmt, io};
 
 use crate::graphics::{discrete::DiscreteSGR, SGRString};
 
-/// An interfeace for an [`SGRWriter`] to work with
+/// An interface for an [`SGRWriter`] to work with
 ///
 /// Does not provide SGR writing capability itself
 pub trait CapableWriter: Sized {
@@ -72,7 +72,7 @@ pub trait SGRWriter: CapableWriter {
         sgr.clean_all(&mut builder);
         builder.end()
     }
-    /// Writes the contained SGR codes to the writer throught calling [`DiscreteSGR::write`]
+    /// Writes the contained SGR codes to the writer through calling [`DiscreteSGR::write`]
     ///
     /// # Errors
     ///
@@ -147,7 +147,7 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
         self.0.write_str(s)
     }
 }
-/// A more advenced [`StandardWriter`]
+/// A more advanced [`StandardWriter`]
 ///
 /// Has the ability to do a smart clean
 #[derive(Debug)]
@@ -236,7 +236,7 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
     }
     /// Writes codes to the internal buffer
     ///
-    /// Returns self to allow for chainin
+    /// Returns self to allow for chaining
     #[inline]
     pub fn chain_codes(&mut self, codes: &[u8]) -> &mut Self {
         self.codes.extend_from_slice(codes);

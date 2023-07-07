@@ -53,7 +53,7 @@ pub struct SGRString {
     /// code for background is applied.
     pub background: ColorKind,
 
-    /// Determines whether the clear code `0` is to be applied to the beggining
+    /// Determines whether the clear code `0` is to be applied to the beginning
     ///
     /// Not be confused with [`SGRString.clear`], this only has effect on [`SGRString::place_all`]
     pub reset: bool,
@@ -310,7 +310,7 @@ pub enum StyleKind {
     Place,
     /// Apply what reverses the style
     ///
-    /// The equivilant [`Style`] varients would be what is prefixed with `Not`
+    /// The equivalent [`Style`] variants would be what is prefixed with `Not`
     Clean,
 }
 /// Component of [`SGRString`]; the type of color
@@ -342,7 +342,7 @@ impl<I: Into<SGRString>> EasySGR for I {}
 pub trait EasySGR: Into<SGRString> {
     /// Turns self into [`SGRString`]
     ///
-    /// Equivalant to calling
+    /// Equivalent to calling
     ///```rust
     /// # use easy_sgr::SGRString;
     /// # pub trait EasySGR: Into<SGRString> {

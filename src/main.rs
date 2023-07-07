@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use easy_sgr::{
-    writing::{SGRWriter, StandardWriter},
-    Clear::Reset,
+    writing::{AdvancedWriter, SGRWriter, StandardWriter},
+    Clear::{Clean, Reset},
     ClearKind,
     Color::*,
     ColorKind, EasySGR, SGRString,
@@ -34,9 +34,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let text4 = format!("{text4}");
 
-    let text5 = String::new();
     let text5 = {
-        let mut writer = StandardWriter::fmt(text5);
+        let mut writer = StandardWriter::fmt(String::new());
 
         writer.place_sgr(&Italic.color(RedFg))?;
         writer.write_inner("This should be italic & red!")?;
@@ -44,11 +43,25 @@ fn main() -> Result<(), Box<dyn Error>> {
         writer.writer.0
     };
 
+    let text6 = {
+        let mut writer = AdvancedWriter::fmt(String::new());
+
+        writer.place_sgr(&Italic.color(RedFg))?;
+        writer.write_inner("This should be italic & red!, ")?;
+        writer.place_sgr(&ClearItalic.color(DefaultFg))?;
+        writer.write_inner("This should be normal text!, ")?;
+        writer.inline_sgr(&Clean)?;
+        writer.write_inner("Back to red & italic text!, ")?;
+
+        writer.writer.writer.0
+    };
+
     dbg!(format!("{text1}"));
     dbg!(format!("{text2}"));
     dbg!(format!("{text3}"));
     dbg!(format!("{text4}"));
     dbg!(format!("{text5}"));
+    dbg!(format!("{text6}"));
 
     println!();
 
@@ -57,6 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{text3}");
     println!("{text4}");
     println!("{text5}");
+    println!("{text6}");
 
     println!("\nTests complete");
 

@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    writing::{SGRWriter, StandardWriter},
+    writing::{SGRBuilder, SGRWriter, StandardWriter},
     Clear,
 };
 
@@ -75,68 +75,65 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_all<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         if self.no_places() {
-            return Ok(());
+            return;
         }
-        writer.escape()?;
         if self.reset {
-            writer.write_code(0)?;
+            builder.write_code(0);
         }
-        self.place_colors(writer)?;
-        self.place_styles(writer)?;
-        self.place_custom(writer)?;
-        writer.end()
+        self.place_colors(builder);
+        self.place_styles(builder);
+        self.place_custom(builder);
     }
     /// Writes SGR color codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_colors<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         use ColorKind::*;
         match self.foreground {
-            Black => writer.write_code(30)?,
-            Red => writer.write_code(31)?,
-            Green => writer.write_code(32)?,
-            Yellow => writer.write_code(33)?,
-            Blue => writer.write_code(34)?,
-            Magenta => writer.write_code(35)?,
-            Cyan => writer.write_code(36)?,
-            White => writer.write_code(37)?,
-            Byte(n) => writer.write_multiple(&[38, 2, n])?,
-            Rgb(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
-            Default => writer.write_code(39)?,
+            Black => builder.write_code(30),
+            Red => builder.write_code(31),
+            Green => builder.write_code(32),
+            Yellow => builder.write_code(33),
+            Blue => builder.write_code(34),
+            Magenta => builder.write_code(35),
+            Cyan => builder.write_code(36),
+            White => builder.write_code(37),
+            Byte(n) => builder.write_codes(&[38, 2, n]),
+            Rgb(r, g, b) => builder.write_codes(&[38, 5, r, g, b]),
+            Default => builder.write_code(39),
             ColorKind::None => (),
-        }
+        };
         match self.background {
-            Black => writer.write_code(40)?,
-            Red => writer.write_code(41)?,
-            Green => writer.write_code(42)?,
-            Yellow => writer.write_code(43)?,
-            Blue => writer.write_code(44)?,
-            Magenta => writer.write_code(45)?,
-            Cyan => writer.write_code(46)?,
-            White => writer.write_code(47)?,
-            Byte(n) => writer.write_multiple(&[48, 2, n])?,
-            Rgb(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
-            Default => writer.write_code(49)?,
+            Black => builder.write_code(40),
+            Red => builder.write_code(41),
+            Green => builder.write_code(42),
+            Yellow => builder.write_code(43),
+            Blue => builder.write_code(44),
+            Magenta => builder.write_code(45),
+            Cyan => builder.write_code(46),
+            White => builder.write_code(47),
+            Byte(n) => builder.write_codes(&[48, 2, n]),
+            Rgb(r, g, b) => builder.write_codes(&[48, 5, r, g, b]),
+            Default => builder.write_code(49),
             ColorKind::None => (),
-        }
-        Ok(())
+        };
     }
     /// Writes SGR style codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_styles<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
@@ -153,22 +150,21 @@ impl SGRString {
         ] {
             match kind {
                 None => (),
-                Place => writer.write_code(place)?,
-                Clean => writer.write_code(clear)?,
+                Place => builder.write_code(place),
+                Clean => builder.write_code(clear),
             }
         }
-        Ok(())
     }
     /// Writes custom SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_custom<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
-        writer.write_multiple(&self.custom_places)
+        builder.write_codes(&self.custom_places)
     }
     /// Writes the contained SGR codes to the given [`SGRWriter`]
     ///
@@ -177,24 +173,18 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_all<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         match self.clear {
-            ClearKind::Reset => {
-                writer.escape()?;
-                writer.write_code(0)?;
-                writer.end()
-            }
+            ClearKind::Reset => builder.write_code(0),
             ClearKind::Clean if !self.no_clears() => {
-                writer.escape()?;
-                self.clean_colors(writer)?;
-                self.clean_styles(writer)?;
-                self.clean_custom(writer)?;
-                writer.end()
+                self.clean_colors(builder);
+                self.clean_styles(builder);
+                self.clean_custom(builder);
             }
-            _ => Ok(()),
+            _ => (),
         }
     }
     /// Writes SGR color codes to the given [`SGRWriter`]
@@ -204,17 +194,16 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_colors<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         if self.foreground != ColorKind::None {
-            writer.write_code(39)?;
+            builder.write_code(39);
         }
         if self.background != ColorKind::None {
-            writer.write_code(49)?;
+            builder.write_code(49);
         }
-        Ok(())
     }
     /// Writes SGR style codes to the given [`SGRWriter`]
     ///
@@ -223,7 +212,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_styles<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
@@ -239,11 +228,10 @@ impl SGRString {
         ] {
             match kind {
                 StyleKind::None => (),
-                StyleKind::Place => writer.write_code(place)?,
-                StyleKind::Clean => writer.write_code(clear)?,
+                StyleKind::Place => builder.write_code(place),
+                StyleKind::Clean => builder.write_code(clear),
             }
         }
-        Ok(())
     }
     /// Writes SGR codes to the given [`SGRWriter`]
     ///
@@ -252,11 +240,11 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_custom<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
-        writer.write_multiple(&self.custom_cleans)
+        builder.write_codes(&self.custom_cleans)
     }
     /// Checks if any SGR codes should be written
     ///

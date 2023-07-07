@@ -8,7 +8,8 @@ with open('./src/lib.rs', 'r') as readme_file:
 badges = (
     '[![Build status](https://github.com/4lineclear/easy-sgr/actions/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions) '
     '[![Crates.io](https://img.shields.io/crates/v/easy-sgr)](https://crates.io/crates/easy-sgr) '
-    '[![License](https://img.shields.io/crates/l/easy-sgr)](https://github.com/4lineclear/easy-sgr/blob/main/LICENSE)'
+    '[![License](https://img.shields.io/crates/l/easy-sgr)](https://github.com/4lineclear/easy-sgr/blob/main/LICENSE) '
+    '[![Code Coverage](https://codecov.io/gh/4lineclear/easy-sgr/branch/main/graph/badge.svg?token=0Q30XAW0PV)](https://codecov.io/gh/4lineclear/easy-sgr)'
 )
 
 with open('./README.md', 'w') as readme_file:

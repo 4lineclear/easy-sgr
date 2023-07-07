@@ -10,11 +10,16 @@ This library does not support usage of non [SGR][SGR] ANSI escape sequences
 
 ## Documentation
 
-Not yet made
+[https://docs.rs/easy-sgr](https://docs.rs/easy-sgr)
 
 ## Installation
 
-Not yet published
+Add this to your Cargo.toml:
+
+```toml
+[dependencies]
+easy-sgr="0.1"
+```
 
 ## Usage
 

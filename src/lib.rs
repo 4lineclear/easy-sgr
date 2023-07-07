@@ -6,11 +6,16 @@
 //!
 //! ## Documentation
 //!
-//! Not yet made
+//! [https://docs.rs/easy-sgr](https://docs.rs/easy-sgr)
 //!
 //! ## Installation
 //!
-//! Not yet published
+//! Add this to your Cargo.toml:
+//!
+//! ```toml
+//! [dependencies]
+//! easy-sgr="0.1"
+//! ```
 //!
 //! ## Usage
 //!

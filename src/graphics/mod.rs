@@ -7,7 +7,10 @@ use crate::{
 
 use self::discrete::{Color, Style};
 
-/// Implements whats supposed to be used inline of a string literal
+/// Implements SGR types that can be used standalone of a [`SGRString`](crate::SGRString)
+///
+/// These types exist without the context of a [`SGRString`](crate::SGRString), but
+/// can be used in conjunction of one through the trait [`EasySGR`](crate::EasySGR)
 pub mod discrete;
 
 /// A String encapsulating SGR codes
@@ -15,6 +18,8 @@ pub mod discrete;
 /// SGR codes are applied when the [`Display`] trait is used,
 /// or when the [`SGRString::place_all`] or [`SGRString::clean_all`]
 /// functions are called.
+///
+/// Writing is done through the use of the [`writing`](crate::writing) module
 #[derive(Default, Debug)]
 pub struct SGRString {
     /// The actual text
@@ -70,18 +75,13 @@ pub struct SGRString {
     pub strikethrough: StyleKind,
 }
 impl SGRString {
-    /// Writes all contained SGR codes to the given [`SGRWriter`]
+    /// Writes all contained SGR codes to the given [`SGRBuilder`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn place_all<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
-        if self.no_places() {
-            return;
-        }
         if self.reset {
             builder.write_code(0);
         }
@@ -91,9 +91,7 @@ impl SGRString {
     }
     /// Writes SGR color codes to the given [`SGRWriter`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn place_colors<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
@@ -130,9 +128,7 @@ impl SGRString {
     }
     /// Writes SGR style codes to the given [`SGRWriter`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn place_styles<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
@@ -157,9 +153,7 @@ impl SGRString {
     }
     /// Writes custom SGR codes to the given [`SGRWriter`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn place_custom<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
@@ -170,30 +164,26 @@ impl SGRString {
     ///
     /// Reverses the effects of [`SGRString::place_all`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn clean_all<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         match self.clean {
             CleanKind::Reset => builder.write_code(0),
-            CleanKind::Reverse if !self.no_clears() => {
+            CleanKind::Reverse => {
                 self.clean_colors(builder);
                 self.clean_styles(builder);
                 self.clean_custom(builder);
             }
-            _ => (),
+            CleanKind::None => (),
         }
     }
     /// Writes SGR color codes to the given [`SGRWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_colors`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn clean_colors<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
@@ -209,9 +199,7 @@ impl SGRString {
     ///
     /// Reverses the effects of [`SGRString::place_styles`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn clean_styles<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
@@ -237,64 +225,12 @@ impl SGRString {
     ///
     /// Reverses the effects of [`SGRString::place_custom`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails
+    /// Does not perform any IO operations
     pub fn clean_custom<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         builder.write_codes(&self.custom_cleans)
-    }
-    /// Checks if any SGR codes should be written
-    ///
-    /// Is used to prevent an empty SGR sequence, `\x1b[m`, which
-    /// would be interpreted by most terminals as `\x1b[0m`, resetting
-    /// all.
-    ///
-    /// # Returns
-    ///
-    /// true if there are no SGR codes to write, else false
-    ///
-    #[must_use]
-    pub fn no_places(&self) -> bool {
-        self.custom_places.is_empty()
-            && self.foreground == ColorKind::None
-            && self.background == ColorKind::None
-            && !self.reset
-            && self.bold == StyleKind::None
-            && self.dim == StyleKind::None
-            && self.italic == StyleKind::None
-            && self.underline == StyleKind::None
-            && self.blinking == StyleKind::None
-            && self.inverse == StyleKind::None
-            && self.hidden == StyleKind::None
-            && self.strikethrough == StyleKind::None
-    }
-    /// Checks if any SGR codes should be written
-    ///
-    /// Is used to prevent an empty SGR sequence, `\x1b[m`, which
-    /// would be interpreted by most terminals as `\x1b[0m`, resetting
-    /// all.
-    ///
-    /// # Returns
-    ///
-    /// true if there are no SGR codes to write, else false
-    ///
-    #[must_use]
-    pub fn no_clears(&self) -> bool {
-        self.clean == CleanKind::None
-            || (self.custom_cleans.is_empty()
-                && self.foreground == ColorKind::None
-                && self.background == ColorKind::None
-                && self.bold == StyleKind::None
-                && self.dim == StyleKind::None
-                && self.italic == StyleKind::None
-                && self.underline == StyleKind::None
-                && self.blinking == StyleKind::None
-                && self.inverse == StyleKind::None
-                && self.hidden == StyleKind::None
-                && self.strikethrough == StyleKind::None)
     }
 }
 impl From<Clean> for SGRString {
@@ -344,16 +280,16 @@ impl Display for SGRString {
         fmt.clean_sgr(self)
     }
 }
-/// The type of clear to apply
+/// The type of clean to apply
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum CleanKind {
-    /// Do nothing
+    /// Does nothing
     #[default]
     None,
-    /// Apply the reset all code
+    /// Resets all by writing `\x1b[0m`
     Reset,
-    /// Applies a reversing effect to everything.
-    /// This is dependant on where its used
+    /// Different to [`discrete::Clean::Reverse`],
+    /// it reverses the effects of the [`SGRString::place_all`].
     Reverse,
 }
 impl From<Clean> for CleanKind {
@@ -373,9 +309,13 @@ pub enum StyleKind {
     /// Apply the style
     Place,
     /// Apply what reverses the style
+    ///
+    /// The equivilant [`Style`] varients would be what is prefixed with `Not`
     Clean,
 }
 /// Component of [`SGRString`]; the type of color
+///
+/// Used for both foreground and background
 #[derive(Debug, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum ColorKind {
@@ -399,7 +339,6 @@ impl<I: Into<SGRString>> EasySGR for I {}
 /// Allows for chaining SGR code types
 ///
 /// Methods return a [`SGRString`]
-#[allow(missing_docs)]
 pub trait EasySGR: Into<SGRString> {
     /// Turns self into [`SGRString`]
     ///
@@ -500,6 +439,7 @@ pub trait EasySGR: Into<SGRString> {
         this.custom_places.push(code.into());
         this
     }
+    /// Sets the [`CleanKind`] variant of the returned [`SGRString`]
     #[must_use]
     #[inline]
     fn clean(self, clear: impl Into<CleanKind>) -> SGRString {
@@ -507,6 +447,7 @@ pub trait EasySGR: Into<SGRString> {
         this.clean = clear.into();
         this
     }
+    /// Adds a custom code to be written before the returned [`SGRString`]'s text
     #[must_use]
     #[inline]
     fn custom_place(self, code: impl Into<u8>) -> SGRString {
@@ -514,6 +455,7 @@ pub trait EasySGR: Into<SGRString> {
         this.custom_places.push(code.into());
         this
     }
+    /// Adds a custom code to be written after the returned [`SGRString`]'s text
     #[must_use]
     #[inline]
     fn custom_clean(self, code: impl Into<u8>) -> SGRString {

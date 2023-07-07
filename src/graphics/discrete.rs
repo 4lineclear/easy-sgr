@@ -37,7 +37,7 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
 /// A clean is a SGR code sequence meant to reverse or reset
 /// other SGR sequences
 pub enum Clean {
-    /// Clears all by writing `\x1b[0m`
+    /// Resets all by writing `\x1b[0m`
     Reset,
     /// Resets to previous style smartly
     /// when used with advanced writer.

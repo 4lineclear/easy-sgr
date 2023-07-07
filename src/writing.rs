@@ -1,6 +1,6 @@
 use std::{fmt, io};
 
-use crate::graphics::{discrete::InlineSGR, SGRString};
+use crate::graphics::{discrete::DiscreteSGR, SGRString};
 
 /// An interfeace for an [`SGRWriter`] to work with
 ///
@@ -72,14 +72,14 @@ pub trait SGRWriter: CapableWriter {
         sgr.clean_all(&mut builder);
         builder.end()
     }
-    /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
+    /// Writes the contained SGR codes to the writer throught calling [`DiscreteSGR::write`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     #[inline]
-    fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), Self::Error> {
+    fn inline_sgr(&mut self, sgr: &impl DiscreteSGR) -> Result<(), Self::Error> {
         let mut builder = self.escape();
         sgr.write(&mut builder);
         builder.end()

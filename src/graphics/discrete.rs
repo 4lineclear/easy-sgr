@@ -6,15 +6,16 @@ use crate::writing::{SGRBuilder, SGRWriter, StandardWriter};
 
 use super::EasySGR;
 
-/// Represents SGR sequences that can be used Inline.
+/// Represents SGR sequences that can be used discretely.
+///
+/// This means it doesn't exist in terms of a [`SGRString`](crate::SGRString),
+/// though it can be used in conjunction with one
 #[allow(clippy::module_name_repetitions)]
-pub trait InlineSGR: Sized + Display + EasySGR {
+pub trait DiscreteSGR: Sized + Display + EasySGR {
     /// Writes a set of SGR codes to the given [`SGRWriter`]
     ///
-    /// # Errors
-    ///
-    /// Returns an error if writing to the given write fails
-    ///
+    /// Writing is not an IO operation, instead writing should be
+    /// pushing codes to the [`SGRBuilder`]'s buffer
     fn write<W>(&self, writer: &mut SGRBuilder<W>)
     where
         W: SGRWriter;
@@ -25,14 +26,16 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     /// # Errors
     ///
     /// Return an error if writing to the [`Formatter`](std::fmt::Formatter) fails
-    ///
     #[inline]
     fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         StandardWriter::fmt(f).inline_sgr(self)
     }
 }
 #[derive(Debug)]
-/// A type of clear
+/// A type of SGR clean
+///
+/// A clean is a SGR code sequence meant to reverse or reset
+/// other SGR sequences
 pub enum Clean {
     /// Clears all by writing `\x1b[0m`
     Reset,
@@ -47,7 +50,7 @@ impl Display for Clean {
         self.standard_display(f)
     }
 }
-impl InlineSGR for Clean {
+impl DiscreteSGR for Clean {
     fn write<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
@@ -59,6 +62,10 @@ impl InlineSGR for Clean {
     }
 }
 /// A SGR style code
+///
+/// Does not include the reset all code, `0` or any of the color codes
+///
+/// To use the reset code, see [`Clean::Reset`], for color codes see [`Color`].
 #[derive(Debug)]
 pub enum Style {
     /// Represents the SGR code `1`
@@ -99,15 +106,7 @@ impl Display for Style {
         self.standard_display(f)
     }
 }
-impl InlineSGR for Style {
-    /// Writes a set of SGR codes to given [`StandardWriter`]
-    ///
-    /// Escapes and ends the sequence
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing to the given write fails
-    ///
+impl DiscreteSGR for Style {
     fn write<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
@@ -153,7 +152,7 @@ pub enum Color {
     WhiteFg,
     /// Represents the SGR codes `38;2;<n>`
     ///
-    /// Where `<n>` is 8 bit colors
+    /// Where `<n>` is an 8 bit color
     ByteFg(u8),
     /// Represents the SGR codes `38;2;<n1>;<n2>;<n3>`
     ///
@@ -180,7 +179,7 @@ pub enum Color {
     WhiteBg,
     /// Represents the SGR codes `48;2;<n>`
     ///
-    /// Where `<n>` is 8 bit colors
+    /// Where `<n>` is an 8 bit color
     ByteBg(u8),
     /// Represents the SGR codes `38;2;<n1>;<n2>;<n3>`
     ///
@@ -194,7 +193,7 @@ impl Display for Color {
         self.standard_display(f)
     }
 }
-impl InlineSGR for Color {
+impl DiscreteSGR for Color {
     fn write<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,

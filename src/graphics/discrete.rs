@@ -128,7 +128,7 @@ impl DiscreteSGR for Style {
             NotInverse => 27,
             NotHidden => 28,
             NotStrikethrough => 29,
-        })
+        });
     }
 }
 /// A SGR color code

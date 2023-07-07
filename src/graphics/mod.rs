@@ -158,7 +158,7 @@ impl SGRString {
     where
         W: SGRWriter,
     {
-        builder.write_codes(&self.custom_places)
+        builder.write_codes(&self.custom_places);
     }
     /// Writes the contained SGR codes to the given [`SGRWriter`]
     ///
@@ -230,7 +230,7 @@ impl SGRString {
     where
         W: SGRWriter,
     {
-        builder.write_codes(&self.custom_cleans)
+        builder.write_codes(&self.custom_cleans);
     }
 }
 impl From<Clean> for SGRString {

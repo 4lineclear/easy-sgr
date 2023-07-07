@@ -46,7 +46,7 @@ pub trait SGRWriter: CapableWriter {
     /// Returns a [`SGRBuilder`] to allow for writing SGR codes
     /// 
     /// This method is to be used for actually writing `SGR` codes
-    fn escape<'a>(&'a mut self) -> SGRBuilder<'a, Self> {
+    fn escape(&'_ mut self) -> SGRBuilder<'_, Self> {
         SGRBuilder {
             writer: self,
             codes: Vec::new(),

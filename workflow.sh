@@ -11,4 +11,6 @@ cargo fmt --all
 
 python copy_librs.py
 
+cargo llvm-cov --all-features --workspace
+
 echo -e "\033[0;32mExecution Complete\033[0m"

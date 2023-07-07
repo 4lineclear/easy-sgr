@@ -179,7 +179,7 @@ impl SGRString {
     {
         match self.clean {
             CleanKind::Reset => builder.write_code(0),
-            CleanKind::Clean if !self.no_clears() => {
+            CleanKind::Reverse if !self.no_clears() => {
                 self.clean_colors(builder);
                 self.clean_styles(builder);
                 self.clean_custom(builder);
@@ -336,7 +336,6 @@ impl From<&String> for SGRString {
         }
     }
 }
-#[cfg(not(feature = "advanced-default"))]
 impl Display for SGRString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = StandardWriter::fmt(f);
@@ -355,13 +354,13 @@ pub enum CleanKind {
     Reset,
     /// Applies a reversing effect to everything.
     /// This is dependant on where its used
-    Clean,
+    Reverse,
 }
 impl From<Clean> for CleanKind {
     fn from(value: Clean) -> Self {
         match value {
             Clean::Reset => Self::Reset,
-            Clean::Reverse => Self::Clean,
+            Clean::Reverse => Self::Reverse,
         }
     }
 }

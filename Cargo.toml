@@ -2,7 +2,7 @@
 name = "easy-sgr"
 version = "0.0.0"
 authors = ["Tamim Hakimi <tamimhakimi21@gmail.com>"]
-description = "A (hopefully) easy to use Select Graphics Rendition(SGR) library"
+description = "An easy to use Select Graphics Rendition(SGR) library"
 edition = "2021"
 homepage = "https://github.com/4lineclear/easy-sgr/tree/master"
 repository = "https://github.com/4lineclear/easy-sgr/tree/master"

@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 
 use crate::{
     writing::{SGRBuilder, SGRWriter, StandardWriter},
-    Clear,
+    Clean,
 };
 
 use self::inline::{Color, Style};
@@ -21,8 +21,8 @@ pub struct SGRString {
     pub text: String,
     /// The type of clean to apply after the string
     ///
-    /// By default [`ClearKind::None`], meaning nothing is done
-    pub clear: ClearKind,
+    /// By default [`CleanKind::None`], meaning nothing is done
+    pub clean: CleanKind,
 
     /// Any custom codes added
     ///
@@ -177,9 +177,9 @@ impl SGRString {
     where
         W: SGRWriter,
     {
-        match self.clear {
-            ClearKind::Reset => builder.write_code(0),
-            ClearKind::Clean if !self.no_clears() => {
+        match self.clean {
+            CleanKind::Reset => builder.write_code(0),
+            CleanKind::Clean if !self.no_clears() => {
                 self.clean_colors(builder);
                 self.clean_styles(builder);
                 self.clean_custom(builder);
@@ -283,7 +283,7 @@ impl SGRString {
     ///
     #[must_use]
     pub fn no_clears(&self) -> bool {
-        self.clear == ClearKind::None
+        self.clean == CleanKind::None
             || (self.custom_cleans.is_empty()
                 && self.foreground == ColorKind::None
                 && self.background == ColorKind::None
@@ -297,9 +297,9 @@ impl SGRString {
                 && self.strikethrough == StyleKind::None)
     }
 }
-impl From<Clear> for SGRString {
-    fn from(value: Clear) -> Self {
-        Self::default().clear(value)
+impl From<Clean> for SGRString {
+    fn from(value: Clean) -> Self {
+        Self::default().clean(value)
     }
 }
 impl From<Color> for SGRString {
@@ -336,6 +336,7 @@ impl From<&String> for SGRString {
         }
     }
 }
+#[cfg(not(feature = "advanced-default"))]
 impl Display for SGRString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = StandardWriter::fmt(f);
@@ -346,7 +347,7 @@ impl Display for SGRString {
 }
 /// The type of clear to apply
 #[derive(Debug, Default, PartialEq, Eq)]
-pub enum ClearKind {
+pub enum CleanKind {
     /// Do nothing
     #[default]
     None,
@@ -356,11 +357,11 @@ pub enum ClearKind {
     /// This is dependant on where its used
     Clean,
 }
-impl From<Clear> for ClearKind {
-    fn from(value: Clear) -> Self {
+impl From<Clean> for CleanKind {
+    fn from(value: Clean) -> Self {
         match value {
-            Clear::Reset => Self::Reset,
-            Clear::Clean => Self::Clean,
+            Clean::Reset => Self::Reset,
+            Clean::Reverse => Self::Clean,
         }
     }
 }
@@ -444,14 +445,14 @@ pub trait EasySGR: Into<SGRString> {
             Hidden => this.hidden = Place,
             Strikethrough => this.strikethrough = Place,
 
-            ClearBold => this.bold = Clean,
-            ClearDim => this.dim = Clean,
-            ClearItalic => this.italic = Clean,
-            ClearUnderline => this.underline = Clean,
-            ClearBlinking => this.blinking = Clean,
-            ClearInverse => this.inverse = Clean,
-            ClearHidden => this.hidden = Clean,
-            ClearStrikethrough => this.strikethrough = Clean,
+            NotBold => this.bold = Clean,
+            NotDim => this.dim = Clean,
+            NotItalic => this.italic = Clean,
+            NotUnderline => this.underline = Clean,
+            NotBlinking => this.blinking = Clean,
+            NotInverse => this.inverse = Clean,
+            NotHidden => this.hidden = Clean,
+            NotStrikethrough => this.strikethrough = Clean,
         }
         this
     }
@@ -462,31 +463,32 @@ pub trait EasySGR: Into<SGRString> {
         use {Color::*, ColorKind::*};
 
         let mut this = self.into();
-        match color.into() {
-            BlackFg => this.foreground = Black,
-            RedFg => this.foreground = Red,
-            GreenFg => this.foreground = Green,
-            YellowFg => this.foreground = Yellow,
-            BlueFg => this.foreground = Blue,
-            MagentaFg => this.foreground = Magenta,
-            CyanFg => this.foreground = Cyan,
-            WhiteFg => this.foreground = White,
-            ByteFg(n) => this.foreground = Byte(n),
-            RgbFg(r, g, b) => this.foreground = Rgb(r, g, b),
-            DefaultFg => this.foreground = Default,
 
-            BlackBg => this.background = Black,
-            RedBg => this.background = Red,
-            GreenBg => this.background = Green,
-            YellowBg => this.background = Yellow,
-            BlueBg => this.background = Blue,
-            MagentaBg => this.background = Magenta,
-            CyanBg => this.background = Cyan,
-            WhiteBg => this.background = White,
-            ByteBg(n) => this.background = Byte(n),
-            RgbBg(r, g, b) => this.background = Rgb(r, g, b),
-            DefaultBg => this.background = Default,
-        }
+        (this.foreground, this.background) = match color.into() {
+            BlackFg => (Black, this.background),
+            RedFg => (Red, this.background),
+            GreenFg => (Green, this.background),
+            YellowFg => (Yellow, this.background),
+            BlueFg => (Blue, this.background),
+            MagentaFg => (Magenta, this.background),
+            CyanFg => (Cyan, this.background),
+            WhiteFg => (White, this.background),
+            ByteFg(n) => (Byte(n), this.background),
+            RgbFg(r, g, b) => (Rgb(r, g, b), this.background),
+            DefaultFg => (Default, this.background),
+
+            BlackBg => (this.foreground, Black),
+            RedBg => (this.foreground, Red),
+            GreenBg => (this.foreground, Green),
+            YellowBg => (this.foreground, Yellow),
+            BlueBg => (this.foreground, Blue),
+            MagentaBg => (this.foreground, Magenta),
+            CyanBg => (this.foreground, Cyan),
+            WhiteBg => (this.foreground, White),
+            ByteBg(n) => (this.foreground, Byte(n)),
+            RgbBg(r, g, b) => (this.foreground, Rgb(r, g, b)),
+            DefaultBg => (this.foreground, Default),
+        };
         this
     }
     /// Adds a custom code to the returned [`SGRString`]
@@ -501,9 +503,9 @@ pub trait EasySGR: Into<SGRString> {
     }
     #[must_use]
     #[inline]
-    fn clear(self, clear: impl Into<ClearKind>) -> SGRString {
+    fn clean(self, clear: impl Into<CleanKind>) -> SGRString {
         let mut this = self.into();
-        this.clear = clear.into();
+        this.clean = clear.into();
         this
     }
     #[must_use]

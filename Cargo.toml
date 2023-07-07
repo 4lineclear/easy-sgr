@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 categories = ["command-line-interface"]
 keywords = ["SGR", "cli", "color", "terminal", "text"]
-exclude = ["*.py","workflow.sh"]
+exclude = ["*.py", "workflow.sh"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

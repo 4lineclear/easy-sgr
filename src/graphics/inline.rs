@@ -37,28 +37,28 @@ pub trait InlineSGR: Sized + Display + EasySGR {
 }
 #[derive(Debug)]
 /// A type of clear
-pub enum Clear {
+pub enum Clean {
     /// Clears all by writing `\x1b[0m`
     Reset,
     /// Resets to previous style smartly
     /// when used with advanced writer.
-    /// 
+    ///
     /// Defaults to Reset
-    Clean,
+    Reverse,
 }
-impl Display for Clear {
+impl Display for Clean {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.standard_display(f)
     }
 }
-impl InlineSGR for Clear {
+impl InlineSGR for Clean {
     fn write<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         match self {
-            Clear::Reset => builder.write_code(0),
-            Clear::Clean => builder.smart_clean()
+            Clean::Reset => builder.write_code(0),
+            Clean::Reverse => builder.smart_clean(),
         }
     }
 }
@@ -82,21 +82,21 @@ pub enum Style {
     /// Represents the SGR code `9`
     Strikethrough,
     /// Represents the SGR code `22`
-    ClearBold,
+    NotBold,
     /// Represents the SGR code `22`
-    ClearDim,
+    NotDim,
     /// Represents the SGR code `23`
-    ClearItalic,
+    NotItalic,
     /// Represents the SGR code `24`
-    ClearUnderline,
+    NotUnderline,
     /// Represents the SGR code `25`
-    ClearBlinking,
+    NotBlinking,
     /// Represents the SGR code `27`
-    ClearInverse,
+    NotInverse,
     /// Represents the SGR code `28`
-    ClearHidden,
+    NotHidden,
     /// Represents the SGR code `29`
-    ClearStrikethrough,
+    NotStrikethrough,
 }
 impl Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -126,13 +126,13 @@ impl InlineSGR for Style {
             Inverse => 7,
             Hidden => 8,
             Strikethrough => 9,
-            ClearBold | ClearDim => 22,
-            ClearItalic => 23,
-            ClearUnderline => 24,
-            ClearBlinking => 25,
-            ClearInverse => 27,
-            ClearHidden => 28,
-            ClearStrikethrough => 29,
+            NotBold | NotDim => 22,
+            NotItalic => 23,
+            NotUnderline => 24,
+            NotBlinking => 25,
+            NotInverse => 27,
+            NotHidden => 28,
+            NotStrikethrough => 29,
         })
     }
 }

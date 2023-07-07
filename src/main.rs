@@ -2,8 +2,8 @@ use std::error::Error;
 
 use easy_sgr::{
     writing::{AdvancedWriter, SGRWriter, StandardWriter},
-    Clear::{Clean, Reset},
-    ClearKind,
+    Clean::{Reset, Reverse},
+    CleanKind,
     Color::*,
     ColorKind, EasySGR, SGRString,
     Style::*,
@@ -12,7 +12,7 @@ use easy_sgr::{
 
 #[allow(clippy::all)]
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Tests starting\n");
+    println!("{GreenFg}Tests starting{Reset}\n");
 
     let text1 = format!("{Italic}{RedFg}This should be italic & red!{Reset}");
 
@@ -24,13 +24,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             .to_sgr()
             .style(Italic)
             .color(RedFg)
-            .clear(ClearKind::Reset)
+            .clean(Reset)
     );
 
     let mut text4 = SGRString::from("This should be italic & red!");
     text4.italic = StyleKind::Place;
     text4.foreground = ColorKind::Red;
-    text4.clear = ClearKind::Reset;
+    text4.clean = CleanKind::Reset;
 
     let text4 = format!("{text4}");
 
@@ -48,10 +48,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         writer.place_sgr(&Italic.color(RedFg))?;
         writer.write_inner("This should be italic & red!, ")?;
-        writer.place_sgr(&ClearItalic.color(DefaultFg))?;
+        writer.place_sgr(&NotItalic.color(DefaultFg))?;
         writer.write_inner("This should be normal text!, ")?;
-        writer.inline_sgr(&Clean)?;
-        writer.write_inner("Back to red & italic text!, ")?;
+        writer.inline_sgr(&Reverse)?;
+        writer.write_inner("Back to red & italic text")?;
+        writer.inline_sgr(&Reset)?;
 
         writer.writer.writer.0
     };
@@ -72,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{text5}");
     println!("{text6}");
 
-    println!("\nTests complete");
+    println!("\n{GreenFg}Tests complete{Reset}");
 
     Ok(())
 }

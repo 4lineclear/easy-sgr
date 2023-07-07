@@ -25,7 +25,7 @@ pub trait SGRWriter: CapableWriter {
     fn previous_codes(&self) -> Option<&Vec<u8>> {
         None
     }
-    fn set_previous_codes(&mut self, graphics: Vec<u8>) {}
+    fn set_previous_codes(&mut self, _graphics: Vec<u8>) {}
     /// Writes a [`str`] to the inner writer
     ///
     /// Is a shortcut to [`CapableWriter::write`] without having to import it
@@ -212,7 +212,7 @@ impl<W: CapableWriter> SGRWriter for AdvancedWriter<W> {
         self.previous_codes.push(graphics);
     }
 }
-
+#[derive(Debug)]
 pub struct SGRBuilder<'a, W: SGRWriter> {
     writer: &'a mut W,
     codes: Vec<u8>,

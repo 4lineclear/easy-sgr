@@ -1,6 +1,6 @@
 # easy-sgr
 
-[![Build status](https://github.com/4lineclear/easy-sgr/actions/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions)
+[![Build status](https://github.com/4lineclear/easy-sgr/actions/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions) [![Crates.io](https://img.shields.io/crates/v/easy-sgr)](https://crates.io/crates/easy-sgr) [![License](https://img.shields.io/crates/l/easy-sgr)](https://github.com/4lineclear/easy-sgr/blob/main/LICENSE)
 
 An easy to use library for adding [SGR][SGR] escape sequences to your project.
 Its main strengths are the multitude of methods that is provided, and the
@@ -16,13 +16,6 @@ Not yet made
 
 Not yet published
 
-## Why `flc-easy-sgr`
-
-`flc` stands for my user name, 4lineclear. I'm unsure if I will be maintaining
-this project, so I have prepended `flc` in case anyone
-else would like to create a crate called `easy-sgr`.
-I also doubt many will use this crate.
-
 ## Usage
 
 ### `Color` and `Style`
@@ -32,7 +25,7 @@ work inline of a string literal when using a macro such as
 `println!`, `writeln!` or `format!`:
 
 ```rust
-use flc_easy_sgr::{Color::*, Style::*};
+use easy_sgr::{Clean::Reset, Color::*, Style::*};
 
 println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 ```
@@ -58,7 +51,10 @@ It's main purpose is to provide functions for chaining `SGR` codes.
 The example above can be achieved using it as such:
 
 ```rust
-use flc_easy_sgr::{Color::*, EasySGR, Style::*};
+use easy_sgr::{
+    Clean::Reset, Color::*,
+    Style::*, EasySGR,
+};
 
 let sgr = Italic.color(RedFg);
 
@@ -74,9 +70,9 @@ though is more expensive to use as it makes use of `SGRString`.
 possible SGR sequences. You can use it to reproduce the previous examples as such:
 
 ```rust
-use flc_easy_sgr::graphics::{
-    inline::{Color::*, Style::*},
-    EasySGR,
+use easy_sgr::{
+    Clean::Reset, Color::*,
+    Style::*, EasySGR,
 };
 
 let text = "This should be italic & red!"
@@ -93,7 +89,7 @@ work for anything that implements `Into<SGRString>`, so `.style(..)` and
 The method above still uses the `EasySGR` trait, you can go without it as shown below:
 
 ```rust
-use flc_easy_sgr::{ColorKind, SGRString, StyleKind};
+use easy_sgr::{ColorKind, Clean::Reset, SGRString, StyleKind};
 
 let mut text = SGRString::from("This should be italic & red!");
 text.italic = StyleKind::Place;
@@ -108,37 +104,37 @@ The writer can also be used directly, instead of a using the above methods:
 
 ```rust
 use std::io::{stdout, Write};
-use flc_easy_sgr::{
-    writing::{IoWriter, SGRWriter},
+
+use easy_sgr::{
+    writing::{SGRWriter, StandardWriter},
+    Clean::Reset,
     Color::*,
     EasySGR,
     Style::*,
 };
-
-let mut writer = IoWriter::new(stdout().lock());
+let mut writer = StandardWriter::io(stdout());
 writer.place_sgr(&Italic.color(RedFg)).unwrap();
-writer.write(b"This should be italic & red!").unwrap();
+writer.write_inner("This should be italic & red!").unwrap();
 writer.inline_sgr(&Reset).unwrap();
 ```
 
 or, when writing to a String
 
 ```rust
-use std::io::{stdout, Write};
-use flc_easy_sgr::{
-    writing::{FmtWriter, SGRWriter},
+use easy_sgr::{
+    writing::{SGRWriter, StandardWriter},
+    Clean::Reset,
     Color::*,
     EasySGR,
     Style::*,
 };
-
-let mut stylized_string = String::new();
-
-let mut writer = FmtWriter::new(stylized_string);
-
-writer.place_sgr(&Italic.color(RedFg)).unwrap();
-writer.write_inner("This should be italic & red!").unwrap();
-writer.inline_sgr(&Reset).unwrap();
+let stylized_string = {
+    let mut writer = StandardWriter::fmt(String::new());
+    writer.place_sgr(&Italic.color(RedFg)).unwrap();
+    writer.write_inner("This should be italic & red!").unwrap();
+    writer.inline_sgr(&Reset).unwrap();
+    writer.writer.0
+};
 ```
 
 ## Structure
@@ -165,16 +161,25 @@ writer.inline_sgr(&Reset).unwrap();
 
 [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 
-## Todo
+## TODO goals to publish
 
 - [ ] Docs
     - [x] [Crate](src/lib.rs) level docs
     - [x] Module level docs
     - [x] [graphics module](src/graphics/mod.rs) docs
+    - [x] [writing module](src/writing.rs) docs
     - [ ] Clean up all docs
     - [ ] Add examples to docs
-- [ ] Rewrite [`writers`](src/writing.rs)
+- [x] Rewrite [`writers`](src/writing.rs)
+    - [x] Do the rewrite
+    - [x] Add trait
+    - [x] Fix docs after adding trait
+    - [x] Add Advanced Writer
+    - [x] Write docs
+    - [x] Add `SGRBuilder`
+- [x] Unique Clear behaviours
+
+## TODO goals past publishing
+
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
-- [ ] Unique Clear behaviours
-- [x] Add `BufWriter` to [writing module](src/writing.rs)

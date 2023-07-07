@@ -2,26 +2,25 @@
 
 use std::fmt::Display;
 
-use crate::writing::{FmtWriter, SGRWriter};
+use crate::writing::{SGRBuilder, SGRWriter, StandardWriter};
 
 use super::EasySGR;
 
 /// Represents SGR sequences that can be used Inline.
 #[allow(clippy::module_name_repetitions)]
 pub trait InlineSGR: Sized + Display + EasySGR {
-    // TODO link 'Escapes' and 'ends'
     /// Writes a set of SGR codes to the given [`SGRWriter`]
-    ///
-    /// Escapes and ends the sequence
     ///
     /// # Errors
     ///
     /// Returns an error if writing to the given write fails
     ///
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn write<W>(&self, writer: &mut SGRBuilder<W>)
     where
         W: SGRWriter;
     /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
+    ///
+    /// Uses [`SGRWriter::inline_sgr`]
     ///
     /// # Errors
     ///
@@ -29,15 +28,39 @@ pub trait InlineSGR: Sized + Display + EasySGR {
     ///
     #[inline]
     fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut fmt = FmtWriter::new(f);
-        fmt.inline_sgr(self)
+        StandardWriter::fmt(f).inline_sgr(self)
     }
 }
-/// A set of SGR code sequences
-#[derive(Debug, Clone)]
-pub enum Style {
-    /// Represents the SGR code `0`
+#[derive(Debug)]
+/// A type of clear
+pub enum Clean {
+    /// Clears all by writing `\x1b[0m`
     Reset,
+    /// Resets to previous style smartly
+    /// when used with advanced writer.
+    ///
+    /// Defaults to Reset
+    Reverse,
+}
+impl Display for Clean {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.standard_display(f)
+    }
+}
+impl InlineSGR for Clean {
+    fn write<W>(&self, builder: &mut SGRBuilder<W>)
+    where
+        W: SGRWriter,
+    {
+        match self {
+            Clean::Reset => builder.write_code(0),
+            Clean::Reverse => builder.smart_clean(),
+        }
+    }
+}
+/// A SGR style code
+#[derive(Debug)]
+pub enum Style {
     /// Represents the SGR code `1`
     Bold,
     /// Represents the SGR code `2`
@@ -55,31 +78,29 @@ pub enum Style {
     /// Represents the SGR code `9`
     Strikethrough,
     /// Represents the SGR code `22`
-    ClearBold,
+    NotBold,
     /// Represents the SGR code `22`
-    ClearDim,
+    NotDim,
     /// Represents the SGR code `23`
-    ClearItalic,
+    NotItalic,
     /// Represents the SGR code `24`
-    ClearUnderline,
+    NotUnderline,
     /// Represents the SGR code `25`
-    ClearBlinking,
+    NotBlinking,
     /// Represents the SGR code `27`
-    ClearInverse,
+    NotInverse,
     /// Represents the SGR code `28`
-    ClearHidden,
+    NotHidden,
     /// Represents the SGR code `29`
-    ClearStrikethrough,
+    NotStrikethrough,
 }
-
 impl Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.standard_display(f)
     }
 }
-
 impl InlineSGR for Style {
-    /// Writes a set of SGR codes to given [`SGRWriter`]
+    /// Writes a set of SGR codes to given [`StandardWriter`]
     ///
     /// Escapes and ends the sequence
     ///
@@ -87,13 +108,12 @@ impl InlineSGR for Style {
     ///
     /// Returns an error if writing to the given write fails
     ///
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn write<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         use Style::*;
-        writer.write_code(match self {
-            Reset => 0,
+        builder.write_code(match self {
             Bold => 1,
             Dim => 2,
             Italic => 3,
@@ -102,18 +122,18 @@ impl InlineSGR for Style {
             Inverse => 7,
             Hidden => 8,
             Strikethrough => 9,
-            ClearBold | ClearDim => 22,
-            ClearItalic => 23,
-            ClearUnderline => 24,
-            ClearBlinking => 25,
-            ClearInverse => 27,
-            ClearHidden => 28,
-            ClearStrikethrough => 29,
+            NotBold | NotDim => 22,
+            NotItalic => 23,
+            NotUnderline => 24,
+            NotBlinking => 25,
+            NotInverse => 27,
+            NotHidden => 28,
+            NotStrikethrough => 29,
         })
     }
 }
 /// A SGR color code
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Color {
     /// Represents the SGR code `30`
     BlackFg,
@@ -169,43 +189,41 @@ pub enum Color {
     /// Represents the SGR code `49`
     DefaultBg,
 }
-
 impl Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.standard_display(f)
     }
 }
-
 impl InlineSGR for Color {
-    fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    fn write<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         use Color::*;
         match self {
-            BlackFg => writer.write_code(30),
-            RedFg => writer.write_code(31),
-            GreenFg => writer.write_code(32),
-            YellowFg => writer.write_code(33),
-            BlueFg => writer.write_code(34),
-            MagentaFg => writer.write_code(35),
-            CyanFg => writer.write_code(36),
-            WhiteFg => writer.write_code(37),
-            ByteFg(n) => writer.write_multiple(&[38, 2, *n]),
-            RgbFg(r, g, b) => writer.write_multiple(&[38, 5, *r, *g, *b]),
-            DefaultFg => writer.write_code(39),
+            BlackFg => builder.write_code(30),
+            RedFg => builder.write_code(31),
+            GreenFg => builder.write_code(32),
+            YellowFg => builder.write_code(33),
+            BlueFg => builder.write_code(34),
+            MagentaFg => builder.write_code(35),
+            CyanFg => builder.write_code(36),
+            WhiteFg => builder.write_code(37),
+            ByteFg(n) => builder.write_codes(&[38, 2, *n]),
+            RgbFg(r, g, b) => builder.write_codes(&[38, 5, *r, *g, *b]),
+            DefaultFg => builder.write_code(39),
 
-            BlackBg => writer.write_code(40),
-            RedBg => writer.write_code(41),
-            GreenBg => writer.write_code(42),
-            YellowBg => writer.write_code(43),
-            BlueBg => writer.write_code(44),
-            MagentaBg => writer.write_code(45),
-            CyanBg => writer.write_code(46),
-            WhiteBg => writer.write_code(47),
-            ByteBg(n) => writer.write_multiple(&[48, 2, *n]),
-            RgbBg(r, g, b) => writer.write_multiple(&[48, 5, *r, *g, *b]),
-            DefaultBg => writer.write_code(49),
+            BlackBg => builder.write_code(40),
+            RedBg => builder.write_code(41),
+            GreenBg => builder.write_code(42),
+            YellowBg => builder.write_code(43),
+            BlueBg => builder.write_code(44),
+            MagentaBg => builder.write_code(45),
+            CyanBg => builder.write_code(46),
+            WhiteBg => builder.write_code(47),
+            ByteBg(n) => builder.write_codes(&[48, 2, *n]),
+            RgbBg(r, g, b) => builder.write_codes(&[48, 5, *r, *g, *b]),
+            DefaultBg => builder.write_code(49),
         }
     }
 }

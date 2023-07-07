@@ -1,6 +1,9 @@
-use std::fmt::{Debug, Display, Write};
+use std::fmt::{Debug, Display};
 
-use crate::writing::{FmtWriter, SGRWriter};
+use crate::{
+    writing::{SGRBuilder, SGRWriter, StandardWriter},
+    Clean,
+};
 
 use self::inline::{Color, Style};
 
@@ -18,8 +21,8 @@ pub struct SGRString {
     pub text: String,
     /// The type of clean to apply after the string
     ///
-    /// By default [`ClearKind::None`], meaning nothing is done
-    pub clear: ClearKind,
+    /// By default [`CleanKind::None`], meaning nothing is done
+    pub clean: CleanKind,
 
     /// Any custom codes added
     ///
@@ -66,75 +69,71 @@ pub struct SGRString {
     /// Refer to [`StyleKind`]
     pub strikethrough: StyleKind,
 }
-
 impl SGRString {
     /// Writes all contained SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_all<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         if self.no_places() {
-            return Ok(());
+            return;
         }
-        writer.escape()?;
         if self.reset {
-            writer.write_code(0)?;
+            builder.write_code(0);
         }
-        self.place_colors(writer)?;
-        self.place_styles(writer)?;
-        self.place_custom(writer)?;
-        writer.end()
+        self.place_colors(builder);
+        self.place_styles(builder);
+        self.place_custom(builder);
     }
     /// Writes SGR color codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_colors<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         use ColorKind::*;
         match self.foreground {
-            Black => writer.write_code(30)?,
-            Red => writer.write_code(31)?,
-            Green => writer.write_code(32)?,
-            Yellow => writer.write_code(33)?,
-            Blue => writer.write_code(34)?,
-            Magenta => writer.write_code(35)?,
-            Cyan => writer.write_code(36)?,
-            White => writer.write_code(37)?,
-            Byte(n) => writer.write_multiple(&[38, 2, n])?,
-            Rgb(r, g, b) => writer.write_multiple(&[38, 5, r, g, b])?,
-            Default => writer.write_code(39)?,
+            Black => builder.write_code(30),
+            Red => builder.write_code(31),
+            Green => builder.write_code(32),
+            Yellow => builder.write_code(33),
+            Blue => builder.write_code(34),
+            Magenta => builder.write_code(35),
+            Cyan => builder.write_code(36),
+            White => builder.write_code(37),
+            Byte(n) => builder.write_codes(&[38, 2, n]),
+            Rgb(r, g, b) => builder.write_codes(&[38, 5, r, g, b]),
+            Default => builder.write_code(39),
             ColorKind::None => (),
-        }
+        };
         match self.background {
-            Black => writer.write_code(40)?,
-            Red => writer.write_code(41)?,
-            Green => writer.write_code(42)?,
-            Yellow => writer.write_code(43)?,
-            Blue => writer.write_code(44)?,
-            Magenta => writer.write_code(45)?,
-            Cyan => writer.write_code(46)?,
-            White => writer.write_code(47)?,
-            Byte(n) => writer.write_multiple(&[48, 2, n])?,
-            Rgb(r, g, b) => writer.write_multiple(&[48, 5, r, g, b])?,
-            Default => writer.write_code(49)?,
+            Black => builder.write_code(40),
+            Red => builder.write_code(41),
+            Green => builder.write_code(42),
+            Yellow => builder.write_code(43),
+            Blue => builder.write_code(44),
+            Magenta => builder.write_code(45),
+            Cyan => builder.write_code(46),
+            White => builder.write_code(47),
+            Byte(n) => builder.write_codes(&[48, 2, n]),
+            Rgb(r, g, b) => builder.write_codes(&[48, 5, r, g, b]),
+            Default => builder.write_code(49),
             ColorKind::None => (),
-        }
-        Ok(())
+        };
     }
     /// Writes SGR style codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_styles<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
@@ -151,22 +150,21 @@ impl SGRString {
         ] {
             match kind {
                 None => (),
-                Place => writer.write_code(place)?,
-                Clean => writer.write_code(clear)?,
+                Place => builder.write_code(place),
+                Clean => builder.write_code(clear),
             }
         }
-        Ok(())
     }
     /// Writes custom SGR codes to the given [`SGRWriter`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn place_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn place_custom<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
-        writer.write_multiple(&self.custom_places)
+        builder.write_codes(&self.custom_places)
     }
     /// Writes the contained SGR codes to the given [`SGRWriter`]
     ///
@@ -175,24 +173,18 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_all<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_all<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
-        match self.clear {
-            ClearKind::Full => {
-                writer.escape()?;
-                writer.write_code(0)?;
-                writer.end()
+        match self.clean {
+            CleanKind::Reset => builder.write_code(0),
+            CleanKind::Reverse if !self.no_clears() => {
+                self.clean_colors(builder);
+                self.clean_styles(builder);
+                self.clean_custom(builder);
             }
-            ClearKind::Clean if !self.no_clears() => {
-                writer.escape()?;
-                self.clean_colors(writer)?;
-                self.clean_styles(writer)?;
-                self.clean_custom(writer)?;
-                writer.end()
-            }
-            _ => Ok(()),
+            _ => (),
         }
     }
     /// Writes SGR color codes to the given [`SGRWriter`]
@@ -202,17 +194,16 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_colors<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_colors<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
         if self.foreground != ColorKind::None {
-            writer.write_code(39)?;
+            builder.write_code(39);
         }
         if self.background != ColorKind::None {
-            writer.write_code(49)?;
+            builder.write_code(49);
         }
-        Ok(())
     }
     /// Writes SGR style codes to the given [`SGRWriter`]
     ///
@@ -221,7 +212,7 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_styles<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_styles<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
@@ -237,11 +228,10 @@ impl SGRString {
         ] {
             match kind {
                 StyleKind::None => (),
-                StyleKind::Place => writer.write_code(place)?,
-                StyleKind::Clean => writer.write_code(clear)?,
+                StyleKind::Place => builder.write_code(place),
+                StyleKind::Clean => builder.write_code(clear),
             }
         }
-        Ok(())
     }
     /// Writes SGR codes to the given [`SGRWriter`]
     ///
@@ -250,11 +240,11 @@ impl SGRString {
     /// # Errors
     ///
     /// Returns an error if writing fails
-    pub fn clean_custom<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    pub fn clean_custom<W>(&self, builder: &mut SGRBuilder<W>)
     where
         W: SGRWriter,
     {
-        writer.write_multiple(&self.custom_cleans)
+        builder.write_codes(&self.custom_cleans)
     }
     /// Checks if any SGR codes should be written
     ///
@@ -293,7 +283,7 @@ impl SGRString {
     ///
     #[must_use]
     pub fn no_clears(&self) -> bool {
-        self.clear == ClearKind::None
+        self.clean == CleanKind::None
             || (self.custom_cleans.is_empty()
                 && self.foreground == ColorKind::None
                 && self.background == ColorKind::None
@@ -307,7 +297,11 @@ impl SGRString {
                 && self.strikethrough == StyleKind::None)
     }
 }
-
+impl From<Clean> for SGRString {
+    fn from(value: Clean) -> Self {
+        Self::default().clean(value)
+    }
+}
 impl From<Color> for SGRString {
     fn from(value: Color) -> Self {
         Self::default().color(value)
@@ -344,24 +338,31 @@ impl From<&String> for SGRString {
 }
 impl Display for SGRString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut fmt = FmtWriter::new(f);
+        let mut fmt = StandardWriter::fmt(f);
         fmt.place_sgr(self)?;
-        fmt.write_str(&self.text)?;
+        fmt.write_inner(&self.text)?;
         fmt.clean_sgr(self)
     }
 }
-
 /// The type of clear to apply
 #[derive(Debug, Default, PartialEq, Eq)]
-pub enum ClearKind {
+pub enum CleanKind {
     /// Do nothing
     #[default]
     None,
-    /// Full apply the reset all code
-    Full,
+    /// Apply the reset all code
+    Reset,
     /// Applies a reversing effect to everything.
     /// This is dependant on where its used
-    Clean,
+    Reverse,
+}
+impl From<Clean> for CleanKind {
+    fn from(value: Clean) -> Self {
+        match value {
+            Clean::Reset => Self::Reset,
+            Clean::Reverse => Self::Reverse,
+        }
+    }
 }
 /// Component of [`SGRString`]; the type of style to apply
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -374,7 +375,6 @@ pub enum StyleKind {
     /// Apply what reverses the style
     Clean,
 }
-
 /// Component of [`SGRString`]; the type of color
 #[derive(Debug, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -395,22 +395,22 @@ pub enum ColorKind {
     /// Applies the default `SGR` color
     Default,
 }
-
-impl<I: Into<SGRString> + Debug> EasySGR for I {}
-/// Allows for chaining types that implement it
+impl<I: Into<SGRString>> EasySGR for I {}
+/// Allows for chaining SGR code types
 ///
-/// Inner workins are:
-/// ```ignore
-/// self.into().<graphic>(<graphic>)
-/// ```
-/// Where `<graphic>` is a type of SGR graphics code such as [`Style`] or [`Color`]
+/// Methods return a [`SGRString`]
 #[allow(missing_docs)]
-pub trait EasySGR: Into<SGRString> + Debug {
+pub trait EasySGR: Into<SGRString> {
     /// Turns self into [`SGRString`]
     ///
     /// Equivalant to calling
-    ///```ignore
-    /// Into::<SGRString>::into(self)
+    ///```rust
+    /// # use easy_sgr::SGRString;
+    /// # pub trait EasySGR: Into<SGRString> {
+    /// # fn to_sgr(self) -> SGRString {
+    ///Into::<SGRString>::into(self)
+    /// # }
+    /// # }
     ///```
     #[must_use]
     #[inline]
@@ -423,7 +423,7 @@ pub trait EasySGR: Into<SGRString> + Debug {
     fn text(self, text: impl Into<String>) -> SGRString {
         SGRString {
             text: text.into(),
-            ..Default::default()
+            ..self.into()
         }
     }
     /// Adds a style to the returned [`SGRString`]  
@@ -435,7 +435,6 @@ pub trait EasySGR: Into<SGRString> + Debug {
 
         let mut this = self.into();
         match style.into() {
-            Reset => this.reset = true,
             Bold => this.bold = Place,
             Dim => this.dim = Place,
             Italic => this.italic = Place,
@@ -445,14 +444,14 @@ pub trait EasySGR: Into<SGRString> + Debug {
             Hidden => this.hidden = Place,
             Strikethrough => this.strikethrough = Place,
 
-            ClearBold => this.bold = Clean,
-            ClearDim => this.dim = Clean,
-            ClearItalic => this.italic = Clean,
-            ClearUnderline => this.underline = Clean,
-            ClearBlinking => this.blinking = Clean,
-            ClearInverse => this.inverse = Clean,
-            ClearHidden => this.hidden = Clean,
-            ClearStrikethrough => this.strikethrough = Clean,
+            NotBold => this.bold = Clean,
+            NotDim => this.dim = Clean,
+            NotItalic => this.italic = Clean,
+            NotUnderline => this.underline = Clean,
+            NotBlinking => this.blinking = Clean,
+            NotInverse => this.inverse = Clean,
+            NotHidden => this.hidden = Clean,
+            NotStrikethrough => this.strikethrough = Clean,
         }
         this
     }
@@ -463,31 +462,32 @@ pub trait EasySGR: Into<SGRString> + Debug {
         use {Color::*, ColorKind::*};
 
         let mut this = self.into();
-        match color.into() {
-            BlackFg => this.foreground = Black,
-            RedFg => this.foreground = Red,
-            GreenFg => this.foreground = Green,
-            YellowFg => this.foreground = Yellow,
-            BlueFg => this.foreground = Blue,
-            MagentaFg => this.foreground = Magenta,
-            CyanFg => this.foreground = Cyan,
-            WhiteFg => this.foreground = White,
-            ByteFg(n) => this.foreground = Byte(n),
-            RgbFg(r, g, b) => this.foreground = Rgb(r, g, b),
-            DefaultFg => this.foreground = Default,
 
-            BlackBg => this.background = Black,
-            RedBg => this.background = Red,
-            GreenBg => this.background = Green,
-            YellowBg => this.background = Yellow,
-            BlueBg => this.background = Blue,
-            MagentaBg => this.background = Magenta,
-            CyanBg => this.background = Cyan,
-            WhiteBg => this.background = White,
-            ByteBg(n) => this.background = Byte(n),
-            RgbBg(r, g, b) => this.background = Rgb(r, g, b),
-            DefaultBg => this.background = Default,
-        }
+        (this.foreground, this.background) = match color.into() {
+            BlackFg => (Black, this.background),
+            RedFg => (Red, this.background),
+            GreenFg => (Green, this.background),
+            YellowFg => (Yellow, this.background),
+            BlueFg => (Blue, this.background),
+            MagentaFg => (Magenta, this.background),
+            CyanFg => (Cyan, this.background),
+            WhiteFg => (White, this.background),
+            ByteFg(n) => (Byte(n), this.background),
+            RgbFg(r, g, b) => (Rgb(r, g, b), this.background),
+            DefaultFg => (Default, this.background),
+
+            BlackBg => (this.foreground, Black),
+            RedBg => (this.foreground, Red),
+            GreenBg => (this.foreground, Green),
+            YellowBg => (this.foreground, Yellow),
+            BlueBg => (this.foreground, Blue),
+            MagentaBg => (this.foreground, Magenta),
+            CyanBg => (this.foreground, Cyan),
+            WhiteBg => (this.foreground, White),
+            ByteBg(n) => (this.foreground, Byte(n)),
+            RgbBg(r, g, b) => (this.foreground, Rgb(r, g, b)),
+            DefaultBg => (this.foreground, Default),
+        };
         this
     }
     /// Adds a custom code to the returned [`SGRString`]
@@ -502,9 +502,9 @@ pub trait EasySGR: Into<SGRString> + Debug {
     }
     #[must_use]
     #[inline]
-    fn clear(self, clear: impl Into<ClearKind>) -> SGRString {
+    fn clean(self, clear: impl Into<CleanKind>) -> SGRString {
         let mut this = self.into();
-        this.clear = clear.into();
+        this.clean = clear.into();
         this
     }
     #[must_use]
@@ -519,83 +519,6 @@ pub trait EasySGR: Into<SGRString> + Debug {
     fn custom_clean(self, code: impl Into<u8>) -> SGRString {
         let mut this = self.into();
         this.custom_cleans.push(code.into());
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn foreground(self, color: impl Into<ColorKind>) -> SGRString {
-        let mut this = self.into();
-        this.foreground = color.into();
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn background(self, color: impl Into<ColorKind>) -> SGRString {
-        let mut this = self.into();
-        this.background = color.into();
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn reset(self, reset: bool) -> SGRString {
-        let mut this = self.into();
-        this.reset = reset;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn bold(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.bold = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn dim(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.dim = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn italic(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.italic = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn underline(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.underline = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn blinking(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.blinking = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn inverse(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.inverse = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn hidden(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.hidden = style;
-        this
-    }
-    #[must_use]
-    #[inline]
-    fn strikethrough(self, style: StyleKind) -> SGRString {
-        let mut this = self.into();
-        this.strikethrough = style;
         this
     }
 }

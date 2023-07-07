@@ -1,68 +1,62 @@
-use std::io::{BufWriter, Write};
+use std::{fmt, io};
 
 use crate::graphics::{inline::InlineSGR, SGRString};
 
-/// A writer built with SGR code integration
+/// An interfeace for an [`SGRWriter`] to work with
 ///
-/// Provides a set of functions to make writing SGR codes easier
-pub trait SGRWriter: Sized /*W*/ {
+/// Does not provide SGR writing capability itself
+pub trait CapableWriter: Sized {
     /// The type of error returned by trait methods
     ///
     /// Will typically be [`std::io::Error`] or [`std::fmt::Error`]
     type Error: std::error::Error;
-    /// Writes a code to the inner writer
+    /// Writes a [`str`] to the inner writer
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
-    fn write_code(&mut self, code: u8) -> Result<(), Self::Error>;
-    /// Writes a str to the inner writer
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
-    fn write_inner<'a>(&mut self, string: impl Into<&'a str>) -> Result<(), Self::Error>;
-    /// Writes the SGR sequence starting characters '\x1b['
-    ///
-    /// Uses [`SGRWriter::write_inner`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
-    fn escape(&mut self) -> Result<(), Self::Error> {
-        self.write_inner("\x1b[")
+    /// Error type specified by [`CapableWriter::Error`]
+    fn write(&mut self, s: &str) -> Result<(), Self::Error>;
+}
+/// A writer built on top of a [`CapableWriter`]
+/// that has the ability to work with SGR codes
+pub trait SGRWriter: CapableWriter {
+    /// Returns the previous codes
+    fn previous_codes(&self) -> Option<&Vec<u8>> {
+        None
     }
-    /// Writes the SGR sequence ending character 'm'
+    /// Sets the previous codes
+    fn set_previous_codes(&mut self, _graphics: Vec<u8>) {}
+    /// Writes a [`str`] to the inner writer
     ///
-    /// Uses [`SGRWriter::write_inner`]
+    /// Is a shortcut to [`CapableWriter::write`] without having to import it
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
-    fn end(&mut self) -> Result<(), Self::Error> {
-        self.write_inner("m")
+    /// Error type specified by [`CapableWriter::Error`]
+    #[inline]
+    fn write_inner(&mut self, s: &str) -> Result<(), Self::Error> {
+        self.write(s)
     }
-    /// Writes a set of codes throught calling [`SGRWriter::write_code`]
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
-    fn write_multiple(&mut self, codes: &[u8]) -> Result<(), Self::Error> {
-        codes.iter().try_for_each(|code| self.write_code(*code))
+    /// Returns a [`SGRBuilder`] to allow for writing SGR codes
+    fn escape<'a>(&'a mut self) -> SGRBuilder<'a, Self> {
+        SGRBuilder {
+            writer: self,
+            codes: Vec::new(),
+        }
     }
     /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
+    #[inline]
     fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
-        sgr.place_all(self)
+        let mut builder = self.escape();
+        sgr.place_all(&mut builder);
+        builder.end()
     }
     /// Writes the contained SGR codes to the writer through calling [`SGRString::clean_all`]
     ///
@@ -71,132 +65,207 @@ pub trait SGRWriter: Sized /*W*/ {
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
+    #[inline]
     fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
-        sgr.clean_all(self)
+        let mut builder = self.escape();
+        sgr.clean_all(&mut builder);
+        builder.end()
     }
     /// Writes the contained SGR codes to the writer throught calling [`InlineSGR::write`]
     ///
     /// # Errors
     ///
     /// Returns an error if writing fails.
-    /// Error type specified by [`SGRWriter::Error`]
+    /// Error type specified by [`CapableWriter::Error`]
+    #[inline]
     fn inline_sgr(&mut self, sgr: &impl InlineSGR) -> Result<(), Self::Error> {
-        self.escape()?;
-        sgr.write(self)?;
-        self.end()
+        let mut builder = self.escape();
+        sgr.write(&mut builder);
+        builder.end()
     }
 }
-/// [`SGRWriter`] for [`std::fmt::Write`]
+/// A Standard SGR writer
 #[derive(Debug)]
-pub struct FmtWriter<W: std::fmt::Write> {
-    /// The internal writer
+pub struct StandardWriter<W: CapableWriter> {
+    /// A writer capable of writing [`str`]
     pub writer: W,
-    first_write: bool,
 }
-impl<W: std::fmt::Write> FmtWriter<W> {
-    /// Creates a writer with the given [`std::fmt::Write`]
+impl<W: CapableWriter> StandardWriter<W> {
+    /// Creates a new [`StandardWriter<W>`].
+    ///
+    /// Probably better to use [`StandardWriter::io`] or [`StandardWriter::fmt`]
+    pub fn new(writer: W) -> Self {
+        Self { writer }
+    }
+}
+impl<W: std::io::Write> StandardWriter<IoWriter<W>> {
+    /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::io::Write)
+    ///
+    /// Uses [`IoWriter`]
+    pub fn io(writer: W) -> Self {
+        Self {
+            writer: IoWriter(writer),
+        }
+    }
+}
+impl<W: std::fmt::Write> StandardWriter<FmtWriter<W>> {
+    /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::fmt::Write)
+    ///
+    /// Uses [`FmtWriter`]
+    pub fn fmt(writer: W) -> Self {
+        Self {
+            writer: FmtWriter(writer),
+        }
+    }
+}
+impl<W: CapableWriter> CapableWriter for StandardWriter<W> {
+    type Error = W::Error;
+    #[inline]
+    fn write(&mut self, s: &str) -> Result<(), Self::Error> {
+        self.writer.write(s)
+    }
+}
+impl<W: CapableWriter> SGRWriter for StandardWriter<W> {}
+/// Used to implement [`CapableWriter`] for [`std::io::Write`]
+#[derive(Debug)]
+pub struct IoWriter<W: std::io::Write>(pub W);
+impl<W: std::io::Write> CapableWriter for IoWriter<W> {
+    type Error = io::Error;
+    #[inline]
+    fn write(&mut self, s: &str) -> Result<(), Self::Error> {
+        self.0.write_all(s.as_bytes())
+    }
+}
+/// Used to implement [`CapableWriter`] for [`std::fmt::Write`]
+#[derive(Debug)]
+pub struct FmtWriter<W: std::fmt::Write>(pub W);
+impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
+    type Error = fmt::Error;
+    #[inline]
+    fn write(&mut self, s: &str) -> Result<(), Self::Error> {
+        self.0.write_str(s)
+    }
+}
+/// A more advenced [`StandardWriter`]
+///
+/// Has the ability to do a smart clean
+#[derive(Debug)]
+pub struct AdvancedWriter<W: CapableWriter> {
+    /// A writer capable of writing SGR codes
+    pub writer: StandardWriter<W>,
+    /// The previous state of graphics
+    #[allow(dead_code)]
+    previous_codes: Vec<Vec<u8>>,
+}
+impl<W: CapableWriter> AdvancedWriter<W> {
+    /// Creates a new [`AdvancedWriter<W>`].
+    ///
+    /// Probably better to use [`AdvancedWriter::io`] or [`AdvancedWriter::fmt`]
     pub fn new(writer: W) -> Self {
         Self {
-            writer,
-            first_write: true,
+            writer: StandardWriter::new(writer),
+            previous_codes: Vec::new(),
         }
     }
 }
-impl<W: std::fmt::Write> std::fmt::Write for FmtWriter<W> {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        self.writer.write_str(s)
-    }
-}
-impl<W: std::fmt::Write> SGRWriter for FmtWriter<W> {
-    type Error = std::fmt::Error;
-
-    fn write_code(&mut self, code: u8) -> Result<(), Self::Error>
-    where
-        Self: Sized,
-    {
-        if self.first_write {
-            self.first_write = false;
-        } else {
-            self.writer.write_char(';')?;
-        }
-        self.writer.write_str(&code.to_string())
-    }
-
-    fn write_inner<'a>(&mut self, string: impl Into<&'a str>) -> Result<(), Self::Error> {
-        self.writer.write_str(string.into())
-    }
-}
-/// [`SGRWriter`] for [`std::io::Write`]
-#[derive(Debug)]
-pub struct IoWriter<W: std::io::Write> {
-    /// The internal writer
-    pub writer: W,
-    first_write: bool,
-}
-impl<W: std::io::Write> IoWriter<W> {
-    /// Creates a writer with the given [`std::io::Write`]
-    pub fn new(writer: W) -> Self {
+impl<W: std::io::Write> AdvancedWriter<IoWriter<W>> {
+    /// Creates a new [`AdvancedWriter<W>`] with the provided [`Write`](std::io::Write)
+    ///
+    /// Uses [`IoWriter`]
+    pub fn io(writer: W) -> Self {
         Self {
-            writer,
-            first_write: true,
+            writer: StandardWriter::io(writer),
+            previous_codes: Vec::new(),
         }
     }
 }
-impl<W: std::io::Write> std::io::Write for IoWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.writer.write(buf)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.writer.flush()
-    }
-}
-impl<W: std::io::Write> SGRWriter for IoWriter<W> {
-    type Error = std::io::Error;
-
-    fn write_code(&mut self, code: u8) -> Result<(), Self::Error> {
-        if self.first_write {
-            self.first_write = false;
-        } else {
-            self.writer.write_all(b";")?;
+impl<W: std::fmt::Write> AdvancedWriter<FmtWriter<W>> {
+    /// Creates a new [`AdvancedWriter<W>`] with the provided [`Write`](std::fmt::Write)
+    ///
+    /// Uses [`FmtWriter`]
+    pub fn fmt(writer: W) -> Self {
+        Self {
+            writer: StandardWriter::fmt(writer),
+            previous_codes: Vec::new(),
         }
-        self.writer.write_all(code.to_string().as_bytes())
-    }
-
-    fn write_inner<'a>(&mut self, string: impl Into<&'a str>) -> Result<(), Self::Error> {
-        self.writer.write_all(string.into().as_bytes())
     }
 }
-/// A [`BufWriter`] implementation with [`SGRWriter`] functionality
+impl<W: CapableWriter> CapableWriter for AdvancedWriter<W> {
+    type Error = W::Error;
+    #[inline]
+    fn write(&mut self, s: &str) -> Result<(), Self::Error> {
+        self.writer.write(s)
+    }
+}
+impl<W: CapableWriter> SGRWriter for AdvancedWriter<W> {
+    #[inline]
+    fn previous_codes(&self) -> Option<&Vec<u8>> {
+        Some(&self.previous_codes[self.previous_codes.len().checked_sub(2)?])
+    }
+    #[inline]
+    fn set_previous_codes(&mut self, graphics: Vec<u8>) {
+        self.previous_codes.push(graphics);
+    }
+}
+/// Builds a SGR sequence
 #[derive(Debug)]
-pub struct SGRBufWriter<W: std::io::Write> {
-    /// The internal writer
-    pub writer: BufWriter<W>,
-    first_write: bool,
+pub struct SGRBuilder<'a, W: SGRWriter> {
+    writer: &'a mut W,
+    codes: Vec<u8>,
 }
-impl<W: std::io::Write> std::io::Write for SGRBufWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.writer.write(buf)
-    }
 
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.writer.flush()
+impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
+    /// Writes a code to the internal buffer
+    #[inline]
+    pub fn write_code(&mut self, code: u8) {
+        self.codes.push(code);
     }
-}
-impl<W: std::io::Write> SGRWriter for SGRBufWriter<W> {
-    type Error = std::io::Error;
-
-    fn write_code(&mut self, code: u8) -> Result<(), Self::Error> {
-        if self.first_write {
-            self.first_write = false;
-        } else {
-            self.writer.write_all(b";")?;
+    /// Writes codes to the internal buffer
+    #[inline]
+    pub fn write_codes(&mut self, codes: &[u8]) {
+        self.codes.extend_from_slice(codes);
+    }
+    /// Writes a code to the internal buffer
+    ///
+    /// Returns self to allow for chaining
+    #[inline]
+    pub fn chain_code(&mut self, code: u8) -> &mut Self {
+        self.codes.push(code);
+        self
+    }
+    /// Writes codes to the internal buffer
+    ///
+    /// Returns self to allow for chainin
+    #[inline]
+    pub fn chain_codes(&mut self, codes: &[u8]) -> &mut Self {
+        self.codes.extend_from_slice(codes);
+        self
+    }
+    /// Writes a cleaning sequence to the internal buffer
+    #[inline]
+    pub fn smart_clean(&mut self) {
+        self.codes = match self.writer.previous_codes() {
+            Some(codes) if codes.is_empty() => codes.clone(),
+            _ => vec![0],
         }
-        self.writer.write_all(code.to_string().as_bytes())
     }
+    /// Writes buffered codes to the writer
+    pub fn end(&mut self) -> Result<(), W::Error> {
+        self.writer.set_previous_codes(self.codes.clone());
 
-    fn write_inner<'a>(&mut self, string: impl Into<&'a str>) -> Result<(), Self::Error> {
-        self.writer.write_all(string.into().as_bytes())
+        if self.codes.is_empty() {
+            Ok(())
+        } else {
+            self.writer.write("\x1b[")?;
+            self.writer.write_inner(&self.codes[0].to_string())?;
+
+            for code in &self.codes[1..] {
+                self.writer.write(";")?;
+                self.writer.write(&code.to_string())?;
+            }
+            self.codes.clear();
+            self.writer.write("m")
+        }
     }
 }

@@ -4,10 +4,12 @@ echo -e "\033[0;32mExecuting Github workflow locally\033[0m"
 
 python copy_readme.py
 
+cargo check
 cargo build --verbose
 cargo doc --verbose
 cargo test --all-features --verbose
-cargo fmt --all
+cargo fmt --check --all
+cargo clippy
 
 python copy_librs.py
 

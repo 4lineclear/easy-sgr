@@ -17,9 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check
       - run: cargo build --verbose
       - run: cargo doc --verbose
       - run: cargo test --all-features --verbose
+      - run: cargo clippy
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
@@ -29,8 +31,7 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt
-      - run: cargo fmt --all
-      
+      - run: cargo fmt --check --all
   copylibrs:
     name: copylibrs
     runs-on: ubuntu-latest

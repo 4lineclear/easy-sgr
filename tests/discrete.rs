@@ -1,4 +1,4 @@
-use easy_sgr::Style::*;
+use easy_sgr::{Color::*, Style::*};
 
 #[test]
 fn styles() {
@@ -19,4 +19,27 @@ fn styles() {
     assert_eq!("\x1b[27m", &format!("{NotInverse}"));
     assert_eq!("\x1b[28m", &format!("{NotHidden}"));
     assert_eq!("\x1b[29m", &format!("{NotStrikethrough}"));
+}
+
+#[test]
+fn standard_colors() {
+    assert_eq!("\x1b[30m", format!("{BlackFg}"));
+    assert_eq!("\x1b[31m", format!("{RedFg}"));
+    assert_eq!("\x1b[32m", format!("{GreenFg}"));
+    assert_eq!("\x1b[33m", format!("{YellowFg}"));
+    assert_eq!("\x1b[34m", format!("{BlueFg}"));
+    assert_eq!("\x1b[35m", format!("{MagentaFg}"));
+    assert_eq!("\x1b[36m", format!("{CyanFg}"));
+    assert_eq!("\x1b[37m", format!("{WhiteFg}"));
+    assert_eq!("\x1b[39m", format!("{DefaultFg}"));
+
+    assert_eq!("\x1b[40m", format!("{BlackBg}"));
+    assert_eq!("\x1b[41m", format!("{RedBg}"));
+    assert_eq!("\x1b[42m", format!("{GreenBg}"));
+    assert_eq!("\x1b[43m", format!("{YellowBg}"));
+    assert_eq!("\x1b[44m", format!("{BlueBg}"));
+    assert_eq!("\x1b[45m", format!("{MagentaBg}"));
+    assert_eq!("\x1b[46m", format!("{CyanBg}"));
+    assert_eq!("\x1b[47m", format!("{WhiteBg}"));
+    assert_eq!("\x1b[49m", format!("{DefaultBg}"));
 }

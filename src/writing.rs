@@ -1,6 +1,6 @@
 use std::{fmt, io};
 
-use crate::graphics::{discrete::DiscreteSGR, SGRString};
+use crate::{DiscreteSGR, SGRString};
 
 /// An interface for an [`SGRWriter`] to work with
 ///

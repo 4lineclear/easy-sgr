@@ -1,14 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::{SGRBuilder, SGRWriter, StandardWriter};
-
-use self::discrete::{Color, Style};
-
-/// Implements SGR types that can be used standalone of a [`SGRString`]
-///
-/// These types exist outside the context of a [`SGRString`], but
-/// can be used in conjunction of one through the use of [`EasySGR`]
-pub mod discrete;
+use crate::{SGRBuilder, SGRWriter, StandardWriter, Color, Style};
 
 /// A String encapsulating the usage of SGR codes
 ///
@@ -351,7 +343,7 @@ pub trait EasySGR: Into<SGRString> {
     /// Adds a style to the returned [`SGRString`]
     #[must_use]
     #[inline]
-    fn style(self, style: impl Into<discrete::Style>) -> SGRString {
+    fn style(self, style: impl Into<Style>) -> SGRString {
         use Style::*;
         use StyleKind::*;
 
@@ -381,7 +373,7 @@ pub trait EasySGR: Into<SGRString> {
     /// Adds a color(foreground or background) to the returned [`SGRString`]  
     #[must_use]
     #[inline]
-    fn color(self, color: impl Into<discrete::Color>) -> SGRString {
+    fn color(self, color: impl Into<Color>) -> SGRString {
         use {Color::*, ColorKind::*};
 
         let mut this = self.into();

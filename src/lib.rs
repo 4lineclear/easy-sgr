@@ -182,6 +182,12 @@
 #![warn(rustdoc::all)]
 #![warn(missing_debug_implementations)]
 
+
+/// Implements SGR types that can be used standalone of a [`SGRString`]
+///
+/// These types exist outside the context of a [`SGRString`], but
+/// can be used in conjunction of one through the use of [`EasySGR`]
+pub mod discrete;
 /// Contains the standard SGR implementations.
 ///
 /// Makes use of the [`writers`](writing) to write `SGR` codes to a writer
@@ -189,6 +195,6 @@ pub mod graphics;
 /// Contains various structs and traits to help in writing `SGR` codes
 pub mod writing;
 
-pub use graphics::discrete::*;
+pub use discrete::*;
 pub use graphics::*;
 pub use writing::*;

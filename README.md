@@ -158,14 +158,7 @@ let stylized_string = {
     - [x] [writing module](src/writing.rs) docs
     - [ ] Clean up all docs
     - [ ] Add examples to docs
-- [x] Rewrite [`writers`](src/writing.rs)
-    - [x] Do the rewrite
-    - [x] Add trait
-    - [x] Fix docs after adding trait
-    - [x] Add Advanced Writer
-    - [x] Write docs
-    - [x] Add `SGRBuilder`
-- [x] Unique Clear behaviors
+    - [ ] Improve test coverage
 
 ## TODO goals past publishing
 

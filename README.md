@@ -23,19 +23,19 @@ easy-sgr="0.0.0"
 
 ## Usage
 
-### `Color`, `Style`, `Clean` enums
+### `Color` and `Style`enums
 
-The simplest way to color text, using these three enums allows you to
+The simplest way to color text, using these two enums allows you to
 work inline of a string literal when using a macro such as
 `println!`, `writeln!` or `format!`:
 
 ```rust
-use easy_sgr::{Clean::Reset, Color::*, Style::*};
+use easy_sgr::{Color::*, Style::*};
 
 println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 ```
 
-`Color`, `Style` and `Clean` are all enums that implement `Display`: when they
+`Color` and `Style` are both enums that implement `Display`: when they
 are printed a matching [SGR][SGR] code is written.
 
 This method is the best when it comes to simplicity, but has drawbacks;
@@ -51,13 +51,13 @@ This would not be much of an issue for the vast majority of use cases.
 ### `EasySGR` trait
 
 This is similar to method as above, but using the `EasySGR` trait.
-This trait is implemented by anything that implements `Into<AnsiString>` including `Style`, `Color` and `Clean`.
+This trait is implemented by anything that implements `Into<AnsiString>` including `Style` and `Color`.
 It's main purpose is to provide functions for chaining [`SGR`][SGR] codes.
 
 The example above can be achieved using it as such:
 
 ```rust
-use easy_sgr::{Clean::Reset, Color::*, EasySGR, Style::*};
+use easy_sgr::{ Color::*, EasySGR, Style::*};
 
 let sgr = Italic.color(RedFg);
 
@@ -82,7 +82,7 @@ though is more expensive to use as it allocates `SGRString`.
 possible SGR sequences. You can use it to reproduce the previous examples as such:
 
 ```rust
-use easy_sgr::{Clean::Reset, Color::*, EasySGR, Style::*};
+use easy_sgr::{Color::*, EasySGR, Style::*};
 
 let text = "This should be italic & red!"
     .to_sgr()
@@ -98,7 +98,7 @@ work for anything that implements `Into<SGRString>`, so `.style(..)` and
 The method above still uses the `EasySGR` trait, you can go without it:
 
 ```rust
-use easy_sgr::{ColorKind, Clean::Reset, SGRString, StyleKind};
+use easy_sgr::{ColorKind, SGRString, StyleKind};
 
 let mut text = SGRString::from("This should be italic & red!");
 text.italic = StyleKind::Place;
@@ -113,7 +113,7 @@ The writer can also be used directly, instead of a using the above methods:
 
 ```rust
 use std::io::{stdout, Write};
-use easy_sgr::{Clean::Reset, Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
+use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
 
 let mut writer = StandardWriter::io(stdout());
 writer.sgr(&Italic.color(RedFg)).unwrap();
@@ -124,7 +124,7 @@ writer.sgr(&Reset).unwrap();
 or, when writing to a String
 
 ```rust
-use easy_sgr::{Clean::Reset, Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
+use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
 
 let stylized_string = {
     let mut writer = StandardWriter::fmt(String::new());
@@ -170,9 +170,6 @@ let stylized_string = {
     - [ ] Write [Structure](#structure) section
     - [ ] Add examples to docs
     - [ ] Improve test coverage
-- [ ] Fix Smart Clean system
-    - [ ] Use something other than a Vec\<Vec\>
-    - [ ] Allow ability to choose what to be reversed
 
 ## TODO goals past publishing
 
@@ -181,3 +178,4 @@ let stylized_string = {
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
 - [ ] Add some kind of `EasySGR` implementation that doesn't allocate a `SGRString`
+- [ ] (maybe) create smart clean system

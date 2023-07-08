@@ -21,16 +21,6 @@ pub trait CapableWriter: Sized {
 /// A writer built on top of a [`CapableWriter`]
 /// that has the ability to work with SGR codes
 pub trait SGRWriter: CapableWriter {
-    /// Returns the previous codes
-    ///
-    /// Used for smart cleaning
-    fn previous_codes(&self) -> Option<&Vec<u8>> {
-        None
-    }
-    /// Sets the previous codes
-    ///
-    /// Used for smart cleaning
-    fn set_previous_codes(&mut self, _graphics: Vec<u8>) {}
     /// Writes a [`str`] to the inner writer
     ///
     /// A shortcut to [`CapableWriter::write`] without having to import it
@@ -169,68 +159,6 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
         self.0.write_str(s)
     }
 }
-/// A more advanced [`StandardWriter`]
-///
-/// Has the ability to do a smart clean
-#[derive(Debug)]
-pub struct AdvancedWriter<W: CapableWriter> {
-    /// A writer capable of writing SGR codes
-    pub writer: StandardWriter<W>,
-    /// The previous codes
-    ///
-    /// Used for smart clean
-    previous_codes: Vec<Vec<u8>>,
-}
-impl<W: CapableWriter> AdvancedWriter<W> {
-    /// Creates a new [`AdvancedWriter<W>`].
-    ///
-    /// Probably better to use [`AdvancedWriter::io`] or [`AdvancedWriter::fmt`]
-    pub fn new(writer: W) -> Self {
-        Self {
-            writer: StandardWriter::new(writer),
-            previous_codes: Vec::new(),
-        }
-    }
-}
-impl<W: std::io::Write> AdvancedWriter<IoWriter<W>> {
-    /// Creates a new [`AdvancedWriter<W>`] with the provided [`Write`](std::io::Write)
-    ///
-    /// Uses [`IoWriter`]
-    pub fn io(writer: W) -> Self {
-        Self {
-            writer: StandardWriter::io(writer),
-            previous_codes: Vec::new(),
-        }
-    }
-}
-impl<W: std::fmt::Write> AdvancedWriter<FmtWriter<W>> {
-    /// Creates a new [`AdvancedWriter<W>`] with the provided [`Write`](std::fmt::Write)
-    ///
-    /// Uses [`FmtWriter`]
-    pub fn fmt(writer: W) -> Self {
-        Self {
-            writer: StandardWriter::fmt(writer),
-            previous_codes: Vec::new(),
-        }
-    }
-}
-impl<W: CapableWriter> CapableWriter for AdvancedWriter<W> {
-    type Error = W::Error;
-    #[inline]
-    fn write(&mut self, s: &str) -> Result<(), Self::Error> {
-        self.writer.write(s)
-    }
-}
-impl<W: CapableWriter> SGRWriter for AdvancedWriter<W> {
-    #[inline]
-    fn previous_codes(&self) -> Option<&Vec<u8>> {
-        Some(&self.previous_codes[self.previous_codes.len().checked_sub(2)?])
-    }
-    #[inline]
-    fn set_previous_codes(&mut self, graphics: Vec<u8>) {
-        self.previous_codes.push(graphics);
-    }
-}
 /// Builds a SGR sequence
 #[derive(Debug)]
 pub struct SGRBuilder<'a, W: SGRWriter> {
@@ -273,18 +201,6 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
         self.codes.extend_from_slice(codes);
         self
     }
-    /// Replace the internal buffer with a cleaning sequence.
-    ///
-    /// Cleaning sequence is taken from the internal writer
-    ///
-    /// Does not perform any IO operations
-    #[inline]
-    pub fn smart_clean(&mut self) {
-        self.codes = match self.writer.previous_codes() {
-            Some(codes) if codes.is_empty() => codes.clone(),
-            _ => vec![0],
-        }
-    }
     /// Writes buffered codes to the writer
     ///
     /// Performs IO operations with the internal [`SGRWriter`]
@@ -293,8 +209,6 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
     ///
     /// Writing failed
     pub fn end(&mut self) -> Result<(), W::Error> {
-        self.writer.set_previous_codes(self.codes.clone());
-
         if self.codes.is_empty() {
             Ok(())
         } else {

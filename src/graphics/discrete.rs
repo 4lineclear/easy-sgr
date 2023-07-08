@@ -6,43 +6,13 @@ use crate::writing::{SGRBuilder, SGRWriter, StandardWriter};
 
 use super::EasySGR;
 
-#[derive(Debug)]
-/// A type of SGR cleaning sequence
-///
-/// A cleaning sequence is an SGR sequence meant to
-/// reverse or reset other SGR sequences
-pub enum Clean {
-    /// Resets all by writing `\x1b[0m`
-    Reset,
-    /// Resets to previous style smartly
-    /// when used with advanced writer.
-    ///
-    /// Defaults to Reset
-    Reverse,
-}
-impl Display for Clean {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.standard_display(f)
-    }
-}
-impl DiscreteSGR for Clean {
-    fn write<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
-        match self {
-            Clean::Reset => builder.write_code(0),
-            Clean::Reverse => builder.smart_clean(),
-        }
-    }
-}
 /// A SGR style code
-///
-/// Does not include the reset all code `0` or any color codes
-///
-/// For the reset all code see [`Clean::Reset`], for color codes see [`Color`].
 #[derive(Debug)]
 pub enum Style {
+    /// Represents the SGR code `0`
+    ///
+    /// Resets all(including color & custom codes) to the terminal's default
+    Reset,
     /// Represents the SGR code `1`
     Bold,
     /// Represents the SGR code `2`
@@ -92,6 +62,7 @@ impl DiscreteSGR for Style {
     {
         use Style::*;
         builder.write_code(match self {
+            Reset => 0,
             Bold => 1,
             Dim => 2,
             Italic => 3,

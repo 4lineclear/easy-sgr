@@ -1,9 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::{
-    writing::{SGRBuilder, SGRWriter, StandardWriter},
-    Clean,
-};
+use crate::{SGRBuilder, SGRWriter, StandardWriter};
 
 use self::discrete::{Color, Style};
 
@@ -134,7 +131,7 @@ impl SGRString {
         W: SGRWriter,
     {
         use StyleKind::*;
-        for (kind, place, clean) in [
+        for (kind, place, not) in [
             (&self.bold, 1, 22),
             (&self.dim, 2, 22),
             (&self.italic, 3, 23),
@@ -147,7 +144,7 @@ impl SGRString {
             match kind {
                 None => (),
                 Place => builder.write_code(place),
-                Clean => builder.write_code(clean),
+                Clean => builder.write_code(not),
             }
         }
     }
@@ -204,7 +201,7 @@ impl SGRString {
     where
         W: SGRWriter,
     {
-        for (kind, place, clean) in [
+        for (kind, place, not) in [
             (&self.bold, 22, 1),
             (&self.dim, 22, 2),
             (&self.italic, 23, 3),
@@ -217,7 +214,7 @@ impl SGRString {
             match kind {
                 StyleKind::None => (),
                 StyleKind::Place => builder.write_code(place),
-                StyleKind::Clean => builder.write_code(clean),
+                StyleKind::Clean => builder.write_code(not),
             }
         }
     }
@@ -231,11 +228,6 @@ impl SGRString {
         W: SGRWriter,
     {
         builder.write_codes(&self.custom_cleans);
-    }
-}
-impl From<Clean> for SGRString {
-    fn from(value: Clean) -> Self {
-        Self::default().clean(value)
     }
 }
 impl From<Color> for SGRString {
@@ -288,17 +280,8 @@ pub enum CleanKind {
     None,
     /// Resets all by writing `\x1b[0m`
     Reset,
-    /// Different to [`discrete::Clean::Reverse`],
-    /// it reverses the effects of the [`SGRString::place_all`].
+    /// Undoes the effects of the [`SGRString::place_all`].
     Reverse,
-}
-impl From<Clean> for CleanKind {
-    fn from(value: Clean) -> Self {
-        match value {
-            Clean::Reset => Self::Reset,
-            Clean::Reverse => Self::Reverse,
-        }
-    }
 }
 /// Component of [`SGRString`]; the type of a style
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -308,9 +291,9 @@ pub enum StyleKind {
     None,
     /// Apply the style
     Place,
-    /// Apply what reverses the style
+    /// Apply what undoes the style
     ///
-    /// The equivalent [`Style`] variants would be what is prefixed with `Not`
+    /// The equivalent in [`Style`] are variants prefixed with `Not`
     Clean,
 }
 /// Component of [`SGRString`]; the type of color
@@ -365,7 +348,7 @@ pub trait EasySGR: Into<SGRString> {
             ..self.into()
         }
     }
-    /// Adds a style to the returned [`SGRString`]  
+    /// Adds a style to the returned [`SGRString`]
     #[must_use]
     #[inline]
     fn style(self, style: impl Into<discrete::Style>) -> SGRString {
@@ -374,6 +357,7 @@ pub trait EasySGR: Into<SGRString> {
 
         let mut this = self.into();
         match style.into() {
+            Reset => this.reset = true,
             Bold => this.bold = Place,
             Dim => this.dim = Place,
             Italic => this.italic = Place,

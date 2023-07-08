@@ -112,9 +112,9 @@
 //! use easy_sgr::{Clean::Reset, Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
 //!
 //! let mut writer = StandardWriter::io(stdout());
-//! writer.place_sgr(&Italic.color(RedFg)).unwrap();
+//! writer.sgr(&Italic.color(RedFg)).unwrap();
 //! writer.write_inner("This should be italic & red!").unwrap();
-//! writer.inline_sgr(&Reset).unwrap();
+//! writer.sgr(&Reset).unwrap();
 //! ```
 //!
 //! or, when writing to a String
@@ -124,9 +124,9 @@
 //!
 //! let stylized_string = {
 //!     let mut writer = StandardWriter::fmt(String::new());
-//!     writer.place_sgr(&Italic.color(RedFg)).unwrap();
+//!     writer.sgr(&Italic.color(RedFg)).unwrap();
 //!     writer.write_inner("This should be italic & red!").unwrap();
-//!     writer.inline_sgr(&Reset).unwrap();
+//!     writer.sgr(&Reset).unwrap();
 //!     writer.writer.0
 //! };
 //! ```

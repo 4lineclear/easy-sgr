@@ -37,22 +37,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let text5 = {
         let mut writer = StandardWriter::fmt(String::new());
 
-        writer.place_sgr(&Italic.color(RedFg))?;
+        writer.sgr(&Italic.color(RedFg))?;
         writer.write_inner("This should be italic & red!")?;
-        writer.inline_sgr(&Reset)?;
+        writer.sgr(&Reset)?;
         writer.writer.0
     };
 
     let text6 = {
         let mut writer = AdvancedWriter::fmt(String::new());
 
-        writer.place_sgr(&Italic.color(RedFg))?;
+        writer.sgr(&Italic.color(RedFg))?;
         writer.write_inner("This should be italic & red!, ")?;
-        writer.place_sgr(&NotItalic.color(DefaultFg))?;
+        writer.sgr(&NotItalic.color(DefaultFg))?;
         writer.write_inner("This should be normal text!, ")?;
-        writer.inline_sgr(&Reverse)?;
+        writer.sgr(&Reverse)?;
         writer.write_inner("Back to red & italic text")?;
-        writer.inline_sgr(&Reset)?;
+        writer.sgr(&Reset)?;
 
         writer.writer.writer.0
     };

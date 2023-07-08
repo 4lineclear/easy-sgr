@@ -99,7 +99,7 @@ pub trait SGRWriter: CapableWriter {
     ///
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
-    fn sgr(&mut self, sgr: impl EasyWrite<Self>) -> Result<(), Self::Error> {
+    fn sgr(&mut self, sgr: &impl EasyWrite<Self>) -> Result<(), Self::Error> {
         let mut builder = self.escape();
         sgr.sgr(&mut builder);
         builder.end()

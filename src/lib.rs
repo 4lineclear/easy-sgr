@@ -158,10 +158,9 @@
 //!
 //! - [ ] Add examples to docs
 //! - [ ] Implement `FromStr` for [`SGR`][SGR] types
-//! - [ ] Change previous codes mechanism
 //! - [ ] Parser (`deSGR`)
 //! - [ ] Macros (`SGRise`)
-//! - [ ] Add some kind of `EasySGR` implementation that doesn't allocate a `SGRString`
+//! - [ ] `EasySGR` implementation that doesn't allocate a `SGRString`
 //! - [ ] (maybe) create smart clean system
 #![deny(clippy::all, clippy::pedantic)]
 #![warn(clippy::cargo)]

@@ -90,6 +90,20 @@ pub trait SGRWriter: CapableWriter {
         sgr.write(&mut builder);
         builder.end()
     }
+    /// Writes the contained SGR codes to the writer
+    ///
+    /// Uses [`EasyWrite`] so the it can be used for both
+    /// [`SGRString`] and [`DiscreteSGR`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    fn sgr(&mut self, sgr: impl EasyWrite<Self>) -> Result<(), Self::Error> {
+        let mut builder = self.escape();
+        sgr.sgr(&mut builder);
+        builder.end()
+    }
 }
 /// A Standard SGR writer
 ///
@@ -295,5 +309,26 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
             self.codes.clear();
             self.writer.write("m")
         }
+    }
+}
+
+/// Helps to make writing easier
+///
+/// Allows to use the same method for both
+/// [`SGRString`] and [`DiscreteSGR`] types
+pub trait EasyWrite<W: SGRWriter> {
+    /// Writes a set of codes to the builder
+    fn sgr(&self, builder: &mut SGRBuilder<W>);
+}
+
+impl<W: SGRWriter> EasyWrite<W> for SGRString {
+    fn sgr(&self, builder: &mut SGRBuilder<W>) {
+        self.place_all(builder);
+    }
+}
+
+impl<W: SGRWriter, D: DiscreteSGR> EasyWrite<W> for D {
+    fn sgr(&self, builder: &mut SGRBuilder<W>) {
+        self.write(builder);
     }
 }

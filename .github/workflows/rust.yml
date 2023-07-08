@@ -2,17 +2,7 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  copyreadme:
-    name: copyreadme
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10' 
-      - run: python copy_readme.py
   test:
-    name: tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,7 +13,6 @@ jobs:
       - run: cargo test --all-features --verbose
       - run: cargo clippy
   rustfmt:
-    name: rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -32,15 +21,6 @@ jobs:
           toolchain: stable
           components: rustfmt
       - run: cargo fmt --check --all
-  copylibrs:
-    name: copylibrs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10' 
-      - run: python copy_librs.py
   coverage:
     runs-on: ubuntu-latest
     env:

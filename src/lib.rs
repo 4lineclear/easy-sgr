@@ -1,4 +1,4 @@
-//! An easy to use library for adding [`SGR`][SGR] escape sequences to your project.
+//! An easy to use library for adding graphical ANSI codes or [`SGR`][SGR] escape sequences to your project.
 //! Its main strengths are the multitude of methods that is provided, and the
 //! lack of dependencies; compile times should be pretty good.
 //!
@@ -170,6 +170,7 @@
 //! ## TODO goals past publishing
 //!
 //! - [ ] Implement `FromStr` for [`SGR`][SGR] types
+//! - [ ] Change previous codes mechanism
 //! - [ ] Parser (`deSGR`)
 //! - [ ] Macros (`SGRise`)
 //! - [ ] Add some kind of `EasySGR` implementation that doesn't allocate a `SGRString`

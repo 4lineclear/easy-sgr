@@ -2,7 +2,7 @@
 
 [![Build status](https://github.com/4lineclear/easy-sgr/actions/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions) [![Crates.io](https://img.shields.io/crates/v/easy-sgr)](https://crates.io/crates/easy-sgr) [![License](https://img.shields.io/crates/l/easy-sgr)](https://github.com/4lineclear/easy-sgr/blob/main/LICENSE) [![Code Coverage](https://codecov.io/gh/4lineclear/easy-sgr/branch/main/graph/badge.svg?token=0Q30XAW0PV)](https://codecov.io/gh/4lineclear/easy-sgr)
 
-An easy to use library for adding [`SGR`][SGR] escape sequences to your project.
+An easy to use library for adding graphical ANSI codes or [`SGR`][SGR] escape sequences to your project.
 Its main strengths are the multitude of methods that is provided, and the
 lack of dependencies; compile times should be pretty good.
 
@@ -166,7 +166,7 @@ let stylized_string = {
     - [x] Module level docs
     - [x] [graphics module](src/graphics/mod.rs) docs
     - [x] [writing module](src/writing.rs) docs
-    - [ ] Clean up all docs
+    - [x] Clean up all docs
     - [ ] Write [Structure](#structure) section
     - [ ] Add examples to docs
     - [ ] Improve test coverage
@@ -174,6 +174,7 @@ let stylized_string = {
 ## TODO goals past publishing
 
 - [ ] Implement `FromStr` for [`SGR`][SGR] types
+- [ ] Change previous codes mechanism
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
 - [ ] Add some kind of `EasySGR` implementation that doesn't allocate a `SGRString`

@@ -7,10 +7,10 @@ use crate::writing::{SGRBuilder, SGRWriter, StandardWriter};
 use super::EasySGR;
 
 #[derive(Debug)]
-/// A type of SGR clean
+/// A type of SGR cleaning sequence
 ///
-/// A clean is a SGR code sequence meant to reverse or reset
-/// other SGR sequences
+/// A cleaning sequence is an SGR sequence meant to
+/// reverse or reset other SGR sequences
 pub enum Clean {
     /// Resets all by writing `\x1b[0m`
     Reset,
@@ -38,9 +38,9 @@ impl DiscreteSGR for Clean {
 }
 /// A SGR style code
 ///
-/// Does not include the reset all code, `0` or any of the color codes
+/// Does not include the reset all code `0` or any color codes
 ///
-/// To use the reset code, see [`Clean::Reset`], for color codes see [`Color`].
+/// For the reset all code see [`Clean::Reset`], for color codes see [`Color`].
 #[derive(Debug)]
 pub enum Style {
     /// Represents the SGR code `1`
@@ -60,8 +60,12 @@ pub enum Style {
     /// Represents the SGR code `9`
     Strikethrough,
     /// Represents the SGR code `22`
+    ///
+    /// Is equivalent to [`Style::NotDim`]
     NotBold,
     /// Represents the SGR code `22`
+    ///
+    /// Is equivalent to [`Style::NotBold`]
     NotDim,
     /// Represents the SGR code `23`
     NotItalic,
@@ -209,14 +213,12 @@ impl DiscreteSGR for Color {
 pub trait DiscreteSGR: Sized + Display + EasySGR {
     /// Writes a set of SGR codes to the given [`SGRWriter`]
     ///
-    /// Writing is not an IO operation, instead writing should be
-    /// pushing codes to the [`SGRBuilder`]'s buffer
+    /// Writing is not an IO operation, instead writing
+    /// pushes codes to the [`SGRBuilder`]'s buffer
     fn write<W>(&self, writer: &mut SGRBuilder<W>)
     where
         W: SGRWriter;
-    /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
-    ///
-    /// Uses [`SGRWriter::inline_sgr`]
+    /// Writes an SGR sequence to the given [`Formatter`](std::fmt::Formatter)
     ///
     /// # Errors
     ///

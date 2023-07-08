@@ -45,7 +45,7 @@ pub trait SGRWriter: CapableWriter {
     }
     /// Returns a [`SGRBuilder`] to allow for writing SGR codes
     ///
-    /// This method is to be used for actually writing `SGR` codes
+    /// This is to be used for directly writing `SGR` codes
     fn escape(&'_ mut self) -> SGRBuilder<'_, Self> {
         SGRBuilder {
             writer: self,
@@ -241,21 +241,21 @@ pub struct SGRBuilder<'a, W: SGRWriter> {
 impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
     /// Writes a code to the internal buffer
     ///
-    /// Does not actually perform any IO operations
+    /// Does not perform any IO operations
     #[inline]
     pub fn write_code(&mut self, code: u8) {
         self.codes.push(code);
     }
     /// Writes codes to the internal buffer
     ///
-    /// Does not actually perform any IO operations
+    /// Does not perform any IO operations
     #[inline]
     pub fn write_codes(&mut self, codes: &[u8]) {
         self.codes.extend_from_slice(codes);
     }
     /// Writes a code to the internal buffer
     ///
-    /// Does not actually perform any IO operations
+    /// Does not perform any IO operations
     ///
     /// Returns self to allow for chaining
     #[inline]
@@ -265,7 +265,7 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
     }
     /// Writes codes to the internal buffer
     ///
-    /// Does not actually perform any IO operations
+    /// Does not perform any IO operations
     ///
     /// Returns self to allow for chaining
     #[inline]
@@ -277,7 +277,7 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
     ///
     /// Cleaning sequence is taken from the internal writer
     ///
-    /// Does not actually perform any IO operations
+    /// Does not perform any IO operations
     #[inline]
     pub fn smart_clean(&mut self) {
         self.codes = match self.writer.previous_codes() {
@@ -286,7 +286,6 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
         }
     }
     /// Writes buffered codes to the writer
-    ///
     ///
     /// Performs IO operations with the internal [`SGRWriter`]
     ///
@@ -322,12 +321,18 @@ pub trait EasyWrite<W: SGRWriter> {
 }
 
 impl<W: SGRWriter> EasyWrite<W> for SGRString {
+    /// Writes a set of codes to the builder
+    ///
+    /// Uses [`SGRString::place_all`]
     fn sgr(&self, builder: &mut SGRBuilder<W>) {
         self.place_all(builder);
     }
 }
 
 impl<W: SGRWriter, D: DiscreteSGR> EasyWrite<W> for D {
+    /// Writes a set of codes to the builder
+    ///
+    /// Uses [`DiscreteSGR::write`]
     fn sgr(&self, builder: &mut SGRBuilder<W>) {
         self.write(builder);
     }

@@ -173,6 +173,7 @@ let stylized_string = {
 
 ## TODO goals past publishing
 
+- [ ] Implement `FromStr` for [`SGR`][SGR] types
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
 - [ ] Add some kind of `EasySGR` implementation that doesn't allocate a `SGRString`

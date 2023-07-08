@@ -6,31 +6,6 @@ use crate::writing::{SGRBuilder, SGRWriter, StandardWriter};
 
 use super::EasySGR;
 
-/// Represents SGR sequences that can be used discretely.
-///
-/// This means it doesn't exist in terms of a [`SGRString`](crate::SGRString),
-/// though it can be used in conjunction with one
-#[allow(clippy::module_name_repetitions)]
-pub trait DiscreteSGR: Sized + Display + EasySGR {
-    /// Writes a set of SGR codes to the given [`SGRWriter`]
-    ///
-    /// Writing is not an IO operation, instead writing should be
-    /// pushing codes to the [`SGRBuilder`]'s buffer
-    fn write<W>(&self, writer: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter;
-    /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
-    ///
-    /// Uses [`SGRWriter::inline_sgr`]
-    ///
-    /// # Errors
-    ///
-    /// Return an error if writing to the [`Formatter`](std::fmt::Formatter) fails
-    #[inline]
-    fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        StandardWriter::fmt(f).inline_sgr(self)
-    }
-}
 #[derive(Debug)]
 /// A type of SGR clean
 ///
@@ -224,5 +199,30 @@ impl DiscreteSGR for Color {
             RgbBg(r, g, b) => builder.write_codes(&[48, 5, *r, *g, *b]),
             DefaultBg => builder.write_code(49),
         }
+    }
+}
+/// Represents SGR sequences that can be used discretely.
+///
+/// This means it doesn't exist in terms of a [`SGRString`](crate::SGRString),
+/// though it can be used in conjunction with one
+#[allow(clippy::module_name_repetitions)]
+pub trait DiscreteSGR: Sized + Display + EasySGR {
+    /// Writes a set of SGR codes to the given [`SGRWriter`]
+    ///
+    /// Writing is not an IO operation, instead writing should be
+    /// pushing codes to the [`SGRBuilder`]'s buffer
+    fn write<W>(&self, writer: &mut SGRBuilder<W>)
+    where
+        W: SGRWriter;
+    /// Writes to the given [`Formatter`](std::fmt::Formatter) the SGR sequence
+    ///
+    /// Uses [`SGRWriter::inline_sgr`]
+    ///
+    /// # Errors
+    ///
+    /// Return an error if writing to the [`Formatter`](std::fmt::Formatter) fails
+    #[inline]
+    fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        StandardWriter::fmt(f).inline_sgr(self)
     }
 }

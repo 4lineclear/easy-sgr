@@ -7,13 +7,13 @@ use crate::{
 
 use self::discrete::{Color, Style};
 
-/// Implements SGR types that can be used standalone of a [`SGRString`](crate::SGRString)
+/// Implements SGR types that can be used standalone of a [`SGRString`]
 ///
-/// These types exist without the context of a [`SGRString`](crate::SGRString), but
-/// can be used in conjunction of one through the trait [`EasySGR`](crate::EasySGR)
+/// These types exist outside the context of a [`SGRString`], but
+/// can be used in conjunction of one through the use of [`EasySGR`]
 pub mod discrete;
 
-/// A String encapsulating SGR codes
+/// A String encapsulating the usage of SGR codes
 ///
 /// SGR codes are applied when the [`Display`] trait is used,
 /// or when the [`SGRString::place_all`] or [`SGRString::clean_all`]
@@ -24,7 +24,7 @@ pub mod discrete;
 pub struct SGRString {
     /// The actual text
     pub text: String,
-    /// The type of clean to apply after the string
+    /// The type of clean to apply when [`SGRString::clean_all`] is called
     ///
     /// By default [`CleanKind::None`], meaning nothing is done
     pub clean: CleanKind,
@@ -43,19 +43,19 @@ pub struct SGRString {
     /// The color of the foreground
     ///
     /// By default [`ColorKind::None`], meaning nothing is applied.
-    /// This differs from [`ColorKind::Default`], where the default SGR
-    /// code for foreground is applied.
+    /// Not to be confused with [`ColorKind::Default`], where the default SGR
+    /// code for the foreground is applied.
     pub foreground: ColorKind,
     /// The color of the background
     ///
     /// By default [`ColorKind::None`], meaning nothing is applied.
-    /// This differs from [`ColorKind::Default`], where the default SGR
-    /// code for background is applied.
+    /// Not to be confused with [`ColorKind::Default`], where the default SGR
+    /// code for the background is applied.
     pub background: ColorKind,
 
     /// Determines whether the clear code `0` is to be applied to the beginning
     ///
-    /// Not be confused with [`SGRString.clear`], this only has effect on [`SGRString::place_all`]
+    /// Not be confused with [`SGRString.clean`], this effects [`SGRString::place_all`]
     pub reset: bool,
     /// Refer to [`StyleKind`]
     pub bold: StyleKind,
@@ -89,7 +89,7 @@ impl SGRString {
         self.place_styles(builder);
         self.place_custom(builder);
     }
-    /// Writes SGR color codes to the given [`SGRWriter`]
+    /// Writes contained SGR color codes to the given [`SGRWriter`]
     ///
     /// Does not perform any IO operations
     pub fn place_colors<W>(&self, builder: &mut SGRBuilder<W>)
@@ -134,7 +134,7 @@ impl SGRString {
         W: SGRWriter,
     {
         use StyleKind::*;
-        for (kind, place, clear) in [
+        for (kind, place, clean) in [
             (&self.bold, 1, 22),
             (&self.dim, 2, 22),
             (&self.italic, 3, 23),
@@ -147,7 +147,7 @@ impl SGRString {
             match kind {
                 None => (),
                 Place => builder.write_code(place),
-                Clean => builder.write_code(clear),
+                Clean => builder.write_code(clean),
             }
         }
     }
@@ -160,7 +160,7 @@ impl SGRString {
     {
         builder.write_codes(&self.custom_places);
     }
-    /// Writes the contained SGR codes to the given [`SGRWriter`]
+    /// Writes contained SGR codes to the given [`SGRWriter`]
     ///
     /// Reverses the effects of [`SGRString::place_all`]
     ///
@@ -204,7 +204,7 @@ impl SGRString {
     where
         W: SGRWriter,
     {
-        for (kind, place, clear) in [
+        for (kind, place, clean) in [
             (&self.bold, 22, 1),
             (&self.dim, 22, 2),
             (&self.italic, 23, 3),
@@ -217,7 +217,7 @@ impl SGRString {
             match kind {
                 StyleKind::None => (),
                 StyleKind::Place => builder.write_code(place),
-                StyleKind::Clean => builder.write_code(clear),
+                StyleKind::Clean => builder.write_code(clean),
             }
         }
     }
@@ -280,7 +280,7 @@ impl Display for SGRString {
         fmt.clean_sgr(self)
     }
 }
-/// The type of clean to apply
+/// Component of [`SGRString`]; the type of clean
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum CleanKind {
     /// Does nothing
@@ -300,7 +300,7 @@ impl From<Clean> for CleanKind {
         }
     }
 }
-/// Component of [`SGRString`]; the type of style to apply
+/// Component of [`SGRString`]; the type of a style
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum StyleKind {
     /// Do nothing
@@ -336,7 +336,7 @@ pub enum ColorKind {
     Default,
 }
 impl<I: Into<SGRString>> EasySGR for I {}
-/// Allows for chaining SGR code types
+/// Allows for chaining SGR sequence types
 ///
 /// Methods return a [`SGRString`]
 pub trait EasySGR: Into<SGRString> {
@@ -356,7 +356,7 @@ pub trait EasySGR: Into<SGRString> {
     fn to_sgr(self) -> SGRString {
         self.into()
     }
-    /// Sets the plaintext of the returned [`SGRString`]  
+    /// Sets the normal text of the returned [`SGRString`]  
     #[must_use]
     #[inline]
     fn text(self, text: impl Into<String>) -> SGRString {
@@ -431,7 +431,7 @@ pub trait EasySGR: Into<SGRString> {
     }
     /// Adds a custom code to the returned [`SGRString`]
     ///
-    /// Adds to the [`clear`](SGRString#structfield.custom_places)
+    /// Code is used in [`SGRString::place_all`]
     #[must_use]
     #[inline]
     fn custom(self, code: impl Into<u8>) -> SGRString {
@@ -442,9 +442,9 @@ pub trait EasySGR: Into<SGRString> {
     /// Sets the [`CleanKind`] variant of the returned [`SGRString`]
     #[must_use]
     #[inline]
-    fn clean(self, clear: impl Into<CleanKind>) -> SGRString {
+    fn clean(self, clean: impl Into<CleanKind>) -> SGRString {
         let mut this = self.into();
-        this.clean = clear.into();
+        this.clean = clean.into();
         this
     }
     /// Adds a custom code to be written before the returned [`SGRString`]'s text

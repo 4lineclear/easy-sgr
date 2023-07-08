@@ -23,7 +23,7 @@ easy-sgr="0.0.0"
 
 ## Usage
 
-### `Color`, `Style` and `Clean`
+### `Color`, `Style`, `Clean` enums
 
 The simplest way to color text, using these three enums allows you to
 work inline of a string literal when using a macro such as
@@ -51,7 +51,7 @@ This would not be much of an issue for the vast majority of use cases.
 ### `EasySGR` trait
 
 This is similar to method as above, but using the `EasySGR` trait.
-This trait is implemented by anything that implements `Into<AnsiString>` including both `Style`, `Color`, `Clean`.
+This trait is implemented by anything that implements `Into<AnsiString>` including `Style`, `Color` and `Clean`.
 It's main purpose is to provide functions for chaining [`SGR`][SGR] codes.
 
 The example above can be achieved using it as such:
@@ -76,7 +76,7 @@ the separator character `;` is used instead.
 Doing this avoids the issue of rewriting the Escape and End sequences,
 though is more expensive to use as it allocates `SGRString`.
 
-### Using `SGRString`
+### `SGRString` struct
 
 `SGRString` is the type returned by all `EasySGR` functions, it encapsulates all
 possible SGR sequences. You can use it to reproduce the previous examples as such:
@@ -107,7 +107,7 @@ text.foreground = ColorKind::Red;
 println!("{text}")
 ```
 
-### `SGRWriter`
+### `SGRWriter` trait
 
 The writer can also be used directly, instead of a using the above methods:
 
@@ -170,6 +170,9 @@ let stylized_string = {
     - [ ] Write [Structure](#structure) section
     - [ ] Add examples to docs
     - [ ] Improve test coverage
+- [ ] Fix Smart Clean system
+    - [ ] Use something other than a Vec\<Vec\>
+    - [ ] Allow ability to choose what to be reversed
 
 ## TODO goals past publishing
 

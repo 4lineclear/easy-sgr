@@ -106,7 +106,8 @@ pub struct StandardWriter<W: CapableWriter> {
 impl<W: CapableWriter> StandardWriter<W> {
     /// Creates a new [`StandardWriter<W>`].
     ///
-    /// Probably better to use [`StandardWriter::io`] or [`StandardWriter::fmt`]
+    /// Incase using using something that implements [`io::Write`] or [`fmt::Write`]
+    /// see [`StandardWriter::io`] or [`StandardWriter::fmt`]
     pub fn new(writer: W) -> Self {
         Self { writer }
     }

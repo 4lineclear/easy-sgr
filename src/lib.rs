@@ -19,7 +19,7 @@
 //!
 //! ## Usage
 //!
-//! ### `Color` and `Style`enums
+//! ### `Color` and `Style` enums
 //!
 //! The simplest way to color text, using these two enums allows you to
 //! work inline of a string literal when using a macro such as
@@ -135,8 +135,8 @@
 //!
 //! easy-sgr is split into three modules:
 //!
-//! - graphics
 //! - discrete
+//! - graphics
 //! - writing
 //!
 //! Though no modules really need to be seen, as all the types they contain are exported.

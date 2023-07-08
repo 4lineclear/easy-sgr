@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::{SGRBuilder, SGRWriter, StandardWriter, Color, Style};
+use crate::{Color, SGRBuilder, SGRWriter, StandardWriter, Style};
 
 /// A String encapsulating the usage of SGR codes
 ///

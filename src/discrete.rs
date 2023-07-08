@@ -1,10 +1,6 @@
-// use std::fmt::Display;
-
 use std::fmt::Display;
 
-use crate::writing::{SGRBuilder, SGRWriter, StandardWriter};
-
-use super::EasySGR;
+use crate::{EasySGR, SGRBuilder, SGRWriter, StandardWriter};
 
 /// A SGR style code
 #[derive(Debug)]

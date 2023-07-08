@@ -133,25 +133,13 @@
 //!
 //! ## Structure
 //!
-//! <!-- - Style
-//!     - Encapsulates the different styles you can add to a string:
-//!         - Reset
-//!         - Bold
-//!         - Dim
-//!         - Italic
-//!         - Underline
-//!         - Blinking
-//!         - Inverse
-//!         - Hidden
-//!         - Strikethrough
-//!     - Also includes matching variants to undo these styles
-//! - Color
-//!     - Encapsulates different ways to color text
-//!         - A set of standard colors
-//!         - An 8 bit color representation
-//!         - A RGB color representation
-//!         - A Default variant
-//! - SGRString -->
+//! easy-sgr is split into three modules:
+//!
+//! - graphics
+//! - discrete
+//! - writing
+//!
+//! Though no modules really need to be seen, as all the types they contain are exported.
 //!
 //! [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 //!
@@ -163,12 +151,12 @@
 //!     - [x] [graphics module](src/graphics/mod.rs) docs
 //!     - [x] [writing module](src/writing.rs) docs
 //!     - [x] Clean up all docs
-//!     - [ ] Write [Structure](#structure) section
-//!     - [ ] Add examples to docs
+//!     - [x] Write [Structure](#structure) section
 //!     - [ ] Improve test coverage
 //!
 //! ## TODO goals past publishing
 //!
+//! - [ ] Add examples to docs
 //! - [ ] Implement `FromStr` for [`SGR`][SGR] types
 //! - [ ] Change previous codes mechanism
 //! - [ ] Parser (`deSGR`)
@@ -181,7 +169,6 @@
 #![warn(missing_docs)]
 #![warn(rustdoc::all)]
 #![warn(missing_debug_implementations)]
-
 
 /// Implements SGR types that can be used standalone of a [`SGRString`]
 ///

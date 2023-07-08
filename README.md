@@ -2,11 +2,11 @@
 
 [![Build status](https://github.com/4lineclear/easy-sgr/actions/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions) [![Crates.io](https://img.shields.io/crates/v/easy-sgr)](https://crates.io/crates/easy-sgr) [![License](https://img.shields.io/crates/l/easy-sgr)](https://github.com/4lineclear/easy-sgr/blob/main/LICENSE) [![Code Coverage](https://codecov.io/gh/4lineclear/easy-sgr/branch/main/graph/badge.svg?token=0Q30XAW0PV)](https://codecov.io/gh/4lineclear/easy-sgr)
 
-An easy to use library for adding [SGR][SGR] escape sequences to your project.
+An easy to use library for adding [`SGR`][SGR] escape sequences to your project.
 Its main strengths are the multitude of methods that is provided, and the
 lack of dependencies; compile times should be pretty good.
 
-This library does not support usage of non [SGR][SGR] ANSI escape sequences
+This library does not support usage of non [`SGR`][SGR] ANSI escape sequences
 
 ## Documentation
 
@@ -18,14 +18,14 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-easy-sgr="0.1"
+easy-sgr="0.0.0"
 ```
 
 ## Usage
 
-### `Color` and `Style`
+### `Color`, `Style` and `Clean`
 
-The simplest way to color text, using these two `enums` allows you to
+The simplest way to color text, using these three enums allows you to
 work inline of a string literal when using a macro such as
 `println!`, `writeln!` or `format!`:
 
@@ -35,23 +35,24 @@ use easy_sgr::{Clean::Reset, Color::*, Style::*};
 println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 ```
 
-`Color` and `Style` are both `enums` that implement `Display`, meaning when they
-are printed a matching [SGR][SGR] code is written. The `Reset` at the end is also a `style`,
-it resets everything including any applied colors
+`Color`, `Style` and `Clean` are all enums that implement `Display`: when they
+are printed a matching [SGR][SGR] code is written.
 
 This method is the best when it comes to simplicity, but has drawbacks;
-using it rewrites the Escape sequence `\x1b[` and the sequence End `m` repeatedly,
-in this example this is what would be written:
+using it rewrites the Escape sequence `\x1b[` and the End sequence `m` repeatedly.
+In this example this is what would be written:
 
 ```plain
 \x1b[3m\x1b[31mThis should be italic & red!\x1b[0m
 ```
 
+This would not be much of an issue for the vast majority of use cases.
+
 ### `EasySGR` trait
 
 This is similar to method as above, but using the `EasySGR` trait.
-This trait is implemented by anything that implements `Into<AnsiString>` including both `Style` and `Color`.
-It's main purpose is to provide functions for chaining `SGR` codes.
+This trait is implemented by anything that implements `Into<AnsiString>` including both `Style`, `Color`, `Clean`.
+It's main purpose is to provide functions for chaining [`SGR`][SGR] codes.
 
 The example above can be achieved using it as such:
 
@@ -63,8 +64,17 @@ let sgr = Italic.color(RedFg);
 println!("{sgr}This should be italic & red!{Reset}");
 ```
 
+Now the output would look something like this:
+
+```plain
+\x1b[31;3mThis should be italic & red!\x1b[0m
+```
+
+Now instead of a rewriting the entire sequence,
+the separator character `;` is used instead.
+
 Doing this avoids the issue of rewriting the Escape and End sequences,
-though is more expensive to use as it makes use of `SGRString`.
+though is more expensive to use as it allocates `SGRString`.
 
 ### Using `SGRString`
 
@@ -85,7 +95,7 @@ You can actually forgo `.to_sgr()`, as all functions in the `EasySGR`
 work for anything that implements `Into<SGRString>`, so `.style(..)` and
 `.color(..)` can be directly called on the string literal.
 
-The method above still uses the `EasySGR` trait, you can go without it as shown below:
+The method above still uses the `EasySGR` trait, you can go without it:
 
 ```rust
 use easy_sgr::{ColorKind, Clean::Reset, SGRString, StyleKind};
@@ -157,6 +167,7 @@ let stylized_string = {
     - [x] [graphics module](src/graphics/mod.rs) docs
     - [x] [writing module](src/writing.rs) docs
     - [ ] Clean up all docs
+    - [ ] Write [Structure](#structure) section
     - [ ] Add examples to docs
     - [ ] Improve test coverage
 
@@ -164,3 +175,4 @@ let stylized_string = {
 
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
+- [ ] Add some kind of `EasySGR` implementation that doesn't allocate a `SGRString`

@@ -1,6 +1,6 @@
 [package]
 name = "easy-sgr"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["Tamim Hakimi <tamimhakimi21@gmail.com>"]
 description = "An easy to use Select Graphics Rendition(SGR) library"
 edition = "2021"

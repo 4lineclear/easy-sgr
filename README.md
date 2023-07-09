@@ -14,7 +14,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-easy-sgr="0.0.0"
+easy-sgr="0.0.1"
 ```
 
 ## Usage
@@ -139,23 +139,15 @@ easy-sgr is split into three modules:
 - graphics
 - writing
 
-Though no modules really need to be seen, as all the types they contain are exported.
+Though no modules really will be seen is usage,
+as all the types they contain are reexported.
 
 [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 
-## TODO goals to publish
+## TODO
 
-- [ ] Docs
-    - [x] [Crate](src/lib.rs) level docs
-    - [x] Module level docs
-    - [x] [graphics module](src/graphics/mod.rs) docs
-    - [x] [writing module](src/writing.rs) docs
-    - [x] Clean up all docs
-    - [x] Write [Structure](#structure) section
-    - [ ] Improve test coverage
-
-## TODO goals past publishing
-
+- [ ] Add `get_writer` method to `writing` module
+- [ ] Create `writing` tests
 - [ ] Add examples to docs
 - [ ] Implement `FromStr` for [`SGR`][SGR] types
 - [ ] Parser (`deSGR`)

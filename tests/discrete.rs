@@ -43,3 +43,29 @@ fn standard_colors() {
     assert_eq!("\x1b[47m", format!("{WhiteBg}"));
     assert_eq!("\x1b[49m", format!("{DefaultBg}"));
 }
+
+#[test]
+fn byte_color() {
+    for i in (0u8..255).step_by(17) {
+        assert_eq!(format!("\x1b[38;2;{i}m"), format!("{}", ByteFg(i)));
+        assert_eq!(format!("\x1b[48;2;{i}m"), format!("{}", ByteBg(i)));
+    }
+}
+
+#[test]
+fn rgb_color() {
+    for i in (0u8..255).step_by(17) {
+        for j in (0u8..255).step_by(17) {
+            for k in (0u8..255).step_by(17) {
+                assert_eq!(
+                    format!("\x1b[38;5;{i};{j};{k}m"),
+                    format!("{}", RgbFg(i, j, k))
+                );
+                assert_eq!(
+                    format!("\x1b[48;5;{i};{j};{k}m"),
+                    format!("{}", RgbBg(i, j, k))
+                );
+            }
+        }
+    }
+}

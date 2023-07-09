@@ -5,10 +5,13 @@ use easy_sgr::{CleanKind, Color::*, ColorKind, EasySGR, SGRString, Style::*, Sty
 #[test]
 fn general() {
     assert_eq!("", SGRString::default().to_string());
-    assert_eq!("test", SGRString::from("test").to_string());
+    assert_eq!(
+        "test\x1b[0m",
+        String::from("test").clean(CleanKind::Reset).to_string()
+    );
     assert_eq!(
         "",
-        SGRString::default().clean(CleanKind::Reverse).to_string()
+        (&String::default()).clean(CleanKind::Reverse).to_string()
     );
     assert_eq!(
         "\x1b[31;1m",
@@ -155,6 +158,8 @@ fn easy_sgr_color() {
         ("\x1b[35m", MagentaFg),
         ("\x1b[36m", CyanFg),
         ("\x1b[37m", WhiteFg),
+        ("\x1b[38;2;208m", ByteFg(208)),
+        ("\x1b[38;5;208;208;208m", RgbFg(208, 208, 208)),
         ("\x1b[39m", DefaultFg),
         ("\x1b[40m", BlackBg),
         ("\x1b[41m", RedBg),
@@ -164,6 +169,8 @@ fn easy_sgr_color() {
         ("\x1b[45m", MagentaBg),
         ("\x1b[46m", CyanBg),
         ("\x1b[47m", WhiteBg),
+        ("\x1b[48;2;208m", ByteBg(208)),
+        ("\x1b[48;5;208;208;208m", RgbBg(208, 208, 208)),
         ("\x1b[49m", DefaultBg),
     ] {
         assert_eq!(correct, "".color(color).to_string())

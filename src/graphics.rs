@@ -163,10 +163,10 @@ impl SGRString {
             CleanKind::Reverse => {
                 self.clean_colors(builder);
                 self.clean_styles(builder);
-                self.clean_custom(builder);
             }
             CleanKind::None => (),
         }
+        self.clean_custom(builder);
     }
     /// Writes SGR color codes to the given [`SGRWriter`]
     ///

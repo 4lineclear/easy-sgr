@@ -1,6 +1,6 @@
 use std::default::Default;
 
-use easy_sgr::{CleanKind, ColorKind, SGRString, StyleKind};
+use easy_sgr::{CleanKind, Color::*, ColorKind, EasySGR, SGRString, Style::*, StyleKind};
 
 #[test]
 fn skips() {
@@ -101,4 +101,15 @@ fn colors() {
             .to_string()
         )
     }
+}
+
+#[test]
+fn easy_sgr() {
+    assert_eq!("test", "test".to_sgr().to_string());
+    assert_eq!("test", "".text("test").to_string());
+    assert_eq!("\x1b[3mtest", "test".style(Italic).to_string());
+    assert_eq!("\x1b[31mtest", "test".color(RedFg).to_string());
+    assert_eq!("\x1b[100mtest", "test".custom(100).to_string());
+    assert_eq!("\x1b[100mtest", "test".custom_place(100).to_string());
+    assert_eq!("test\x1b[100m", "test".custom_clean(100).to_string());
 }

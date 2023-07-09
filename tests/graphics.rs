@@ -71,3 +71,34 @@ fn fully_loaded() {
         .to_string()
     );
 }
+
+#[test]
+fn colors() {
+    for (correct, color) in [
+        ("", ColorKind::None),
+        ("\x1b[30;40m", ColorKind::Black),
+        ("\x1b[31;41m", ColorKind::Red),
+        ("\x1b[32;42m", ColorKind::Green),
+        ("\x1b[33;43m", ColorKind::Yellow),
+        ("\x1b[34;44m", ColorKind::Blue),
+        ("\x1b[35;45m", ColorKind::Magenta),
+        ("\x1b[36;46m", ColorKind::Cyan),
+        ("\x1b[37;47m", ColorKind::White),
+        ("\x1b[38;2;208;48;2;208m", ColorKind::Byte(208)),
+        (
+            "\x1b[38;5;208;208;208;48;5;208;208;208m",
+            ColorKind::Rgb(208, 208, 208),
+        ),
+        ("\x1b[39;49m", ColorKind::Default),
+    ] {
+        assert_eq!(
+            correct,
+            SGRString {
+                foreground: color.clone(),
+                background: color,
+                ..Default::default()
+            }
+            .to_string()
+        )
+    }
+}

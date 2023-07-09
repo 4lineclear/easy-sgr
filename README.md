@@ -2,11 +2,11 @@
 
 [![Build status](https://github.com/4lineclear/easy-sgr/actions/workflows/rust.yml/badge.svg)](https://github.com/4lineclear/easy-sgr/actions) [![Crates.io](https://img.shields.io/crates/v/easy-sgr)](https://crates.io/crates/easy-sgr) [![docs.rs](https://img.shields.io/docsrs/easy-sgr)](https://docs.rs/easy-sgr)[![License](https://img.shields.io/crates/l/easy-sgr)](https://github.com/4lineclear/easy-sgr/blob/main/LICENSE) [![Code Coverage](https://codecov.io/gh/4lineclear/easy-sgr/branch/main/graph/badge.svg?token=0Q30XAW0PV)](https://codecov.io/gh/4lineclear/easy-sgr)
 
-An easy to use library for adding graphical ANSI codes or [`SGR`][SGR] escape sequences to your project.
-Its main strengths are the multitude of methods that is provided, and the
-lack of dependencies; compile times should be pretty good.
+An easy-to-use library for adding graphical ANSI codes or [`SGR`][SGR] escape sequences to your project.
+Its main strengths are the multitude of methods that are provided, 
+and the lack of dependencies; compile times should be pretty good.
 
-This library does not support usage of non [`SGR`][SGR] ANSI escape sequences
+This library does not support the usage of non-[`SGR`][SGR] ANSI escape sequences
 
 ## Installation
 
@@ -32,7 +32,7 @@ println!("{Italic}{RedFg}This should be italic & red!{Reset}");
 ```
 
 `Color` and `Style` are both enums that implement `Display`: when they
-are printed a matching [SGR][SGR] code is written.
+are printed a matching [`SGR`][SGR] code is written.
 
 This method is the best when it comes to simplicity, but has drawbacks;
 using it rewrites the Escape sequence `\x1b[` and the End sequence `m` repeatedly.
@@ -46,9 +46,9 @@ This would not be much of an issue for the vast majority of use cases.
 
 ### `EasySGR` trait
 
-This is similar to method as above, but using the `EasySGR` trait.
-This trait is implemented by anything that implements `Into<AnsiString>` including `Style` and `Color`.
-It's main purpose is to provide functions for chaining [`SGR`][SGR] codes.
+This is similar to the method above but uses the EasySGR trait.
+This trait is implemented by anything that implements Into<AnsiString> including Style and Color.
+Its main purpose is to provide functions for chaining [`SGR`][SGR] codes.
 
 The example above can be achieved using it as such:
 
@@ -66,16 +66,15 @@ Now the output would look something like this:
 \x1b[31;3mThis should be italic & red!\x1b[0m
 ```
 
-Now instead of a rewriting the entire sequence,
-the separator character `;` is used instead.
+Instead of a rewriting the entire sequence, the separator character `;` is used instead.
 
 Doing this avoids the issue of rewriting the Escape and End sequences,
-though is more expensive to use as it allocates `SGRString`.
+though is more expensive to use as it allocates a `SGRString`.
 
 ### `SGRString` struct
 
 `SGRString` is the type returned by all `EasySGR` functions, it encapsulates all
-possible SGR sequences. You can use it to reproduce the previous examples as such:
+possible [`SGR`][SGR] sequences. You can use it to reproduce the previous examples as such:
 
 ```rust
 use easy_sgr::{Color::*, EasySGR, Style::*};
@@ -87,11 +86,10 @@ let text = "This should be italic & red!"
 println!("{text}");
 ```
 
-You can actually forgo `.to_sgr()`, as all functions in the `EasySGR`
-work for anything that implements `Into<SGRString>`, so `.style(..)` and
-`.color(..)` can be directly called on the string literal.
+You can forgo `.to_sgr()` as `.style(..)`, `.color(..)` and all other `EasySGR` functions
+can be directly called on the string literal and other types that implement it.
 
-The method above still uses the `EasySGR` trait, you can go without it:
+The method above still uses the `EasySGR` trait, you can go without it like here:
 
 ```rust
 use easy_sgr::{ColorKind, SGRString, StyleKind};
@@ -105,7 +103,7 @@ println!("{text}")
 
 ### `SGRWriter` trait
 
-The writer can also be used directly, instead of a using the above methods:
+The writer can also be used directly, instead of using the above methods:
 
 ```rust
 use std::io::{stdout, Write};
@@ -139,7 +137,7 @@ easy-sgr is split into three modules:
 - graphics
 - writing
 
-Though no modules really will be seen is usage,
+Though no modules really will be seen in usage,
 as all the types they contain are reexported.
 
 [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR

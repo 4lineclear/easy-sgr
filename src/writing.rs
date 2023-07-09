@@ -98,7 +98,7 @@ pub trait SGRWriter: CapableWriter {
 /// A Standard SGR writer
 ///
 /// Does not have the ability to smart clean
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StandardWriter<W: CapableWriter> {
     /// A writer capable of writing a [`str`]
     pub writer: W,
@@ -141,7 +141,7 @@ impl<W: CapableWriter> CapableWriter for StandardWriter<W> {
 }
 impl<W: CapableWriter> SGRWriter for StandardWriter<W> {}
 /// Used to implement [`CapableWriter`] for [`std::io::Write`]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IoWriter<W: std::io::Write>(pub W);
 impl<W: std::io::Write> CapableWriter for IoWriter<W> {
     type Error = io::Error;
@@ -151,7 +151,7 @@ impl<W: std::io::Write> CapableWriter for IoWriter<W> {
     }
 }
 /// Used to implement [`CapableWriter`] for [`std::fmt::Write`]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FmtWriter<W: std::fmt::Write>(pub W);
 impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
     type Error = fmt::Error;

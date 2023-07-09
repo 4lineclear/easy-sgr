@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::{EasySGR, SGRBuilder, SGRWriter, StandardWriter};
 
 /// A SGR style code
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Style {
     /// Represents the SGR code `0`
     ///
@@ -78,7 +78,7 @@ impl DiscreteSGR for Style {
     }
 }
 /// A SGR color code
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Color {
     /// Represents the SGR code `30`
     BlackFg,

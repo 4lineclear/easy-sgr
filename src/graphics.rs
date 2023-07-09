@@ -9,7 +9,7 @@ use crate::{Color, SGRBuilder, SGRWriter, StandardWriter, Style};
 /// functions are called.
 ///
 /// Writing is done through the use of the [`writing`](crate::writing) module
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct SGRString {
     /// The actual text
     pub text: String,
@@ -265,7 +265,7 @@ impl Display for SGRString {
     }
 }
 /// Component of [`SGRString`]; the type of clean
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum CleanKind {
     /// Does nothing
     #[default]
@@ -276,7 +276,7 @@ pub enum CleanKind {
     Reverse,
 }
 /// Component of [`SGRString`]; the type of a style
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum StyleKind {
     /// Do nothing
     #[default]
@@ -291,7 +291,7 @@ pub enum StyleKind {
 /// Component of [`SGRString`]; the type of color
 ///
 /// Used for both foreground and background
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum ColorKind {
     /// Does nothing

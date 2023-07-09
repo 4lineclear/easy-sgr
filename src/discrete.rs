@@ -52,10 +52,7 @@ impl Display for Style {
     }
 }
 impl DiscreteSGR for Style {
-    fn write<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    fn write(&self, builder: &mut SGRBuilder) {
         use Style::*;
         builder.write_code(match self {
             Reset => 0,
@@ -140,10 +137,7 @@ impl Display for Color {
     }
 }
 impl DiscreteSGR for Color {
-    fn write<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    fn write(&self, builder: &mut SGRBuilder) {
         use Color::*;
         match self {
             BlackFg => builder.write_code(30),
@@ -182,9 +176,7 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
     ///
     /// Writing is not an IO operation, instead writing
     /// pushes codes to the [`SGRBuilder`]'s buffer
-    fn write<W>(&self, writer: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter;
+    fn write(&self, writer: &mut SGRBuilder);
     /// Writes an SGR sequence to the given [`Formatter`](std::fmt::Formatter)
     ///
     /// # Errors

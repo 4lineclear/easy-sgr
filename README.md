@@ -139,13 +139,14 @@ easy-sgr is split into three modules:
 - graphics
 - writing
 
-Though no modules really will be seen is usage,
+Though no modules really will be seen in usage,
 as all the types they contain are reexported.
 
 [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 
 ## TODO
 
+- [ ] Add inline that doesn't write escape itself
 - [ ] Add `get_writer` method to `writing` module
 - [ ] Create `writing` tests
 - [ ] Add examples to docs

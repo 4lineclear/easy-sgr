@@ -4,10 +4,6 @@
 //!
 //! This library does not support usage of non [`SGR`][SGR] ANSI escape sequences
 //!
-//! ## Documentation
-//!
-//! [https://docs.rs/easy-sgr](https://docs.rs/easy-sgr)
-//!
 //! ## Installation
 //!
 //! Add this to your Cargo.toml:

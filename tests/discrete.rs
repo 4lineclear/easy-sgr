@@ -47,7 +47,7 @@ fn standard_colors() {
         ("\x1b[47m", WhiteBg),
         ("\x1b[49m", DefaultBg),
     ] {
-        assert_eq!(correct, &format!("{color}"))
+        assert_eq!(correct, format!("{color}"))
     }
 }
 

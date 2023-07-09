@@ -3,9 +3,13 @@ use std::default::Default;
 use easy_sgr::{CleanKind, Color::*, ColorKind, EasySGR, SGRString, Style::*, StyleKind};
 
 #[test]
-fn skips() {
+fn general() {
     assert_eq!("", SGRString::default().to_string());
     assert_eq!("test", SGRString::from("test").to_string());
+    assert_eq!(
+        "",
+        SGRString::default().clean(CleanKind::Reverse).to_string()
+    );
     assert_eq!(
         "\x1b[31;1m",
         SGRString {

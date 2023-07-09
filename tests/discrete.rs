@@ -2,46 +2,53 @@ use easy_sgr::{Color::*, Style::*};
 
 #[test]
 fn styles() {
-    assert_eq!("\x1b[0m", &format!("{Reset}"));
-    assert_eq!("\x1b[1m", &format!("{Bold}"));
-    assert_eq!("\x1b[2m", &format!("{Dim}"));
-    assert_eq!("\x1b[3m", &format!("{Italic}"));
-    assert_eq!("\x1b[4m", &format!("{Underline}"));
-    assert_eq!("\x1b[5m", &format!("{Blinking}"));
-    assert_eq!("\x1b[7m", &format!("{Inverse}"));
-    assert_eq!("\x1b[8m", &format!("{Hidden}"));
-    assert_eq!("\x1b[9m", &format!("{Strikethrough}"));
-    assert_eq!("\x1b[22m", &format!("{NotBold}"));
-    assert_eq!("\x1b[22m", &format!("{NotDim}"));
-    assert_eq!("\x1b[23m", &format!("{NotItalic}"));
-    assert_eq!("\x1b[24m", &format!("{NotUnderline}"));
-    assert_eq!("\x1b[25m", &format!("{NotBlinking}"));
-    assert_eq!("\x1b[27m", &format!("{NotInverse}"));
-    assert_eq!("\x1b[28m", &format!("{NotHidden}"));
-    assert_eq!("\x1b[29m", &format!("{NotStrikethrough}"));
+    for (correct, style) in [
+        ("\x1b[0m", Reset),
+        ("\x1b[1m", Bold),
+        ("\x1b[2m", Dim),
+        ("\x1b[3m", Italic),
+        ("\x1b[4m", Underline),
+        ("\x1b[5m", Blinking),
+        ("\x1b[7m", Inverse),
+        ("\x1b[8m", Hidden),
+        ("\x1b[9m", Strikethrough),
+        ("\x1b[22m", NotBold),
+        ("\x1b[22m", NotDim),
+        ("\x1b[23m", NotItalic),
+        ("\x1b[24m", NotUnderline),
+        ("\x1b[25m", NotBlinking),
+        ("\x1b[27m", NotInverse),
+        ("\x1b[28m", NotHidden),
+        ("\x1b[29m", NotStrikethrough),
+    ] {
+        assert_eq!(correct, &format!("{style}"))
+    }
 }
 
 #[test]
 fn standard_colors() {
-    assert_eq!("\x1b[30m", format!("{BlackFg}"));
-    assert_eq!("\x1b[31m", format!("{RedFg}"));
-    assert_eq!("\x1b[32m", format!("{GreenFg}"));
-    assert_eq!("\x1b[33m", format!("{YellowFg}"));
-    assert_eq!("\x1b[34m", format!("{BlueFg}"));
-    assert_eq!("\x1b[35m", format!("{MagentaFg}"));
-    assert_eq!("\x1b[36m", format!("{CyanFg}"));
-    assert_eq!("\x1b[37m", format!("{WhiteFg}"));
-    assert_eq!("\x1b[39m", format!("{DefaultFg}"));
-
-    assert_eq!("\x1b[40m", format!("{BlackBg}"));
-    assert_eq!("\x1b[41m", format!("{RedBg}"));
-    assert_eq!("\x1b[42m", format!("{GreenBg}"));
-    assert_eq!("\x1b[43m", format!("{YellowBg}"));
-    assert_eq!("\x1b[44m", format!("{BlueBg}"));
-    assert_eq!("\x1b[45m", format!("{MagentaBg}"));
-    assert_eq!("\x1b[46m", format!("{CyanBg}"));
-    assert_eq!("\x1b[47m", format!("{WhiteBg}"));
-    assert_eq!("\x1b[49m", format!("{DefaultBg}"));
+    for (correct, color) in [
+        ("\x1b[30m", BlackFg),
+        ("\x1b[31m", RedFg),
+        ("\x1b[32m", GreenFg),
+        ("\x1b[33m", YellowFg),
+        ("\x1b[34m", BlueFg),
+        ("\x1b[35m", MagentaFg),
+        ("\x1b[36m", CyanFg),
+        ("\x1b[37m", WhiteFg),
+        ("\x1b[39m", DefaultFg),
+        ("\x1b[40m", BlackBg),
+        ("\x1b[41m", RedBg),
+        ("\x1b[42m", GreenBg),
+        ("\x1b[43m", YellowBg),
+        ("\x1b[44m", BlueBg),
+        ("\x1b[45m", MagentaBg),
+        ("\x1b[46m", CyanBg),
+        ("\x1b[47m", WhiteBg),
+        ("\x1b[49m", DefaultBg),
+    ] {
+        assert_eq!(correct, &format!("{color}"))
+    }
 }
 
 #[test]

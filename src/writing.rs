@@ -36,8 +36,11 @@ pub trait SGRWriter: CapableWriter {
     /// Returns a [`SGRBuilder`] to allow for writing SGR codes
     ///
     /// This is to be used for directly writing `SGR` codes
-    fn escape(&mut self) -> SGRBuilder {
-        SGRBuilder { codes: Vec::new() }
+    fn escape(&'_ mut self) -> SGRBuilder<'_, Self> {
+        SGRBuilder {
+            writer: self,
+            codes: Vec::new(),
+        }
     }
     /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
     ///
@@ -49,7 +52,7 @@ pub trait SGRWriter: CapableWriter {
     fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
         let mut builder = self.escape();
         sgr.place_all(&mut builder);
-        builder.end(self)
+        builder.end()
     }
     /// Writes the contained SGR codes to the writer through calling [`SGRString::clean_all`]
     ///
@@ -63,7 +66,7 @@ pub trait SGRWriter: CapableWriter {
     fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
         let mut builder = self.escape();
         sgr.clean_all(&mut builder);
-        builder.end(self)
+        builder.end()
     }
     /// Writes the contained SGR codes to the writer through calling [`DiscreteSGR::write`]
     ///
@@ -75,7 +78,7 @@ pub trait SGRWriter: CapableWriter {
     fn inline_sgr(&mut self, sgr: &impl DiscreteSGR) -> Result<(), Self::Error> {
         let mut builder = self.escape();
         sgr.write(&mut builder);
-        builder.end(self)
+        builder.end()
     }
     /// Writes the contained SGR codes to the writer
     ///
@@ -86,10 +89,10 @@ pub trait SGRWriter: CapableWriter {
     ///
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
-    fn sgr(&mut self, sgr: &impl EasyWrite) -> Result<(), Self::Error> {
+    fn sgr(&mut self, sgr: &impl EasyWrite<Self>) -> Result<(), Self::Error> {
         let mut builder = self.escape();
         sgr.sgr(&mut builder);
-        builder.end(self)
+        builder.end()
     }
 }
 /// A Standard SGR writer
@@ -159,11 +162,12 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
 }
 /// Builds a SGR sequence
 #[derive(Debug)]
-pub struct SGRBuilder {
+pub struct SGRBuilder<'a, W: SGRWriter> {
+    writer: &'a mut W,
     codes: Vec<u8>,
 }
 
-impl SGRBuilder {
+impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
     /// Writes a code to the internal buffer
     ///
     /// Does not perform any IO operations
@@ -205,19 +209,19 @@ impl SGRBuilder {
     /// # Errors
     ///
     /// Writing failed
-    pub fn end<W: SGRWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
+    pub fn end(&mut self) -> Result<(), W::Error> {
         if self.codes.is_empty() {
             Ok(())
         } else {
-            writer.write("\x1b[")?;
-            writer.write_inner(&self.codes[0].to_string())?;
+            self.writer.write("\x1b[")?;
+            self.writer.write_inner(&self.codes[0].to_string())?;
 
             for code in &self.codes[1..] {
-                writer.write(";")?;
-                writer.write(&code.to_string())?;
+                self.writer.write(";")?;
+                self.writer.write(&code.to_string())?;
             }
             self.codes.clear();
-            writer.write("m")
+            self.writer.write("m")
         }
     }
 }
@@ -226,25 +230,25 @@ impl SGRBuilder {
 ///
 /// Allows to use the same method for both
 /// [`SGRString`] and [`DiscreteSGR`] types
-pub trait EasyWrite {
+pub trait EasyWrite<W: SGRWriter> {
     /// Writes a set of codes to the builder
-    fn sgr(&self, builder: &mut SGRBuilder);
+    fn sgr(&self, builder: &mut SGRBuilder<W>);
 }
 
-impl EasyWrite for SGRString {
+impl<W: SGRWriter> EasyWrite<W> for SGRString {
     /// Writes a set of codes to the builder
     ///
     /// Uses [`SGRString::place_all`]
-    fn sgr(&self, builder: &mut SGRBuilder) {
+    fn sgr(&self, builder: &mut SGRBuilder<W>) {
         self.place_all(builder);
     }
 }
 
-impl<D: DiscreteSGR> EasyWrite for D {
+impl<W: SGRWriter, D: DiscreteSGR> EasyWrite<W> for D {
     /// Writes a set of codes to the builder
     ///
     /// Uses [`DiscreteSGR::write`]
-    fn sgr(&self, builder: &mut SGRBuilder) {
+    fn sgr(&self, builder: &mut SGRBuilder<W>) {
         self.write(builder);
     }
 }

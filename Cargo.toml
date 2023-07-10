@@ -11,3 +11,6 @@ license = "MIT"
 categories = ["command-line-interface"]
 keywords = ["SGR", "cli", "color", "terminal", "text"]
 exclude = ["/scripts"]
+
+[features]
+partial = []

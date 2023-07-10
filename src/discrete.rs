@@ -195,3 +195,45 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
         StandardWriter::fmt(f).inline_sgr(self)
     }
 }
+/// Implements SGR types that don't write escape or end themselves
+///
+/// These offer some more control, at the cost
+#[cfg(feature = "partial")]
+pub mod partial {
+    use crate::{DiscreteSGR, SGRBuilder, SGRWriter, StandardWriter};
+
+    /// A [`DiscreteSGR`] that doesn't
+    /// escape or end when used
+    pub trait PartialSGR {
+        /// Writes a set of SGR codes to the given [`SGRWriter`]
+        ///
+        /// Writing is not an IO operation, instead writing
+        /// pushes codes to the [`SGRBuilder`]'s buffer
+        fn write<W>(&self, writer: &mut SGRBuilder<W>)
+        where
+            W: SGRWriter;
+        /// Writes an SGR sequence to the given [`Formatter`](std::fmt::Formatter)
+        ///
+        /// # Errors
+        ///
+        /// Return an error if writing to the [`Formatter`](std::fmt::Formatter) fails
+        #[inline]
+        fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            {
+                let mut writer = StandardWriter::fmt(f);
+                let mut builder = writer.escape();
+                self.write(&mut builder);
+                builder.end()
+            }
+        }
+    }
+
+    impl<D: DiscreteSGR> PartialSGR for D {
+        fn write<W>(&self, writer: &mut SGRBuilder<W>)
+        where
+            W: SGRWriter,
+        {
+            DiscreteSGR::write(self, writer)
+        }
+    }
+}

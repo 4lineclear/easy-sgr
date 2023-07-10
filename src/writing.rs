@@ -94,6 +94,24 @@ pub trait SGRWriter: CapableWriter {
         sgr.sgr(&mut builder);
         builder.end()
     }
+    /// Writes the contained SGR codes to the writer
+    ///
+    /// Does not write the escape or end sequences
+    ///
+    /// Uses [`EasyWrite`] so the it can be used for both
+    /// [`SGRString`] and [`DiscreteSGR`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing fails.
+    /// Error type specified by [`CapableWriter::Error`]
+    #[inline]
+    #[cfg(feature = "partial")]
+    fn partial_sgr(&mut self, sgr: &impl EasyWrite<Self>) -> Result<(), Self::Error> {
+        let mut builder = self.escape();
+        sgr.sgr(&mut builder);
+        builder.partial_end()
+    }
 }
 /// A Standard SGR writer
 ///
@@ -223,6 +241,27 @@ impl<'a, W: SGRWriter> SGRBuilder<'a, W> {
             self.codes.clear();
             self.writer.write("m")
         }
+    }
+    /// Writes buffered codes to the writer
+    ///
+    /// Does not write the escape or end sequences
+    ///
+    /// Performs IO operations with the internal [`SGRWriter`]
+    ///
+    /// # Errors
+    ///
+    /// Writing failed
+    pub fn partial_end(&mut self) -> Result<(), W::Error> {
+        if !self.codes.is_empty() {
+            self.writer.write_inner(&self.codes[0].to_string())?;
+
+            for code in &self.codes[1..] {
+                self.writer.write(";")?;
+                self.writer.write(&code.to_string())?;
+            }
+            self.codes.clear();
+        }
+        Ok(())
     }
 }
 

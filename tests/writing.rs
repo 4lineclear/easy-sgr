@@ -17,13 +17,17 @@ fn sgr_writer() -> Result<(), Box<dyn Error>> {
 fn sgr_builder() -> Result<(), Box<dyn Error>> {
     let mut w = StandardWriter::fmt(String::new());
 
-    w.escape().end()?;
+    w.builder().write_to(&mut w)?;
     assert_eq!("", w.writer.0);
 
-    let mut builder = w.escape();
+    let mut builder = w.builder();
     builder.write_code(0);
     builder.write_codes(&[1, 2]);
-    builder.chain_code(3).chain_codes(&[4, 5]).end()?;
+
+    builder
+        .chain_code(3)
+        .chain_codes(&[4, 5])
+        .write_to(&mut w)?;
 
     assert_eq!("\x1b[0;1;2;3;4;5m", w.writer.0);
     Ok(())

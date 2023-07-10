@@ -153,8 +153,25 @@
 //! easy-sgr is split into three modules:
 //!
 //! - discrete
+//!     - Contains types that can be used inline of a string literal
+//!     - The types, `Seq`, `Color` & `Style` are all able to function independently
+//!     - They all implement the `DiscreteSGR` type to aid in this
+//!     - The `DiscreteSGR` types can all work with `SGRString`
 //! - graphics
+//!     - Centerpiece is `SGRString` & `EasySGR`
+//!     - `SGRString` is a `String` with the ability to write [`SGR`][SGR] codes
+//!     - `EasySGR` is a trait for chaining [`SGR`][SGR] codes to create a `SGRString`
+//!     - `EasySGR` is blanket implemented by everything that implements `Into\<SGRString\>`
+//!     - This includes:
+//!         - `SGRString`
+//!         - `Color`
+//!         - `Style`
+//!         - `&str`
+//!         - `String`
+//!         - `&String`
 //! - writing
+//!     - Implements `StandardWriter` & `SGRBuilder`
+//!     - Used by other modules to do writing
 //!
 //! Though no modules really will be seen in usage,
 //! as all the types they contain are reexported.
@@ -163,7 +180,7 @@
 //!
 //! ## TODO
 //!
-//! - [ ] Add inline that doesn't write escape itself
+//! - [x] Add inline that doesn't write escape itself
 //! - [ ] Add `get_writer` method to `writing` module
 //! - [ ] Create `writing` tests
 //! - [ ] Add examples to docs

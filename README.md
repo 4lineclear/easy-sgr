@@ -69,7 +69,7 @@ Now the output would look something like this:
 Instead of a rewriting the entire sequence, the separator character `;` is used instead.
 
 Doing this avoids the issue of rewriting the Escape and End sequences,
-though is more expensive to use as it allocates a `SGRString`.
+though is more expensive to use as it allocates an `SGRString`.
 
 ### `SGRString` struct
 
@@ -134,9 +134,9 @@ let stylized_string = {
 ### `partial`
 
 This feature changes the way that the `discrete` module works,
-enabling it stops it's types from writing the sequence escape and end.
+enabling it causes it's types to not write the sequence escape and end.
 
-In effect it means the above example will have to be achieved as such:
+This means to achieve the same affect as above you must do this:
 
 ```rust
 use easy_sgr::{Color::*, Seq::*, Style::*};
@@ -160,7 +160,7 @@ easy-sgr is split into three modules:
     - Contains types that can be used inline of a string literal
     - The types, `Seq`, `Color` & `Style` are all able to function independently
     - They all implement the `DiscreteSGR` type to aid in this
-    - The `DiscreteSGR` types can all work with `SGRString`
+    - The `DiscreteSGR` types can all work with an `SGRString`
 - graphics
     - Centerpiece is `SGRString` & `EasySGR`
     - `SGRString` is a `String` with the ability to write [`SGR`][SGR] codes
@@ -191,5 +191,5 @@ as all the types they contain are reexported.
 - [ ] Implement `FromStr` for [`SGR`][SGR] types
 - [ ] Parser (`deSGR`)
 - [ ] Macros (`SGRise`)
-- [ ] `EasySGR` implementation that doesn't allocate a `SGRString`
+- [ ] `EasySGR` implementation that doesn't allocate an `SGRString`
 - [ ] (maybe) create smart clean system

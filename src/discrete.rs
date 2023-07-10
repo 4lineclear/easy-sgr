@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{EasySGR, SGRBuilder, SGRWriter, StandardWriter};
 
-/// A SGR style code's end & escape
+/// An SGR style code's end & escape
 #[derive(Debug, Clone)]
 pub enum Seq {
     /// The escape string, `\x1b[`
@@ -20,7 +20,7 @@ impl Display for Seq {
     }
 }
 
-/// A SGR style code
+/// An SGR style code
 #[derive(Debug, Clone)]
 pub enum Style {
     /// Represents the SGR code `0`
@@ -95,7 +95,7 @@ impl DiscreteSGR for Style {
         });
     }
 }
-/// A SGR color code
+/// An SGR color code
 #[derive(Debug, Clone)]
 pub enum Color {
     /// Represents the SGR code `30`

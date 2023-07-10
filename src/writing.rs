@@ -114,8 +114,6 @@ pub trait SGRWriter: CapableWriter {
     }
 }
 /// A Standard SGR writer
-///
-/// Does not have the ability to smart clean
 #[derive(Debug, Clone)]
 pub struct StandardWriter<W: CapableWriter> {
     /// A writer capable of writing a [`str`]
@@ -178,7 +176,7 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
         self.0.write_str(s)
     }
 }
-/// Builds a SGR sequence
+/// Builds an SGR sequence
 #[derive(Debug)]
 pub struct SGRBuilder<'a, W: SGRWriter> {
     writer: &'a mut W,

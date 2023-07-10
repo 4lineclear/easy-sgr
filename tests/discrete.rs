@@ -151,7 +151,6 @@ mod partial {
     #[test]
     fn rgb_color() {
         for i in (0u8..255).step_by(17) {
-            assert!(cfg!(feature = "partial"));
             for j in (0u8..255).step_by(17) {
                 for k in (0u8..255).step_by(17) {
                     assert_eq!(format!("38;5;{i};{j};{k}"), format!("{}", RgbFg(i, j, k)));

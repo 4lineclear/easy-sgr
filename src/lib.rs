@@ -31,7 +31,7 @@
 //! are printed a matching [`SGR`][SGR] code is written.
 //!
 //! This method is the best when it comes to simplicity, but has drawbacks;
-//! using it rewrites the Escape sequence `\x1b[` and the End sequence `m` repeatedly.
+//! using it rewrites the sequence escape  `\x1b[` and the sequence end `m` repeatedly.
 //! In this example this is what would be written:
 //!
 //! ```plain
@@ -124,6 +124,29 @@
 //!     writer.writer.0
 //! };
 //! ```
+//!
+//! ## Features
+//!
+//! ### `partial`
+//!
+//! This feature changes the way that the `discrete` module works,
+//! enabling it stops it's types from writing the sequence escape and end.
+//!
+//! In effect it means the above example will have to be achieved as such:
+//!
+//! ```rust
+//! use easy_sgr::{Color::*, Seq::*, Style::*};
+//!
+//! println!("{Esc}{Italic};{RedFg}{End}This should be italic & red!{Esc}{Reset}{End}");
+//! ```
+//!
+//! resulting in the string:
+//!
+//! ```plain
+//! \x1b[3;31mThis should be italic & red!\x1b[0m
+//! ```
+//!
+//! This feature exchanges ease of use for verbosity, resulting in more control.
 //!
 //! ## Structure
 //!

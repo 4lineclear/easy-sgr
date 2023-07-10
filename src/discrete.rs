@@ -14,8 +14,8 @@ pub enum Seq {
 impl Display for Seq {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            Seq::Esc => "\x1b[",
-            Seq::End => "m",
+            Self::Esc => "\x1b[",
+            Self::End => "m",
         })
     }
 }

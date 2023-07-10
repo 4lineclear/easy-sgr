@@ -126,7 +126,7 @@ impl<W: CapableWriter> StandardWriter<W> {
     ///
     /// Incase using using something that implements [`io::Write`] or [`fmt::Write`]
     /// see [`StandardWriter::io`] or [`StandardWriter::fmt`]
-    pub fn new(writer: W) -> Self {
+    pub const fn new(writer: W) -> Self {
         Self { writer }
     }
 }
@@ -134,7 +134,7 @@ impl<W: std::io::Write> StandardWriter<IoWriter<W>> {
     /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::io::Write)
     ///
     /// Uses [`IoWriter`]
-    pub fn io(writer: W) -> Self {
+    pub const fn io(writer: W) -> Self {
         Self {
             writer: IoWriter(writer),
         }
@@ -144,7 +144,7 @@ impl<W: std::fmt::Write> StandardWriter<FmtWriter<W>> {
     /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::fmt::Write)
     ///
     /// Uses [`FmtWriter`]
-    pub fn fmt(writer: W) -> Self {
+    pub const fn fmt(writer: W) -> Self {
         Self {
             writer: FmtWriter(writer),
         }

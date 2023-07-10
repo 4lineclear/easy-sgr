@@ -172,13 +172,17 @@
 //! - [ ] Macros (`SGRise`)
 //! - [ ] `EasySGR` implementation that doesn't allocate a `SGRString`
 //! - [ ] (maybe) create smart clean system
-#![deny(clippy::all, clippy::pedantic)]
-#![warn(clippy::cargo)]
-#![allow(clippy::enum_glob_use)]
-#![warn(missing_docs)]
-#![warn(rustdoc::all)]
+#![forbid(unsafe_code)]
+#![deny(
+    clippy::all,
+    clippy::pedantic,
+    clippy::cargo,
+    clippy::nursery,
+    missing_docs,
+    rustdoc::all
+)]
 #![warn(missing_debug_implementations)]
-
+#![allow(clippy::enum_glob_use)]
 /// Implements SGR types that can be used standalone of a [`SGRString`]
 ///
 /// These types exist outside the context of a [`SGRString`], but

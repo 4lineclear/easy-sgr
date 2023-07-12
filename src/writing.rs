@@ -205,13 +205,7 @@ impl SGRBuilder {
             Ok(())
         } else {
             writer.write("\x1b[")?;
-            writer.write_inner(&self.0[0].to_string())?;
-
-            for code in &self.0[1..] {
-                writer.write(";")?;
-                writer.write(&code.to_string())?;
-            }
-            self.0.clear();
+            self.codes_inner(writer)?;
             writer.write("m")
         }
     }
@@ -226,13 +220,17 @@ impl SGRBuilder {
     /// Writing failed
     pub fn write_partial<W: SGRWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
         if !self.0.is_empty() {
-            writer.write_inner(&self.0[0].to_string())?;
+            self.codes_inner(writer)?;
+        }
+        Ok(())
+    }
+    /// Writes the buffered codes into the inputted writer
+    fn codes_inner<W: SGRWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
+        writer.write_inner(&self.0[0].to_string())?;
 
-            for code in &self.0[1..] {
-                writer.write(";")?;
-                writer.write(&code.to_string())?;
-            }
-            self.0.clear();
+        for code in &self.0[1..] {
+            writer.write(";")?;
+            writer.write(&code.to_string())?;
         }
         Ok(())
     }

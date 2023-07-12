@@ -9,6 +9,18 @@ use crate::{Color, SGRBuilder, SGRWriter, StandardWriter, Style};
 /// functions are called.
 ///
 /// Writing is done through the use of the [`writing`](crate::writing) module
+///
+/// # Examples
+///
+///```rust
+///use easy_sgr::{ColorKind, SGRString, StyleKind};
+///
+///let mut string = SGRString::default();
+///string.text = String::from("This is my text");
+///string.bold = StyleKind::Place;
+///string.foreground = ColorKind::Red;
+///println!("{string}");
+///```
 #[derive(Default, Debug, Clone)]
 pub struct SGRString {
     /// The actual text

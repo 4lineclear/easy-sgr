@@ -182,8 +182,12 @@
 //!
 //! - [x] Add inline that doesn't write escape itself
 //! - [ ] Add `get_writer` method to `writing` module
-//! - [ ] Create `writing` tests
+//!     - [ ] Consider removing `SGRWriter`
+//!     - [ ] Consider adding an associated type to `CapableWriter`
 //! - [ ] Add examples to docs
+//!     - [x] `discrete`
+//!     - [ ] `graphics`
+//!     - [ ] `writing`
 //! - [ ] Implement `FromStr` for [`SGR`][SGR] types
 //! - [ ] Parser (`deSGR`)
 //! - [ ] Macros (`SGRise`)

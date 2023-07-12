@@ -36,6 +36,7 @@ pub trait SGRWriter: CapableWriter {
     /// Returns a [`SGRBuilder`] to allow for writing SGR codes
     ///
     /// This is to be used for directly writing `SGR` codes
+    #[inline]
     fn escape(&'_ mut self) -> SGRBuilder<'_, Self> {
         SGRBuilder {
             writer: self,

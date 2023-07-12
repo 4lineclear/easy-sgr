@@ -3,9 +3,21 @@ use std::fmt::Display;
 use crate::{EasySGR, SGRBuilder, SGRWriter, StandardWriter};
 
 /// An SGR style code's end & escape
+///
+/// Intended use case is when the `partial` feature is enable
+///
+/// # Examples
+///
+/// Using it with `partial` enabled:
+///  
+///```rust
+///use easy_sgr::{Color::*, Seq::*, Style::*};
+///
+///println!("{Esc}{Bold};{BlueBg}{End}This should be bold & italic!{Esc}{Reset}{End}");
+///```
 #[derive(Debug, Clone)]
 pub enum Seq {
-    /// The escape string, `\x1b[`
+    /// The sequence escape string, `\x1b[`
     Esc,
     /// The sequence end string, `m`
     End,
@@ -21,6 +33,20 @@ impl Display for Seq {
 }
 
 /// An SGR style code
+///
+/// # Examples
+///
+///```rust
+///use easy_sgr::Style::*;
+///
+///println!(
+///"
+///{Bold}{Italic}This text is bold & italic
+///{Underline}This text is also underline
+///{NotUnderline}Now back to bold & italic
+///{Reset}And lastly normal text"
+///);
+///```
 #[derive(Debug, Clone)]
 pub enum Style {
     /// Represents the SGR code `0`
@@ -96,6 +122,17 @@ impl DiscreteSGR for Style {
     }
 }
 /// An SGR color code
+///
+/// # Examples
+///
+///```rust
+///use easy_sgr::Color::*;
+///
+///println!("{RedFg}0This text color is red!");
+///println!("{BlackBg}And now its background is white");
+///println!("{DefaultBg}Now back to just red");
+///println!("{DefaultFg}Finally normal text");
+///```
 #[derive(Debug, Clone)]
 pub enum Color {
     /// Represents the SGR code `30`
@@ -214,6 +251,9 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
         StandardWriter::fmt(f).inline_sgr(self)
     }
     /// Writes an SGR sequence to the given [`Formatter`](std::fmt::Formatter)
+    ///
+    /// Uses [`SGRWriter::partial_sgr`], so the sequence end & escape strings
+    /// are not written
     ///
     /// # Errors
     ///

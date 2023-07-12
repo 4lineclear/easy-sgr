@@ -119,32 +119,22 @@ pub struct StandardWriter<W: CapableWriter> {
     /// A writer capable of writing a [`str`]
     pub writer: W,
 }
-impl<W: CapableWriter> StandardWriter<W> {
-    /// Creates a new [`StandardWriter<W>`].
-    ///
-    /// Incase using using something that implements [`io::Write`] or [`fmt::Write`]
-    /// see [`StandardWriter::io`] or [`StandardWriter::fmt`]
-    pub const fn new(writer: W) -> Self {
-        Self { writer }
+impl<W: CapableWriter> From<W> for StandardWriter<W> {
+    fn from(value: W) -> Self {
+        Self { writer: value }
     }
 }
-impl<W: std::io::Write> StandardWriter<IoWriter<W>> {
-    /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::io::Write)
-    ///
-    /// Uses [`IoWriter`]
-    pub const fn io(writer: W) -> Self {
+impl<W: std::fmt::Write> From<W> for StandardWriter<FmtWriter<W>> {
+    fn from(value: W) -> Self {
         Self {
-            writer: IoWriter(writer),
+            writer: FmtWriter(value),
         }
     }
 }
-impl<W: std::fmt::Write> StandardWriter<FmtWriter<W>> {
-    /// Creates a new [`StandardWriter<W>`] with the provided [`Write`](std::fmt::Write)
-    ///
-    /// Uses [`FmtWriter`]
-    pub const fn fmt(writer: W) -> Self {
+impl<W: std::io::Write> From<W> for StandardWriter<IoWriter<W>> {
+    fn from(value: W) -> Self {
         Self {
-            writer: FmtWriter(writer),
+            writer: IoWriter(value),
         }
     }
 }
@@ -176,6 +166,7 @@ impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
         self.0.write_str(s)
     }
 }
+
 /// Builds an SGR sequence
 #[derive(Debug)]
 pub struct SGRBuilder<'a, W: SGRWriter> {

@@ -258,7 +258,7 @@ impl From<&String> for SGRString {
 }
 impl Display for SGRString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut fmt = StandardWriter::fmt(f);
+        let mut fmt = StandardWriter::from(f);
         fmt.place_sgr(self)?;
         fmt.write_inner(&self.text)?;
         fmt.clean_sgr(self)

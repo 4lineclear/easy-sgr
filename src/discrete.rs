@@ -247,8 +247,8 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
     /// Return an error if writing to the [`Formatter`](std::fmt::Formatter) fails
     #[inline]
     #[cfg(not(feature = "partial"))]
-    fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        StandardWriter::fmt(f).inline_sgr(self)
+    fn standard_display(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+        StandardWriter::from(f).inline_sgr(self)
     }
     /// Writes an SGR sequence to the given [`Formatter`](std::fmt::Formatter)
     ///
@@ -260,7 +260,7 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
     /// Return an error if writing to the [`Formatter`](std::fmt::Formatter) fails
     #[inline]
     #[cfg(feature = "partial")]
-    fn standard_display(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        StandardWriter::fmt(f).partial_sgr(self)
+    fn standard_display(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+        StandardWriter::from(f).partial_sgr(self)
     }
 }

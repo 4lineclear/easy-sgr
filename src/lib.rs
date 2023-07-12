@@ -105,7 +105,7 @@
 //! use std::io::{stdout, Write};
 //! use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
 //!
-//! let mut writer = StandardWriter::io(stdout());
+//! let mut writer = StandardWriter::from(stdout());
 //! writer.sgr(&Italic.color(RedFg)).unwrap();
 //! writer.write_inner("This should be italic & red!").unwrap();
 //! writer.sgr(&Reset).unwrap();
@@ -117,7 +117,7 @@
 //! use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
 //!
 //! let stylized_string = {
-//!     let mut writer = StandardWriter::fmt(String::new());
+//!     let mut writer = StandardWriter::from(String::new());
 //!     writer.sgr(&Italic.color(RedFg)).unwrap();
 //!     writer.write_inner("This should be italic & red!").unwrap();
 //!     writer.sgr(&Reset).unwrap();

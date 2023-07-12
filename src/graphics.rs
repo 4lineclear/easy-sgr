@@ -79,10 +79,7 @@ impl SGRString {
     /// Writes all contained SGR codes to the given [`SGRBuilder`]
     ///
     /// Does not perform any IO operations
-    pub fn place_all<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn place_all(&self, builder: &mut SGRBuilder) {
         if self.reset {
             builder.write_code(0);
         }
@@ -93,10 +90,7 @@ impl SGRString {
     /// Writes contained SGR color codes to the given [`SGRWriter`]
     ///
     /// Does not perform any IO operations
-    pub fn place_colors<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn place_colors(&self, builder: &mut SGRBuilder) {
         use ColorKind::*;
         match self.foreground {
             Black => builder.write_code(30),
@@ -130,10 +124,7 @@ impl SGRString {
     /// Writes SGR style codes to the given [`SGRWriter`]
     ///
     /// Does not perform any IO operations
-    pub fn place_styles<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn place_styles(&self, builder: &mut SGRBuilder) {
         use StyleKind::*;
         for (kind, place, not) in [
             (&self.bold, 1, 22),
@@ -155,10 +146,7 @@ impl SGRString {
     /// Writes custom SGR codes to the given [`SGRWriter`]
     ///
     /// Does not perform any IO operations
-    pub fn place_custom<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn place_custom(&self, builder: &mut SGRBuilder) {
         builder.write_codes(&self.custom_places);
     }
     /// Writes contained SGR codes to the given [`SGRWriter`]
@@ -166,10 +154,7 @@ impl SGRString {
     /// Reverses the effects of [`SGRString::place_all`]
     ///
     /// Does not perform any IO operations
-    pub fn clean_all<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn clean_all(&self, builder: &mut SGRBuilder) {
         match self.clean {
             CleanKind::Reset => builder.write_code(0),
             CleanKind::Reverse => {
@@ -185,10 +170,7 @@ impl SGRString {
     /// Reverses the effects of [`SGRString::place_colors`]
     ///
     /// Does not perform any IO operations
-    pub fn clean_colors<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn clean_colors(&self, builder: &mut SGRBuilder) {
         if self.foreground != ColorKind::None {
             builder.write_code(39);
         }
@@ -201,10 +183,7 @@ impl SGRString {
     /// Reverses the effects of [`SGRString::place_styles`]
     ///
     /// Does not perform any IO operations
-    pub fn clean_styles<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn clean_styles(&self, builder: &mut SGRBuilder) {
         for (kind, place, not) in [
             (&self.bold, 22, 1),
             (&self.dim, 22, 2),
@@ -227,10 +206,7 @@ impl SGRString {
     /// Reverses the effects of [`SGRString::place_custom`]
     ///
     /// Does not perform any IO operations
-    pub fn clean_custom<W>(&self, builder: &mut SGRBuilder<W>)
-    where
-        W: SGRWriter,
-    {
+    pub fn clean_custom(&self, builder: &mut SGRBuilder) {
         builder.write_codes(&self.custom_cleans);
     }
 }

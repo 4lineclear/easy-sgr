@@ -71,44 +71,16 @@ impl FromStr for Color {
             "DefaultBg" => Ok(DefaultBg),
             _ => match s.get(..5) {
                 Some("RgbFg") => {
-                    let parts = resolve_rgb(
-                        s.get(5..)
-                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
-                            .and_then(|src| match src.len() {
-                                0 => Err(ParseColorError::MissingNum(s.to_string())),
-                                _ => Ok(src),
-                            })?,
-                    )?;
+                    let parts = resolve_rgb(s)?;
                     Ok(RgbFg(parts.0, parts.1, parts.2))
                 }
                 Some("RgbBg") => {
-                    let parts = resolve_rgb(
-                        s.get(5..)
-                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
-                            .and_then(|src| match src.len() {
-                                0 => Err(ParseColorError::MissingNum(s.to_string())),
-                                _ => Ok(src),
-                            })?,
-                    )?;
+                    let parts = resolve_rgb(s)?;
                     Ok(RgbBg(parts.0, parts.1, parts.2))
                 }
                 Some(_) => match s.get(..6) {
-                    Some("ByteFg") => Ok(ByteFg(resolve_byte(
-                        s.get(6..)
-                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
-                            .and_then(|src| match src.len() {
-                                0 => Err(ParseColorError::MissingNum(s.to_string())),
-                                _ => Ok(src),
-                            })?,
-                    )?)),
-                    Some("ByteBg") => Ok(ByteBg(resolve_byte(
-                        s.get(6..)
-                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
-                            .and_then(|src| match src.len() {
-                                0 => Err(ParseColorError::MissingNum(s.to_string())),
-                                _ => Ok(src),
-                            })?,
-                    )?)),
+                    Some("ByteFg") => Ok(ByteFg(resolve_byte(s)?)),
+                    Some("ByteBg") => Ok(ByteBg(resolve_byte(s)?)),
                     _ => Err(ParseColorError::Invalid(s.to_string())),
                 },
                 None => Err(ParseColorError::Invalid(s.to_string())),
@@ -128,7 +100,13 @@ pub enum ParseColorError {
     /// i.e. `ByteFg20)` or `ByteFg(20`
     Brace(String),
     /// Int parsing error
+    ///
+    /// See [`ParseIntError`]
     ParseIntError(ParseIntError),
+    /// Wrong number of integers
+    ///
+    /// i.e. `RgbFg(20)`, `RgbFg(20,30)` or `RgbFg(20,30,40,50)`
+    Len(usize),
 }
 impl Display for ParseColorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -139,12 +117,21 @@ impl Display for ParseColorError {
                 write!(f, "Missing braces: {s}")
             }
             Self::ParseIntError(e) => write!(f, "Error parsing int: {e}"),
+            Self::Len(n) => {
+                write!(f, "Found wrong number of items in string: {n}. Needed 2")
+            }
         }
     }
 }
 impl Error for ParseColorError {}
 fn resolve_byte(s: &str) -> Result<u8, ParseColorError> {
-    s.strip_prefix('(')
+    s.get(6..)
+        .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
+        .and_then(|src| match src.len() {
+            0 => Err(ParseColorError::MissingNum(s.to_string())),
+            _ => Ok(src),
+        })?
+        .strip_prefix('(')
         .ok_or_else(|| ParseColorError::Brace(s.to_string()))?
         .strip_suffix(')')
         .ok_or_else(|| ParseColorError::Brace(s.to_string()))?
@@ -153,6 +140,12 @@ fn resolve_byte(s: &str) -> Result<u8, ParseColorError> {
 }
 fn resolve_rgb(s: &str) -> Result<(u8, u8, u8), ParseColorError> {
     let parts: Vec<u8> = s
+        .get(5..)
+        .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
+        .and_then(|src| match src.len() {
+            0 => Err(ParseColorError::MissingNum(s.to_string())),
+            _ => Ok(src),
+        })?
         .strip_prefix('(')
         .ok_or_else(|| ParseColorError::Brace(s.to_string()))?
         .strip_suffix(')')
@@ -163,6 +156,6 @@ fn resolve_rgb(s: &str) -> Result<(u8, u8, u8), ParseColorError> {
 
     match &parts[..] {
         &[n1, n2, n3] => Ok((n1, n2, n3)),
-        _ => Err(ParseColorError::Invalid(s.to_string())),
+        _ => Err(ParseColorError::Len(parts.len())),
     }
 }

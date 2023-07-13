@@ -194,11 +194,12 @@ as all the types they contain are reexported.
     - [ ] `writing`
 - [ ] Implement `FromStr` for [`SGR`][SGR] types
     - [x] Implement more complex `from_str` for `Color`
-    - [ ] Move to new submodule, eventually set it as a feature
-    - [ ] Add parsing from ansi codes
+    - [x] Move to new submodule
     - [ ] Add underlying const functions
-    - [ ] Add parsing for `SGRString`
-- [ ] Parser (`deSGR`)
+    - [ ] Set it as a feature
 - [ ] Macros (`SGRise`)
+- [ ] Add parser(`deSGR`)
+    - [ ] Add parsing from ansi codes
+    - [ ] Add parsing for `SGRString`
 - [ ] `EasySGR` implementation that doesn't allocate an `SGRString`
 - [ ] (maybe) create smart clean system

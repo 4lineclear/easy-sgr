@@ -193,7 +193,8 @@ as all the types they contain are reexported.
     - [ ] `graphics`
     - [ ] `writing`
 - [ ] Implement `FromStr` for [`SGR`][SGR] types
-    - [ ] Implement more complex `from_str` for `Color`
+    - [x] Implement more complex `from_str` for `Color`
+    - [ ] Move to new submodule, eventually set it as a feature
     - [ ] Add parsing from ansi codes
     - [ ] Add underlying const functions
     - [ ] Add parsing for `SGRString`

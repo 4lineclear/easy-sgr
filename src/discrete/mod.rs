@@ -2,6 +2,9 @@ use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
 
 use crate::{EasySGR, SGRBuilder, SGRWriter};
 
+/// Implements from_str for the [`discrete`] module
+pub mod from_str;
+
 /// An SGR style code's end & escape
 ///
 /// Intended use case is when the `partial` feature is enable

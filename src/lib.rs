@@ -97,7 +97,7 @@
 //! println!("{text}")
 //! ```
 //!
-//! ### `SGRWriter` trait
+//! ### `SGRWriter` struct
 //!
 //! The writer can also be used directly, instead of using the above methods:
 //!

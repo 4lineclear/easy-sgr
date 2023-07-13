@@ -45,11 +45,11 @@ impl<W: CapableWriter> SGRWriter<W> {
     }
     /// Returns the internal writer
     ///
-    /// A shortcut to [`CapableWriter::get_writer`] without having to import it
+    /// Returns the type specified by [`CapableWriter::get_writer`]
     #[inline]
     #[must_use]
-    pub fn writer(self) -> W {
-        self.get_writer()
+    pub fn writer(self) -> W::Writer {
+        self.get_writer().get_writer()
     }
     /// Returns a new, empty [`SGRBuilder`]
     ///

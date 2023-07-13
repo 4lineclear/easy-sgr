@@ -9,7 +9,7 @@ fn sgr_writer() -> Result<(), Box<dyn Error>> {
     w.sgr(&Color::RedFg.style(Style::Italic))?;
     w.sgr(&Style::Bold)?;
 
-    assert_eq!("test\x1b[31;3m\x1b[1m", w.writer.0);
+    assert_eq!("test\x1b[31;3m\x1b[1m", w.writer());
     Ok(())
 }
 
@@ -29,6 +29,6 @@ fn sgr_builder() -> Result<(), Box<dyn Error>> {
         .chain_codes(&[4, 5])
         .write_to(&mut w)?;
 
-    assert_eq!("\x1b[0;1;2;3;4;5m", w.writer.0);
+    assert_eq!("\x1b[0;1;2;3;4;5m", w.writer());
     Ok(())
 }

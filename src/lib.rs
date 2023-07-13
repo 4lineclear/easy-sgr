@@ -178,7 +178,7 @@
 //!
 //! [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 //!
-//! ## TODO
+//! ## TODO for `1.0.0` release
 //!
 //! - [x] Add inline that doesn't write escape itself
 //! - [x] Add `get_writer` method to `writing` module
@@ -193,7 +193,7 @@
 //!     - [x] Move to new submodule
 //!     - [ ] Add underlying const functions
 //!     - [ ] Set it as a feature
-//! - [ ] Macros (`SGRise`)
+//! - [ ] Macros (`SGRise`) (`0.1.0`)
 //! - [ ] Add parser(`deSGR`)
 //!     - [ ] Add parsing from ansi codes
 //!     - [ ] Add parsing for `SGRString`

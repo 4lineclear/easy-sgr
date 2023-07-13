@@ -18,7 +18,7 @@ pub mod from_str;
 ///
 ///println!("{Esc}{Bold};{BlueBg}{End}This should be bold & italic!{Esc}{Reset}{End}");
 ///```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Seq {
     /// The sequence escape string, `\x1b[`
     Esc,
@@ -48,7 +48,7 @@ impl Display for Seq {
 ///{Reset}And lastly normal text"
 ///);
 ///```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Style {
     /// Represents the SGR code `0`
     ///
@@ -131,7 +131,7 @@ impl DiscreteSGR for Style {
 ///println!("{DefaultBg}Now back to just red");
 ///println!("{DefaultFg}Finally normal text");
 ///```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Color {
     /// Represents the SGR code `30`
     BlackFg,

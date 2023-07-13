@@ -1,7 +1,7 @@
 use easy_sgr::Seq;
 
 #[test]
-fn sgr() {
+fn seq() {
     assert_eq!("\x1b[", Seq::Esc.to_string());
     assert_eq!("m", Seq::End.to_string());
 }
@@ -30,7 +30,7 @@ mod normal {
             ("\x1b[28m", NotHidden),
             ("\x1b[29m", NotStrikethrough),
         ] {
-            assert_eq!(correct, &format!("{style}"))
+            assert_eq!(correct, format!("{style}"))
         }
     }
 
@@ -171,7 +171,7 @@ mod partial {
             ("28", NotHidden),
             ("29", NotStrikethrough),
         ] {
-            assert_eq!(correct, &format!("{style}"))
+            assert_eq!(correct, format!("{style}"))
         }
     }
 

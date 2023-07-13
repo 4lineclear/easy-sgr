@@ -6,6 +6,10 @@ use crate::{DiscreteSGR, SGRString};
 ///
 /// Does not provide SGR writing capability itself
 pub trait CapableWriter: Sized {
+    /// The writer that will be internally used
+    ///
+    /// i.e. what [`CapableWriter::write`] will call upon
+    type Writer;
     /// The type of error returned by trait methods
     ///
     /// Will typically be [`std::io::Error`] or [`std::fmt::Error`]
@@ -17,6 +21,8 @@ pub trait CapableWriter: Sized {
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     fn write(&mut self, s: &str) -> Result<(), Self::Error>;
+    /// Returns the type specified by [`CapableWriter::Writer`]
+    fn get_writer(self) -> Self::Writer;
 }
 /// A Standard SGR writer
 #[derive(Debug, Clone)]
@@ -36,6 +42,14 @@ impl<W: CapableWriter> SGRWriter<W> {
     #[inline]
     pub fn write_inner(&mut self, s: &str) -> Result<(), W::Error> {
         self.write(s)
+    }
+    /// Returns the internal writer
+    ///
+    /// A shortcut to [`CapableWriter::get_writer`] without having to import it
+    #[inline]
+    #[must_use]
+    pub fn writer(self) -> W {
+        self.get_writer()
     }
     /// Returns a new, empty [`SGRBuilder`]
     ///
@@ -135,30 +149,46 @@ impl<W: std::io::Write> From<W> for SGRWriter<IoWriter<W>> {
     }
 }
 impl<W: CapableWriter> CapableWriter for SGRWriter<W> {
+    type Writer = W;
     type Error = W::Error;
     #[inline]
     fn write(&mut self, s: &str) -> Result<(), Self::Error> {
         self.writer.write(s)
+    }
+    #[must_use]
+    fn get_writer(self) -> Self::Writer {
+        self.writer
     }
 }
 /// Used to implement [`CapableWriter`] for [`std::io::Write`]
 #[derive(Debug, Clone)]
 pub struct IoWriter<W: std::io::Write>(pub W);
 impl<W: std::io::Write> CapableWriter for IoWriter<W> {
+    type Writer = W;
     type Error = io::Error;
     #[inline]
     fn write(&mut self, s: &str) -> Result<(), Self::Error> {
         self.0.write_all(s.as_bytes())
+    }
+
+    #[must_use]
+    fn get_writer(self) -> Self::Writer {
+        self.0
     }
 }
 /// Used to implement [`CapableWriter`] for [`std::fmt::Write`]
 #[derive(Debug, Clone)]
 pub struct FmtWriter<W: std::fmt::Write>(pub W);
 impl<W: std::fmt::Write> CapableWriter for FmtWriter<W> {
+    type Writer = W;
     type Error = fmt::Error;
     #[inline]
     fn write(&mut self, s: &str) -> Result<(), Self::Error> {
         self.0.write_str(s)
+    }
+    #[must_use]
+    fn get_writer(self) -> Self::Writer {
+        self.0
     }
 }
 /// Builds a SGR sequence

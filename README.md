@@ -185,9 +185,9 @@ as all the types they contain are reexported.
 ## TODO
 
 - [x] Add inline that doesn't write escape itself
-- [ ] Add `get_writer` method to `writing` module
-    - [ ] Consider removing `SGRWriter`
-    - [ ] Consider adding an associated type to `CapableWriter`
+- [x] Add `get_writer` method to `writing` module
+    - [x] Consider removing `SGRWriter`
+    - [x] Consider adding an associated type to `CapableWriter`
 - [ ] Add examples to docs
     - [x] `discrete`
     - [ ] `graphics`

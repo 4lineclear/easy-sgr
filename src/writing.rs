@@ -227,10 +227,7 @@ impl SGRBuilder {
     /// # Errors
     ///
     /// Writing failed
-    pub fn write_to<W: CapableWriter>(
-        &mut self,
-        writer: &mut SGRWriter<W>,
-    ) -> Result<(), W::Error> {
+    pub fn write_to<W: CapableWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
         if self.0.is_empty() {
             Ok(())
         } else {
@@ -248,18 +245,15 @@ impl SGRBuilder {
     /// # Errors
     ///
     /// Writing failed
-    pub fn write_partial<W: CapableWriter>(
-        &mut self,
-        writer: &mut SGRWriter<W>,
-    ) -> Result<(), W::Error> {
+    pub fn write_partial<W: CapableWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
         if !self.0.is_empty() {
             self.codes_inner(writer)?;
         }
         Ok(())
     }
     /// Writes the buffered codes into the inputted writer
-    fn codes_inner<W: CapableWriter>(&mut self, writer: &mut SGRWriter<W>) -> Result<(), W::Error> {
-        writer.write_inner(&self.0[0].to_string())?;
+    fn codes_inner<W: CapableWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
+        writer.write(&self.0[0].to_string())?;
 
         for code in &self.0[1..] {
             writer.write(";")?;

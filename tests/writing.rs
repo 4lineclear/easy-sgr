@@ -1,10 +1,10 @@
 use std::error::Error;
 
-use easy_sgr::{Color, EasySGR, SGRWriter, StandardWriter, Style};
+use easy_sgr::{Color, EasySGR, SGRWriter, Style};
 
 #[test]
 fn sgr_writer() -> Result<(), Box<dyn Error>> {
-    let mut w = StandardWriter::from(String::new());
+    let mut w = SGRWriter::from(String::new());
     w.write_inner("test")?;
     w.sgr(&Color::RedFg.style(Style::Italic))?;
     w.sgr(&Style::Bold)?;
@@ -15,7 +15,7 @@ fn sgr_writer() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn sgr_builder() -> Result<(), Box<dyn Error>> {
-    let mut w = StandardWriter::from(String::new());
+    let mut w = SGRWriter::from(String::new());
 
     w.builder().write_to(&mut w)?;
     assert_eq!("", w.writer.0);

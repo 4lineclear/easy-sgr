@@ -18,9 +18,13 @@ pub trait CapableWriter: Sized {
     /// Error type specified by [`CapableWriter::Error`]
     fn write(&mut self, s: &str) -> Result<(), Self::Error>;
 }
-/// A writer built on top of a [`CapableWriter`]
-/// that has the ability to work with SGR codes
-pub trait SGRWriter: CapableWriter {
+/// A Standard SGR writer
+#[derive(Debug, Clone)]
+pub struct SGRWriter<W: CapableWriter> {
+    /// A writer capable of writing a [`str`]
+    pub writer: W,
+}
+impl<W: CapableWriter> SGRWriter<W> {
     /// Writes a [`str`] to the inner writer
     ///
     /// A shortcut to [`CapableWriter::write`] without having to import it
@@ -30,14 +34,14 @@ pub trait SGRWriter: CapableWriter {
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     #[inline]
-    fn write_inner(&mut self, s: &str) -> Result<(), Self::Error> {
+    pub fn write_inner(&mut self, s: &str) -> Result<(), W::Error> {
         self.write(s)
     }
     /// Returns a new, empty [`SGRBuilder`]
     ///
     /// Used for convenience
     #[inline]
-    fn builder(&self) -> SGRBuilder {
+    pub fn builder(&self) -> SGRBuilder {
         SGRBuilder::default()
     }
     /// Writes the contained SGR codes to the writer through calling [`SGRString::place_all`]
@@ -47,7 +51,7 @@ pub trait SGRWriter: CapableWriter {
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     #[inline]
-    fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
+    pub fn place_sgr(&mut self, sgr: &SGRString) -> Result<(), W::Error> {
         let mut builder = SGRBuilder::default();
         sgr.place_all(&mut builder);
         builder.write_to(self)
@@ -61,7 +65,7 @@ pub trait SGRWriter: CapableWriter {
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     #[inline]
-    fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), Self::Error> {
+    pub fn clean_sgr(&mut self, sgr: &SGRString) -> Result<(), W::Error> {
         let mut builder = SGRBuilder::default();
         sgr.clean_all(&mut builder);
         builder.write_to(self)
@@ -73,7 +77,7 @@ pub trait SGRWriter: CapableWriter {
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     #[inline]
-    fn inline_sgr(&mut self, sgr: &impl DiscreteSGR) -> Result<(), Self::Error> {
+    pub fn inline_sgr(&mut self, sgr: &impl DiscreteSGR) -> Result<(), W::Error> {
         let mut builder = SGRBuilder::default();
         sgr.write(&mut builder);
         builder.write_to(self)
@@ -87,7 +91,7 @@ pub trait SGRWriter: CapableWriter {
     ///
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
-    fn sgr(&mut self, sgr: &impl EasyWrite) -> Result<(), Self::Error> {
+    pub fn sgr(&mut self, sgr: &impl EasyWrite) -> Result<(), W::Error> {
         let mut builder = SGRBuilder::default();
         sgr.sgr(&mut builder);
         builder.write_to(self)
@@ -105,45 +109,38 @@ pub trait SGRWriter: CapableWriter {
     /// Error type specified by [`CapableWriter::Error`]
     #[inline]
     #[cfg(feature = "partial")]
-    fn partial_sgr(&mut self, sgr: &impl EasyWrite) -> Result<(), Self::Error> {
+    pub fn partial_sgr(&mut self, sgr: &impl EasyWrite) -> Result<(), W::Error> {
         let mut builder = SGRBuilder::default();
         sgr.sgr(&mut builder);
         builder.write_partial(self)
     }
 }
-/// A Standard SGR writer
-#[derive(Debug, Clone)]
-pub struct StandardWriter<W: CapableWriter> {
-    /// A writer capable of writing a [`str`]
-    pub writer: W,
-}
-impl<W: CapableWriter> From<W> for StandardWriter<W> {
+impl<W: CapableWriter> From<W> for SGRWriter<W> {
     fn from(value: W) -> Self {
         Self { writer: value }
     }
 }
-impl<W: std::fmt::Write> From<W> for StandardWriter<FmtWriter<W>> {
+impl<W: std::fmt::Write> From<W> for SGRWriter<FmtWriter<W>> {
     fn from(value: W) -> Self {
         Self {
             writer: FmtWriter(value),
         }
     }
 }
-impl<W: std::io::Write> From<W> for StandardWriter<IoWriter<W>> {
+impl<W: std::io::Write> From<W> for SGRWriter<IoWriter<W>> {
     fn from(value: W) -> Self {
         Self {
             writer: IoWriter(value),
         }
     }
 }
-impl<W: CapableWriter> CapableWriter for StandardWriter<W> {
+impl<W: CapableWriter> CapableWriter for SGRWriter<W> {
     type Error = W::Error;
     #[inline]
     fn write(&mut self, s: &str) -> Result<(), Self::Error> {
         self.writer.write(s)
     }
 }
-impl<W: CapableWriter> SGRWriter for StandardWriter<W> {}
 /// Used to implement [`CapableWriter`] for [`std::io::Write`]
 #[derive(Debug, Clone)]
 pub struct IoWriter<W: std::io::Write>(pub W);
@@ -200,7 +197,10 @@ impl SGRBuilder {
     /// # Errors
     ///
     /// Writing failed
-    pub fn write_to<W: SGRWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
+    pub fn write_to<W: CapableWriter>(
+        &mut self,
+        writer: &mut SGRWriter<W>,
+    ) -> Result<(), W::Error> {
         if self.0.is_empty() {
             Ok(())
         } else {
@@ -218,14 +218,17 @@ impl SGRBuilder {
     /// # Errors
     ///
     /// Writing failed
-    pub fn write_partial<W: SGRWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
+    pub fn write_partial<W: CapableWriter>(
+        &mut self,
+        writer: &mut SGRWriter<W>,
+    ) -> Result<(), W::Error> {
         if !self.0.is_empty() {
             self.codes_inner(writer)?;
         }
         Ok(())
     }
     /// Writes the buffered codes into the inputted writer
-    fn codes_inner<W: SGRWriter>(&mut self, writer: &mut W) -> Result<(), W::Error> {
+    fn codes_inner<W: CapableWriter>(&mut self, writer: &mut SGRWriter<W>) -> Result<(), W::Error> {
         writer.write_inner(&self.0[0].to_string())?;
 
         for code in &self.0[1..] {

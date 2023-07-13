@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{EasySGR, SGRBuilder, SGRWriter, StandardWriter};
+use crate::{EasySGR, SGRBuilder, SGRWriter};
 
 /// An SGR style code's end & escape
 ///
@@ -240,7 +240,7 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
     #[inline]
     #[cfg(not(feature = "partial"))]
     fn standard_display(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
-        StandardWriter::from(f).inline_sgr(self)
+        SGRWriter::from(f).inline_sgr(self)
     }
     /// Writes an SGR sequence to the given [`Formatter`](std::fmt::Formatter)
     ///
@@ -253,6 +253,6 @@ pub trait DiscreteSGR: Sized + Display + EasySGR {
     #[inline]
     #[cfg(feature = "partial")]
     fn standard_display(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
-        StandardWriter::from(f).partial_sgr(self)
+        SGRWriter::from(f).partial_sgr(self)
     }
 }

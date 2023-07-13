@@ -107,9 +107,9 @@ The writer can also be used directly, instead of using the above methods:
 
 ```rust
 use std::io::{stdout, Write};
-use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
+use easy_sgr::{Color::*, EasySGR, SGRWriter, Style::*};
 
-let mut writer = StandardWriter::from(stdout());
+let mut writer = SGRWriter::from(stdout());
 writer.sgr(&Italic.color(RedFg)).unwrap();
 writer.write_inner("This should be italic & red!").unwrap();
 writer.sgr(&Reset).unwrap();
@@ -118,10 +118,10 @@ writer.sgr(&Reset).unwrap();
 or, when writing to a String
 
 ```rust
-use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
+use easy_sgr::{Color::*, EasySGR, SGRWriter, Style::*};
 
 let stylized_string = {
-    let mut writer = StandardWriter::from(String::new());
+    let mut writer = SGRWriter::from(String::new());
     writer.sgr(&Italic.color(RedFg)).unwrap();
     writer.write_inner("This should be italic & red!").unwrap();
     writer.sgr(&Reset).unwrap();
@@ -174,7 +174,7 @@ easy-sgr is split into three modules:
         - `String`
         - `&String`
 - writing
-    - Implements `StandardWriter` & `SGRBuilder`
+    - Implements `SGRWriter` & `SGRBuilder`
     - Used by other modules to do writing
 
 Though no modules really will be seen in usage,

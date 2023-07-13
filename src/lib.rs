@@ -10,7 +10,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! easy-sgr="0.0.6"
+//! easy-sgr="0.0.7"
 //! ```
 //!
 //! ## Usage

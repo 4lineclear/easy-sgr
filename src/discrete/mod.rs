@@ -3,6 +3,7 @@ use std::fmt::Display;
 use crate::{EasySGR, SGRBuilder, SGRWriter};
 
 /// Implements [`FromStr`](std::str::FromStr) for the [`discrete`](crate::discrete) module
+#[cfg(feature = "from-str")]
 pub mod from_str;
 
 /// An SGR style code's end & escape

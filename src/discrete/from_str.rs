@@ -94,6 +94,8 @@ pub enum ParseColorError {
     /// A string that is completely invalid
     Invalid(String),
     /// Missing the number
+    ///
+    /// i.e. `ByteFg` or `RgbBg`
     MissingNum(String),
     /// Brace Error
     ///

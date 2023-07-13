@@ -85,6 +85,7 @@ mod normal {
     }
 }
 
+#[cfg(feature = "from-str")]
 mod from_str {
 
     use easy_sgr::{Color::*, Seq::*, Style::*};

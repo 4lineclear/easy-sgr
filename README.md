@@ -14,7 +14,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-easy-sgr="0.0.5"
+easy-sgr="0.0.6"
 ```
 
 ## Usage
@@ -107,9 +107,9 @@ The writer can also be used directly, instead of using the above methods:
 
 ```rust
 use std::io::{stdout, Write};
-use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
+use easy_sgr::{Color::*, EasySGR, SGRWriter, Style::*};
 
-let mut writer = StandardWriter::from(stdout());
+let mut writer = SGRWriter::from(stdout());
 writer.sgr(&Italic.color(RedFg)).unwrap();
 writer.write_inner("This should be italic & red!").unwrap();
 writer.sgr(&Reset).unwrap();
@@ -118,14 +118,14 @@ writer.sgr(&Reset).unwrap();
 or, when writing to a String
 
 ```rust
-use easy_sgr::{Color::*, EasySGR, SGRWriter, StandardWriter, Style::*};
+use easy_sgr::{Color::*, EasySGR, SGRWriter, Style::*};
 
 let stylized_string = {
-    let mut writer = StandardWriter::from(String::new());
+    let mut writer = SGRWriter::from(String::new());
     writer.sgr(&Italic.color(RedFg)).unwrap();
     writer.write_inner("This should be italic & red!").unwrap();
     writer.sgr(&Reset).unwrap();
-    writer.writer.0
+    writer.internal()
 };
 ```
 
@@ -174,7 +174,7 @@ easy-sgr is split into three modules:
         - `String`
         - `&String`
 - writing
-    - Implements `StandardWriter` & `SGRBuilder`
+    - Implements `SGRWriter` & `SGRBuilder`
     - Used by other modules to do writing
 
 Though no modules really will be seen in usage,
@@ -185,9 +185,9 @@ as all the types they contain are reexported.
 ## TODO
 
 - [x] Add inline that doesn't write escape itself
-- [ ] Add `get_writer` method to `writing` module
-    - [ ] Consider removing `SGRWriter`
-    - [ ] Consider adding an associated type to `CapableWriter`
+- [x] Add `get_writer` method to `writing` module
+    - [x] Consider removing `SGRWriter`
+    - [x] Consider adding an associated type to `CapableWriter`
 - [ ] Add examples to docs
     - [x] `discrete`
     - [ ] `graphics`

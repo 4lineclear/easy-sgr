@@ -255,7 +255,7 @@ impl FromStr for Color {
                 Some("RgbFg") => {
                     let parts = resolve_rgb(
                         s.get(5..)
-                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
                             .and_then(|src| match src.len() {
                                 0 => Err(ParseColorError::MissingNum(s.to_string())),
                                 _ => Ok(src),
@@ -266,7 +266,7 @@ impl FromStr for Color {
                 Some("RgbBg") => {
                     let parts = resolve_rgb(
                         s.get(5..)
-                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
                             .and_then(|src| match src.len() {
                                 0 => Err(ParseColorError::MissingNum(s.to_string())),
                                 _ => Ok(src),
@@ -277,7 +277,7 @@ impl FromStr for Color {
                 Some(_) => match s.get(..6) {
                     Some("ByteFg") => Ok(ByteFg(resolve_byte(
                         s.get(6..)
-                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
                             .and_then(|src| match src.len() {
                                 0 => Err(ParseColorError::MissingNum(s.to_string())),
                                 _ => Ok(src),
@@ -285,7 +285,7 @@ impl FromStr for Color {
                     )?)),
                     Some("ByteBg") => Ok(ByteBg(resolve_byte(
                         s.get(6..)
-                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .ok_or_else(|| ParseColorError::MissingNum(s.to_string()))
                             .and_then(|src| match src.len() {
                                 0 => Err(ParseColorError::MissingNum(s.to_string())),
                                 _ => Ok(src),
@@ -299,21 +299,21 @@ impl FromStr for Color {
     }
 }
 fn resolve_byte(s: &str) -> Result<u8, ParseColorError> {
-    s.strip_prefix("(")
-        .ok_or(ParseColorError::Brace(s.to_string()))?
-        .strip_suffix(")")
-        .ok_or(ParseColorError::Brace(s.to_string()))?
+    s.strip_prefix('(')
+        .ok_or_else(|| ParseColorError::Brace(s.to_string()))?
+        .strip_suffix(')')
+        .ok_or_else(|| ParseColorError::Brace(s.to_string()))?
         .parse()
-        .map_err(|e| ParseColorError::ParseIntError(e))
+        .map_err(ParseColorError::ParseIntError)
 }
 fn resolve_rgb(s: &str) -> Result<(u8, u8, u8), ParseColorError> {
     let parts: Vec<u8> = s
-        .strip_prefix("(")
-        .ok_or(ParseColorError::Brace(s.to_string()))?
-        .strip_suffix(")")
-        .ok_or(ParseColorError::Brace(s.to_string()))?
-        .split(",")
-        .flat_map(|s| s.parse().map_err(|e| ParseColorError::ParseIntError(e)))
+        .strip_prefix('(')
+        .ok_or_else(|| ParseColorError::Brace(s.to_string()))?
+        .strip_suffix(')')
+        .ok_or_else(|| ParseColorError::Brace(s.to_string()))?
+        .split(',')
+        .flat_map(|s| s.parse().map_err(ParseColorError::ParseIntError))
         .collect();
 
     match &parts[..] {
@@ -373,12 +373,12 @@ pub enum ParseColorError {
 impl Display for ParseColorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseColorError::Invalid(s) => write!(f, "Invalid string: {s}"),
-            ParseColorError::MissingNum(s) => write!(f, "Missing number: {s}"),
-            ParseColorError::Brace(s) => {
+            Self::Invalid(s) => write!(f, "Invalid string: {s}"),
+            Self::MissingNum(s) => write!(f, "Missing number: {s}"),
+            Self::Brace(s) => {
                 write!(f, "Missing braces: {s}")
             }
-            ParseColorError::ParseIntError(e) => write!(f, "Error parsing int: {e}"),
+            Self::ParseIntError(e) => write!(f, "Error parsing int: {e}"),
         }
     }
 }

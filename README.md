@@ -182,7 +182,7 @@ as all the types they contain are reexported.
 
 [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 
-## TODO
+## TODO for 1.0.0
 
 - [x] Add inline that doesn't write escape itself
 - [x] Add `get_writer` method to `writing` module

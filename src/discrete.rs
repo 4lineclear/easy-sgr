@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use crate::{EasySGR, SGRBuilder, SGRWriter};
 
@@ -22,7 +22,17 @@ pub enum Seq {
     /// The sequence end string, `m`
     End,
 }
+impl FromStr for Seq {
+    type Err = ParseSeqError;
 
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Esc" => Ok(Self::Esc),
+            "End" => Ok(Self::End),
+            _ => Err(ParseSeqError),
+        }
+    }
+}
 impl Display for Seq {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
@@ -31,7 +41,9 @@ impl Display for Seq {
         })
     }
 }
-
+/// An error encountered while trying to parse a string into a [`Seq`]
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseSeqError;
 /// An SGR style code
 ///
 /// # Examples
@@ -90,6 +102,32 @@ pub enum Style {
     /// Represents the SGR code `29`
     NotStrikethrough,
 }
+impl FromStr for Style {
+    type Err = ParseStyleError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Reset" => Ok(Self::Reset),
+            "Bold" => Ok(Self::Bold),
+            "Dim" => Ok(Self::Dim),
+            "Italic" => Ok(Self::Italic),
+            "Underline" => Ok(Self::Underline),
+            "Blinking" => Ok(Self::Blinking),
+            "Inverse" => Ok(Self::Inverse),
+            "Hidden" => Ok(Self::Hidden),
+            "Strikethrough" => Ok(Self::Strikethrough),
+            "NotBold" => Ok(Self::NotBold),
+            "NotDim" => Ok(Self::NotDim),
+            "NotItalic" => Ok(Self::NotItalic),
+            "NotUnderline" => Ok(Self::NotUnderline),
+            "NotBlinking" => Ok(Self::NotBlinking),
+            "NotInverse" => Ok(Self::NotInverse),
+            "NotHidden" => Ok(Self::NotHidden),
+            "NotStrikethrough" => Ok(Self::NotStrikethrough),
+            _ => Err(ParseStyleError),
+        }
+    }
+}
 impl Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.standard_display(f)
@@ -118,6 +156,9 @@ impl DiscreteSGR for Style {
         });
     }
 }
+/// An error encountered while trying to parse a string into a [`Style`]
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseStyleError;
 /// An SGR color code
 ///
 /// # Examples
@@ -186,6 +227,33 @@ pub enum Color {
     /// Represents the SGR code `49`
     DefaultBg,
 }
+impl FromStr for Color {
+    type Err = ParseColorError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "BlackFg" => Ok(Self::BlackFg),
+            "RedFg" => Ok(Self::RedFg),
+            "GreenFg" => Ok(Self::GreenFg),
+            "YellowFg" => Ok(Self::YellowFg),
+            "BlueFg" => Ok(Self::BlueFg),
+            "MagentaFg" => Ok(Self::MagentaFg),
+            "CyanFg" => Ok(Self::CyanFg),
+            "WhiteFg" => Ok(Self::WhiteFg),
+            "DefaultFg" => Ok(Self::DefaultFg),
+            "BlackBg" => Ok(Self::BlackBg),
+            "RedBg" => Ok(Self::RedBg),
+            "GreenBg" => Ok(Self::GreenBg),
+            "YellowBg" => Ok(Self::YellowBg),
+            "BlueBg" => Ok(Self::BlueBg),
+            "MagentaBg" => Ok(Self::MagentaBg),
+            "CyanBg" => Ok(Self::CyanBg),
+            "WhiteBg" => Ok(Self::WhiteBg),
+            "DefaultBg" => Ok(Self::DefaultBg),
+            _ => Err(ParseColorError),
+        }
+    }
+}
 impl Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.standard_display(f)
@@ -221,6 +289,9 @@ impl DiscreteSGR for Color {
         }
     }
 }
+/// An error encountered while trying to parse a string into a [`Color`]
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseColorError;
 /// Represents SGR sequences that can be used discretely.
 ///
 /// This means it doesn't exist in terms of a [`SGRString`](crate::SGRString),

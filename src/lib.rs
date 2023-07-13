@@ -189,6 +189,10 @@
 //!     - [ ] `graphics`
 //!     - [ ] `writing`
 //! - [ ] Implement `FromStr` for [`SGR`][SGR] types
+//!     - [ ] Implement more complex `from_str` for `Color`
+//!     - [ ] Add parsing from ansi codes
+//!     - [ ] Add underlying const functions
+//!     - [ ] Add parsing for `SGRString`
 //! - [ ] Parser (`deSGR`)
 //! - [ ] Macros (`SGRise`)
 //! - [ ] `EasySGR` implementation that doesn't allocate an `SGRString`

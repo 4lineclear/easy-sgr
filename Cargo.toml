@@ -1,11 +1,11 @@
 [package]
 name = "easy-sgr"
-version = "0.0.6"
+version = "0.0.7"
 authors = ["Tamim Hakimi <tamimhakimi21@gmail.com>"]
 description = "An easy to use Select Graphics Rendition(SGR) library"
 edition = "2021"
-homepage = "https://github.com/4lineclear/easy-sgr/tree/master"
-repository = "https://github.com/4lineclear/easy-sgr/tree/master"
+homepage = "https://github.com/4lineclear/easy-sgr/tree/main"
+repository = "https://github.com/4lineclear/easy-sgr/tree/main"
 readme = "README.md"
 license = "MIT"
 categories = ["command-line-interface"]
@@ -14,3 +14,4 @@ exclude = ["/scripts"]
 
 [features]
 partial = []
+from-str = []

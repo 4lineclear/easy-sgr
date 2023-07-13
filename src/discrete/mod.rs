@@ -2,6 +2,10 @@ use std::fmt::Display;
 
 use crate::{EasySGR, SGRBuilder, SGRWriter};
 
+/// Implements [`FromStr`](std::str::FromStr) for the [`discrete`](crate::discrete) module
+#[cfg(feature = "from-str")]
+pub mod from_str;
+
 /// An SGR style code's end & escape
 ///
 /// Intended use case is when the `partial` feature is enable
@@ -15,14 +19,13 @@ use crate::{EasySGR, SGRBuilder, SGRWriter};
 ///
 ///println!("{Esc}{Bold};{BlueBg}{End}This should be bold & italic!{Esc}{Reset}{End}");
 ///```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Seq {
     /// The sequence escape string, `\x1b[`
     Esc,
     /// The sequence end string, `m`
     End,
 }
-
 impl Display for Seq {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
@@ -31,7 +34,6 @@ impl Display for Seq {
         })
     }
 }
-
 /// An SGR style code
 ///
 /// # Examples
@@ -47,7 +49,7 @@ impl Display for Seq {
 ///{Reset}And lastly normal text"
 ///);
 ///```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Style {
     /// Represents the SGR code `0`
     ///
@@ -130,7 +132,7 @@ impl DiscreteSGR for Style {
 ///println!("{DefaultBg}Now back to just red");
 ///println!("{DefaultFg}Finally normal text");
 ///```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Color {
     /// Represents the SGR code `30`
     BlackFg,

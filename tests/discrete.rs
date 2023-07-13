@@ -1,7 +1,7 @@
 use easy_sgr::Seq;
 
 #[test]
-fn sgr() {
+fn seq() {
     assert_eq!("\x1b[", Seq::Esc.to_string());
     assert_eq!("m", Seq::End.to_string());
 }
@@ -30,10 +30,9 @@ mod normal {
             ("\x1b[28m", NotHidden),
             ("\x1b[29m", NotStrikethrough),
         ] {
-            assert_eq!(correct, &format!("{style}"))
+            assert_eq!(correct, format!("{style}"))
         }
     }
-
     #[test]
     fn standard_colors() {
         for (correct, color) in [
@@ -59,7 +58,6 @@ mod normal {
             assert_eq!(correct, format!("{color}"))
         }
     }
-
     #[test]
     fn byte_color() {
         for i in (0u8..255).step_by(17) {
@@ -86,6 +84,86 @@ mod normal {
         }
     }
 }
+
+#[cfg(feature = "from-str")]
+mod from_str {
+
+    use easy_sgr::{Color::*, Seq::*, Style::*};
+
+    #[test]
+    fn seq() {
+        assert_eq!(Ok(End), "End".parse());
+        assert_eq!(Ok(Esc), "Esc".parse());
+    }
+    #[test]
+    fn styles() {
+        for (src, style) in [
+            ("Reset", Reset),
+            ("Bold", Bold),
+            ("Dim", Dim),
+            ("Italic", Italic),
+            ("Underline", Underline),
+            ("Blinking", Blinking),
+            ("Inverse", Inverse),
+            ("Hidden", Hidden),
+            ("Strikethrough", Strikethrough),
+            ("NotBold", NotBold),
+            ("NotDim", NotDim),
+            ("NotItalic", NotItalic),
+            ("NotUnderline", NotUnderline),
+            ("NotBlinking", NotBlinking),
+            ("NotInverse", NotInverse),
+            ("NotHidden", NotHidden),
+            ("NotStrikethrough", NotStrikethrough),
+        ] {
+            assert_eq!(Ok(style), src.parse())
+        }
+    }
+    #[test]
+    fn standard_colors() {
+        for (src, color) in [
+            ("BlackFg", BlackFg),
+            ("RedFg", RedFg),
+            ("GreenFg", GreenFg),
+            ("YellowFg", YellowFg),
+            ("BlueFg", BlueFg),
+            ("MagentaFg", MagentaFg),
+            ("CyanFg", CyanFg),
+            ("WhiteFg", WhiteFg),
+            ("DefaultFg", DefaultFg),
+            ("BlackBg", BlackBg),
+            ("RedBg", RedBg),
+            ("GreenBg", GreenBg),
+            ("YellowBg", YellowBg),
+            ("BlueBg", BlueBg),
+            ("MagentaBg", MagentaBg),
+            ("CyanBg", CyanBg),
+            ("WhiteBg", WhiteBg),
+            ("DefaultBg", DefaultBg),
+        ] {
+            assert_eq!(Ok(color), src.parse())
+        }
+    }
+    #[test]
+    fn byte_color() {
+        for i in (0u8..255).step_by(17) {
+            assert_eq!(Ok(ByteFg(i)), format!("ByteFg({i})").parse());
+            assert_eq!(Ok(ByteBg(i)), format!("ByteBg({i})").parse());
+        }
+    }
+    #[test]
+    fn rgb_color() {
+        for i in (0u8..255).step_by(17) {
+            for j in (0u8..255).step_by(17) {
+                for k in (0u8..255).step_by(17) {
+                    assert_eq!(Ok(RgbFg(i, j, k)), format!("RgbFg({i},{j},{k})").parse());
+                    assert_eq!(Ok(RgbBg(i, j, k)), format!("RgbBg({i},{j},{k})").parse());
+                }
+            }
+        }
+    }
+}
+
 #[cfg(feature = "partial")]
 mod partial {
     use easy_sgr::{Color::*, Style::*};
@@ -110,10 +188,9 @@ mod partial {
             ("28", NotHidden),
             ("29", NotStrikethrough),
         ] {
-            assert_eq!(correct, &format!("{style}"))
+            assert_eq!(correct, format!("{style}"))
         }
     }
-
     #[test]
     fn standard_colors() {
         for (correct, color) in [
@@ -139,7 +216,6 @@ mod partial {
             assert_eq!(correct, format!("{color}"))
         }
     }
-
     #[test]
     fn byte_color() {
         for i in (0u8..255).step_by(17) {
@@ -147,7 +223,6 @@ mod partial {
             assert_eq!(format!("48;2;{i}"), format!("{}", ByteBg(i)));
         }
     }
-
     #[test]
     fn rgb_color() {
         for i in (0u8..255).step_by(17) {

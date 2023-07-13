@@ -10,7 +10,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! easy-sgr="0.0.6"
+//! easy-sgr="0.0.7"
 //! ```
 //!
 //! ## Usage
@@ -161,7 +161,7 @@
 //!     - Centerpiece is `SGRString` & `EasySGR`
 //!     - `SGRString` is a `String` with the ability to write [`SGR`][SGR] codes
 //!     - `EasySGR` is a trait for chaining [`SGR`][SGR] codes to create a `SGRString`
-//!     - `EasySGR` is blanket implemented by everything that implements `Into\<SGRString\>`
+//!     - `EasySGR` is blanket implemented by everything that implements `Into<SGRString>`
 //!     - This includes:
 //!         - `SGRString`
 //!         - `Color`
@@ -178,7 +178,7 @@
 //!
 //! [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 //!
-//! ## TODO
+//! ## TODO for `1.0.0` release
 //!
 //! - [x] Add inline that doesn't write escape itself
 //! - [x] Add `get_writer` method to `writing` module
@@ -189,8 +189,14 @@
 //!     - [ ] `graphics`
 //!     - [ ] `writing`
 //! - [ ] Implement `FromStr` for [`SGR`][SGR] types
-//! - [ ] Parser (`deSGR`)
-//! - [ ] Macros (`SGRise`)
+//!     - [x] Implement more complex `from_str` for `Color`
+//!     - [x] Move to new submodule
+//!     - [ ] Add underlying const functions
+//!     - [ ] Set it as a feature
+//! - [ ] Macros (`SGRise`) (`0.1.0`)
+//! - [ ] Add parser(`deSGR`)
+//!     - [ ] Add parsing from ansi codes
+//!     - [ ] Add parsing for `SGRString`
 //! - [ ] `EasySGR` implementation that doesn't allocate an `SGRString`
 //! - [ ] (maybe) create smart clean system
 #![forbid(unsafe_code)]

@@ -14,7 +14,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-easy-sgr="0.0.5"
+easy-sgr="0.0.6"
 ```
 
 ## Usage

@@ -240,7 +240,7 @@ impl SGRBuilder {
     ///
     /// Does not write the escape or end sequences
     ///
-    /// Performs IO operations with the internal [`SGRWriter`]
+    /// Performs IO operations with the inputted [`SGRWriter`]
     ///
     /// # Errors
     ///

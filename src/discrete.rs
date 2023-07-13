@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
 
 use crate::{EasySGR, SGRBuilder, SGRWriter};
 
@@ -231,27 +231,94 @@ impl FromStr for Color {
     type Err = ParseColorError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use Color::*;
         match s {
-            "BlackFg" => Ok(Self::BlackFg),
-            "RedFg" => Ok(Self::RedFg),
-            "GreenFg" => Ok(Self::GreenFg),
-            "YellowFg" => Ok(Self::YellowFg),
-            "BlueFg" => Ok(Self::BlueFg),
-            "MagentaFg" => Ok(Self::MagentaFg),
-            "CyanFg" => Ok(Self::CyanFg),
-            "WhiteFg" => Ok(Self::WhiteFg),
-            "DefaultFg" => Ok(Self::DefaultFg),
-            "BlackBg" => Ok(Self::BlackBg),
-            "RedBg" => Ok(Self::RedBg),
-            "GreenBg" => Ok(Self::GreenBg),
-            "YellowBg" => Ok(Self::YellowBg),
-            "BlueBg" => Ok(Self::BlueBg),
-            "MagentaBg" => Ok(Self::MagentaBg),
-            "CyanBg" => Ok(Self::CyanBg),
-            "WhiteBg" => Ok(Self::WhiteBg),
-            "DefaultBg" => Ok(Self::DefaultBg),
-            _ => Err(ParseColorError),
+            "BlackFg" => Ok(BlackFg),
+            "RedFg" => Ok(RedFg),
+            "GreenFg" => Ok(GreenFg),
+            "YellowFg" => Ok(YellowFg),
+            "BlueFg" => Ok(BlueFg),
+            "MagentaFg" => Ok(MagentaFg),
+            "CyanFg" => Ok(CyanFg),
+            "WhiteFg" => Ok(WhiteFg),
+            "DefaultFg" => Ok(DefaultFg),
+            "BlackBg" => Ok(BlackBg),
+            "RedBg" => Ok(RedBg),
+            "GreenBg" => Ok(GreenBg),
+            "YellowBg" => Ok(YellowBg),
+            "BlueBg" => Ok(BlueBg),
+            "MagentaBg" => Ok(MagentaBg),
+            "CyanBg" => Ok(CyanBg),
+            "WhiteBg" => Ok(WhiteBg),
+            "DefaultBg" => Ok(DefaultBg),
+            _ => match s.get(..5) {
+                Some("RgbFg") => {
+                    let parts = resolve_rgb(
+                        s.get(5..)
+                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .and_then(|src| match src.len() {
+                                0 => Err(ParseColorError::MissingNum(s.to_string())),
+                                _ => Ok(src),
+                            })?,
+                    )?;
+                    Ok(RgbFg(parts.0, parts.1, parts.2))
+                }
+                Some("RgbBg") => {
+                    let parts = resolve_rgb(
+                        s.get(5..)
+                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .and_then(|src| match src.len() {
+                                0 => Err(ParseColorError::MissingNum(s.to_string())),
+                                _ => Ok(src),
+                            })?,
+                    )?;
+                    Ok(RgbBg(parts.0, parts.1, parts.2))
+                }
+                Some(_) => match s.get(..6) {
+                    Some("ByteFg") => Ok(ByteFg(resolve_byte(
+                        s.get(6..)
+                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .and_then(|src| match src.len() {
+                                0 => Err(ParseColorError::MissingNum(s.to_string())),
+                                _ => Ok(src),
+                            })?,
+                    )?)),
+                    Some("ByteBg") => Ok(ByteBg(resolve_byte(
+                        s.get(6..)
+                            .ok_or(ParseColorError::MissingNum(s.to_string()))
+                            .and_then(|src| match src.len() {
+                                0 => Err(ParseColorError::MissingNum(s.to_string())),
+                                _ => Ok(src),
+                            })?,
+                    )?)),
+                    _ => Err(ParseColorError::Invalid(s.to_string())),
+                },
+                None => Err(ParseColorError::Invalid(s.to_string())),
+            },
         }
+    }
+}
+fn resolve_byte(s: &str) -> Result<u8, ParseColorError> {
+    s.strip_prefix("(")
+        .ok_or(ParseColorError::Brace(s.to_string()))?
+        .strip_suffix(")")
+        .ok_or(ParseColorError::Brace(s.to_string()))?
+        .parse()
+        .map_err(|e| ParseColorError::ParseIntError(e))
+}
+fn resolve_rgb(s: &str) -> Result<(u8, u8, u8), ParseColorError> {
+    let parts: Vec<u8> = s
+        .strip_prefix("(")
+        .ok_or(ParseColorError::Brace(s.to_string()))?
+        .strip_suffix(")")
+        .ok_or(ParseColorError::Brace(s.to_string()))?
+        .split(",")
+        .flat_map(|s| s.parse().map_err(|e| ParseColorError::ParseIntError(e)))
+        .collect();
+
+    match &parts[..] {
+        &[n1, n2, n3] => Ok((n1, n2, n3)),
+        _ => Err(ParseColorError::Invalid(s.to_string())),
     }
 }
 impl Display for Color {
@@ -291,7 +358,31 @@ impl DiscreteSGR for Color {
 }
 /// An error encountered while trying to parse a string into a [`Color`]
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParseColorError;
+pub enum ParseColorError {
+    /// A string that is completely invalid
+    Invalid(String),
+    /// Missing the number
+    MissingNum(String),
+    /// Brace Error
+    ///
+    /// i.e. `ByteFg20)` or `ByteFg(20`
+    Brace(String),
+    /// Int parsing error
+    ParseIntError(ParseIntError),
+}
+impl Display for ParseColorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseColorError::Invalid(s) => write!(f, "Invalid string: {s}"),
+            ParseColorError::MissingNum(s) => write!(f, "Missing number: {s}"),
+            ParseColorError::Brace(s) => {
+                write!(f, "Missing braces: {s}")
+            }
+            ParseColorError::ParseIntError(e) => write!(f, "Error parsing int: {e}"),
+        }
+    }
+}
+impl Error for ParseColorError {}
 /// Represents SGR sequences that can be used discretely.
 ///
 /// This means it doesn't exist in terms of a [`SGRString`](crate::SGRString),

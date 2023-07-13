@@ -161,7 +161,7 @@
 //!     - Centerpiece is `SGRString` & `EasySGR`
 //!     - `SGRString` is a `String` with the ability to write [`SGR`][SGR] codes
 //!     - `EasySGR` is a trait for chaining [`SGR`][SGR] codes to create a `SGRString`
-//!     - `EasySGR` is blanket implemented by everything that implements `Into\<SGRString\>`
+//!     - `EasySGR` is blanket implemented by everything that implements `Into<SGRString>`
 //!     - This includes:
 //!         - `SGRString`
 //!         - `Color`

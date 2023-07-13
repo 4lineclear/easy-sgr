@@ -121,7 +121,7 @@
 //!     writer.sgr(&Italic.color(RedFg)).unwrap();
 //!     writer.write_inner("This should be italic & red!").unwrap();
 //!     writer.sgr(&Reset).unwrap();
-//!     writer.writer.0
+//!     writer.internal()
 //! };
 //! ```
 //!

@@ -33,7 +33,6 @@ mod normal {
             assert_eq!(correct, format!("{style}"))
         }
     }
-
     #[test]
     fn standard_colors() {
         for (correct, color) in [
@@ -59,7 +58,6 @@ mod normal {
             assert_eq!(correct, format!("{color}"))
         }
     }
-
     #[test]
     fn byte_color() {
         for i in (0u8..255).step_by(17) {
@@ -145,6 +143,24 @@ mod from_str {
             assert_eq!(Ok(color), src.parse())
         }
     }
+    #[test]
+    fn byte_color() {
+        for i in (0u8..255).step_by(17) {
+            assert_eq!(Ok(ByteFg(i)), format!("ByteFg({i})").parse());
+            assert_eq!(Ok(ByteBg(i)), format!("ByteBg({i})").parse());
+        }
+    }
+    #[test]
+    fn rgb_color() {
+        for i in (0u8..255).step_by(17) {
+            for j in (0u8..255).step_by(17) {
+                for k in (0u8..255).step_by(17) {
+                    assert_eq!(Ok(RgbFg(i, j, k)), format!("RgbFg({i},{j},{k})").parse());
+                    assert_eq!(Ok(RgbBg(i, j, k)), format!("RgbBg({i},{j},{k})").parse());
+                }
+            }
+        }
+    }
 }
 
 #[cfg(feature = "partial")]
@@ -174,7 +190,6 @@ mod partial {
             assert_eq!(correct, format!("{style}"))
         }
     }
-
     #[test]
     fn standard_colors() {
         for (correct, color) in [
@@ -200,7 +215,6 @@ mod partial {
             assert_eq!(correct, format!("{color}"))
         }
     }
-
     #[test]
     fn byte_color() {
         for i in (0u8..255).step_by(17) {
@@ -208,7 +222,6 @@ mod partial {
             assert_eq!(format!("48;2;{i}"), format!("{}", ByteBg(i)));
         }
     }
-
     #[test]
     fn rgb_color() {
         for i in (0u8..255).step_by(17) {

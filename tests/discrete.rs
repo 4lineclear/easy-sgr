@@ -86,6 +86,67 @@ mod normal {
         }
     }
 }
+
+mod from_str {
+
+    use easy_sgr::{Color::*, Seq::*, Style::*};
+
+    #[test]
+    fn seq() {
+        assert_eq!(Ok(End), "End".parse());
+        assert_eq!(Ok(Esc), "Esc".parse());
+    }
+    #[test]
+    fn styles() {
+        for (src, style) in [
+            ("Reset", Reset),
+            ("Bold", Bold),
+            ("Dim", Dim),
+            ("Italic", Italic),
+            ("Underline", Underline),
+            ("Blinking", Blinking),
+            ("Inverse", Inverse),
+            ("Hidden", Hidden),
+            ("Strikethrough", Strikethrough),
+            ("NotBold", NotBold),
+            ("NotDim", NotDim),
+            ("NotItalic", NotItalic),
+            ("NotUnderline", NotUnderline),
+            ("NotBlinking", NotBlinking),
+            ("NotInverse", NotInverse),
+            ("NotHidden", NotHidden),
+            ("NotStrikethrough", NotStrikethrough),
+        ] {
+            assert_eq!(Ok(style), src.parse())
+        }
+    }
+    #[test]
+    fn standard_colors() {
+        for (src, color) in [
+            ("BlackFg", BlackFg),
+            ("RedFg", RedFg),
+            ("GreenFg", GreenFg),
+            ("YellowFg", YellowFg),
+            ("BlueFg", BlueFg),
+            ("MagentaFg", MagentaFg),
+            ("CyanFg", CyanFg),
+            ("WhiteFg", WhiteFg),
+            ("DefaultFg", DefaultFg),
+            ("BlackBg", BlackBg),
+            ("RedBg", RedBg),
+            ("GreenBg", GreenBg),
+            ("YellowBg", YellowBg),
+            ("BlueBg", BlueBg),
+            ("MagentaBg", MagentaBg),
+            ("CyanBg", CyanBg),
+            ("WhiteBg", WhiteBg),
+            ("DefaultBg", DefaultBg),
+        ] {
+            assert_eq!(Ok(color), src.parse())
+        }
+    }
+}
+
 #[cfg(feature = "partial")]
 mod partial {
     use easy_sgr::{Color::*, Style::*};

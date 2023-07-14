@@ -10,3 +10,6 @@ readme = "README.md"
 license = "MIT"
 categories = ["command-line-interface"]
 keywords = ["SGR", "cli", "color", "terminal", "text"]
+
+[lib]
+proc-macro = true

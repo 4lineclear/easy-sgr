@@ -1,11 +1,13 @@
-// use std::num::ParseIntError;
-
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
+/// Input should be a string literal
 #[proc_macro]
 pub fn replace_sgr(input: TokenStream) -> TokenStream {
-    match replace_sgr_impl(input) {
-        Some(tokens) => tokens,
+    match input.into_iter().next() {
+        Some(source) => match replace_sgr_impl(source.to_string()) {
+            Some(output) => output,
+            None => source.into(), // rust compiler should take care of errors
+        },
         None => err(),
     }
 }
@@ -16,7 +18,7 @@ fn err() -> TokenStream {
         TokenTree::Group(Group::new(
             Delimiter::Parenthesis,
             [TokenTree::Literal(Literal::string(
-                "requires a string literal\ncannot be raw and/or byte string",
+                "first item must be a string literal\ncannot be raw and/or byte string",
             ))]
             .into_iter()
             .collect(),
@@ -25,24 +27,16 @@ fn err() -> TokenStream {
     .into_iter()
     .collect()
 }
-fn replace_sgr_impl(input: TokenStream) -> Option<TokenStream> {
+fn replace_sgr_impl(source: String) -> Option<TokenStream> {
     Some(
-        [TokenTree::Literal(Literal::string(&remove_escapes(
-            input
-                .into_iter()
-                .next()
-                .map(|x| match x {
-                    proc_macro::TokenTree::Literal(literal) => Some(literal.to_string()),
-                    _ => None,
-                })??
-                .strip_suffix('"')?
-                .strip_prefix('"')?,
+        [TokenTree::Literal(Literal::string(&replace_escapes(
+            source.strip_suffix('"')?.strip_prefix('"')?,
         )?))]
         .into_iter()
         .collect(),
     )
 }
-fn remove_escapes(src: &str) -> Option<String> {
+fn replace_escapes(src: &str) -> Option<String> {
     let mut s = String::with_capacity(src.len());
     let mut chars = src.chars();
     while let Some(c) = chars.next() {
@@ -70,7 +64,7 @@ fn remove_escapes(src: &str) -> Option<String> {
                             };
                         }
                     }
-                    _ => (),
+                    _ => return None,
                 }
             }
         } else {

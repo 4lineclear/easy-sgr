@@ -1,8 +1,12 @@
 [package]
 name = "easy-sgr-macros"
-version = "0.1.0"
+version = "0.0.0"
+authors = ["Tamim Hakimi <tamimhakimi21@gmail.com>"]
+description = "The implementation of macros used within easy-sgr"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+homepage = "https://github.com/4lineclear/easy-sgr/tree/main"
+repository = "https://github.com/4lineclear/easy-sgr/tree/main"
+readme = "README.md"
+license = "MIT"
+categories = ["command-line-interface"]
+keywords = ["SGR", "cli", "color", "terminal", "text"]

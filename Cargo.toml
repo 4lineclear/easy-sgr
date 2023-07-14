@@ -12,6 +12,13 @@ categories = ["command-line-interface"]
 keywords = ["SGR", "cli", "color", "terminal", "text"]
 exclude = ["/scripts"]
 
+[dependencies]
+easy-sgr-macros = { path = "macros", optional = true }
+
+[workspace]
+members = ["macros"]
+
 [features]
 partial = []
 from-str = []
+macros = ["dep:easy-sgr-macros"]

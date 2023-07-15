@@ -1,33 +1,33 @@
-use parse::parse_string;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
-use sgr::sgrargs;
-
 mod form;
-mod parse;
-mod sgr;
+// mod parse;
+// mod sgr;
 
 #[proc_macro]
-pub fn sgr_test(input: TokenStream) -> TokenStream {
-    match input.into_iter().next() {
-        Some(source) => match sgr_args(&source) {
-            Some(output) => output,
-            None => source.into(), // rust compiler should take care of errors
-        },
-        None => err(),
+pub fn sgr(input: TokenStream) -> TokenStream {
+    match parse_tokens(input) {
+        Ok(s) => tokenize(&s),
+        Err(error_tokens) => error_tokens,
     }
 }
 
-/// Input should be a string literal
-#[proc_macro]
-pub fn replace_sgr(input: TokenStream) -> TokenStream {
+fn parse_tokens(input: TokenStream) -> Result<String, TokenStream> {
     match input.into_iter().next() {
-        Some(source) => match replace_sgr_impl(&source) {
-            Some(output) => output,
-            None => source.into(), // rust compiler should take care of errors
-        },
-        None => err(),
+        Some(source) => parse_string(source.to_string()).ok_or_else(|| source.into()),
+        None => Err(err()),
     }
 }
+
+fn parse_string(string: String) -> Option<String> {
+    Some(string)
+}
+
+fn tokenize(s: &str) -> TokenStream {
+    [TokenTree::Literal(Literal::string(s))]
+        .into_iter()
+        .collect()
+}
+
 fn err() -> TokenStream {
     [
         TokenTree::Ident(Ident::new("compile_error", Span::mixed_site())),
@@ -43,23 +43,4 @@ fn err() -> TokenStream {
     ]
     .into_iter()
     .collect()
-}
-fn replace_sgr_impl(source: &TokenTree) -> Option<TokenStream> {
-    Some(
-        [TokenTree::Literal(Literal::string(&parse_string(
-            source.to_string(),
-        )?))]
-        .into_iter()
-        .collect(),
-    )
-}
-
-fn sgr_args(source: &TokenTree) -> Option<TokenStream> {
-    Some(
-        [TokenTree::Literal(Literal::string(
-            &sgrargs(&parse_string(source.to_string())?)?.to_string(),
-        ))]
-        .into_iter()
-        .collect(),
-    )
 }

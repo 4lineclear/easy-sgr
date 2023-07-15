@@ -110,12 +110,12 @@ struct Mapform<I, F> {
 impl<I, F, N> Iterator for Mapform<I, F>
 where
     I: Iterator,
-    F: FnMut(&mut I) -> N,
+    F: FnMut(&mut I) -> Option<N>,
 {
     type Item = N;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some((self.f)(&mut self.iter))
+        (self.f)(&mut self.iter)
     }
 
     #[inline]

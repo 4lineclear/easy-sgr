@@ -1,4 +1,4 @@
-use easy_sgr_macros::replace_sgr;
+use easy_sgr_macros::{replace_sgr, sgr_test};
 
 fn main() {
     println!(
@@ -12,4 +12,7 @@ fn main() {
     "
     );
     println!("{TEST}");
+
+    let test = sgr_test!("{RedFg}Test{BlueBg}");
+    println!("{test}");
 }

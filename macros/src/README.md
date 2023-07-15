@@ -14,5 +14,6 @@ This loop has several actions it does:
 
 ## TODO
 
-- [ ] create Transform
-- [ ] create Mapform
+- [x] create Transform
+- [x] create Mapform
+- [ ] Use in project

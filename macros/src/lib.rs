@@ -15,56 +15,61 @@ fn parse_tokens(input: TokenStream) -> Result<String, TokenStream> {
         // return the source TokenTree in the case there is any error
         // any error should be picked up by the rust compiler,
         // as it would be string literal error
-        Some(source) => parse_string(source.to_string()).ok_or_else(|| source.into()),
-        None => Err(str_literal_err()),
+        Some(source) => match source {
+            TokenTree::Literal(s) => match correct_string(&s.to_string()) {
+                Some(s) => Ok(parse_string(&mut s.chars())),
+                None => Err(str_literal_err(s.span())),
+            },
+            _ => Err(str_literal_err(source.span())),
+        },
+        None => Err(str_literal_err(Span::mixed_site())),
     }
 }
-fn parse_string(string: String) -> Option<String> {
-    Some(
-        string
-            .strip_prefix('"')?
-            .strip_suffix('"')?
-            .chars()
-            .transform(parse_chars)
-            .collect(),
-    )
+fn correct_string<'a>(string: &'a String) -> Option<&'a str> {
+    string.strip_prefix('"')?.strip_suffix('"')
+}
+fn parse_string(chars: &mut impl Iterator<Item = char>) -> String {
+    chars.transform(parse_chars).collect()
 }
 fn parse_chars(chars: &mut impl Iterator<Item = char>) -> Option<char> {
-    match chars.next()? {
-        '\\' => match chars.next()? {
-            //quote escapes
-            '\'' => Some('\''),
-            '"' => Some('"'),
-            //ascii escapes
-            'x' => parse_7bit(chars),
-            'n' => Some('\n'),
-            'r' => Some('\r'),
-            't' => Some('\t'),
-            '\\' => Some('\\'),
-            '\0' => Some('\0'),
-            //unicode escape
-            'u' => parse_24bit(chars),
-            //whitespace ignore
-            '\n' => {
-                for c in chars.by_ref() {
-                    let (' ' | '\n' | '\r' | '\t') = c else {
-                        return Some(c)
-                    };
+    fn inner(next: char, chars: &mut impl Iterator<Item = char>) -> Option<char> {
+        match next {
+            '\\' => match chars.next()? {
+                //quote escapes
+                '\'' => Some('\''),
+                '"' => Some('"'),
+                //ascii escapes
+                'x' => parse_7bit(chars),
+                'n' => Some('\n'),
+                'r' => Some('\r'),
+                't' => Some('\t'),
+                '\\' => Some('\\'),
+                '\0' => Some('\0'),
+                //unicode escape
+                'u' => parse_24bit(chars),
+                //whitespace ignore
+                '\n' => {
+                    for c in chars.by_ref() {
+                        let (' ' | '\n' | '\r' | '\t') = c else {
+                            return inner(c, chars)
+                        };
+                    }
+                    None // end of string reached
                 }
-                None // end of string reached
-            }
-            _ => None,
-        },
-        '{' => match chars.next()? {
-            '{' => Some('{'),
+                _ => None, // invalid char
+            },
+            '{' => match chars.next()? {
+                '{' => Some('{'),
+                c => Some(c),
+            },
+            '}' => match chars.next()? {
+                '}' => Some('}'),
+                c => Some(c),
+            },
             c => Some(c),
-        },
-        '}' => match chars.next()? {
-            '}' => Some('}'),
-            c => Some(c),
-        },
-        c => Some(c),
+        }
     }
+    inner(chars.next()?, chars)
 }
 fn parse_7bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
     let mut src = String::with_capacity(2);
@@ -84,9 +89,9 @@ fn tokenize(s: &str) -> TokenStream {
         .into_iter()
         .collect()
 }
-fn str_literal_err() -> TokenStream {
+fn str_literal_err(span: Span) -> TokenStream {
     [
-        TokenTree::Ident(Ident::new("compile_error", Span::mixed_site())),
+        TokenTree::Ident(Ident::new("compile_error", span)),
         TokenTree::Punct(Punct::new('!', Spacing::Alone)),
         TokenTree::Group(Group::new(
             Delimiter::Parenthesis,

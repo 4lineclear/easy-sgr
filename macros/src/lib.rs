@@ -61,3 +61,46 @@ fn sgr_args(source: &TokenTree) -> Option<TokenStream> {
         .collect(),
     )
 }
+
+#[derive(Clone)]
+struct Transform<B, I, F>
+where
+    I: Iterator<Item = B>,
+    F: FnMut(&mut I) -> Option<B>,
+{
+    iter: I,
+    f: F,
+}
+impl<B, I, F> Iterator for Transform<B, I, F>
+where
+    I: Iterator<Item = B>,
+    F: FnMut(&mut I) -> Option<B>,
+{
+    type Item = B;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        (self.f)(&mut self.iter)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+trait ToTransform<B, I, F>
+where
+    I: Iterator<Item = B>,
+    F: FnMut(&mut I) -> Option<B>,
+{
+    fn transform(self, f: F) -> Transform<B, I, F>;
+}
+impl<B, I, F> ToTransform<B, I, F> for I
+where
+    I: Iterator<Item = B>,
+    F: FnMut(&mut I) -> Option<B>,
+{
+    fn transform(self, f: F) -> Transform<B, I, F> {
+        Transform { iter: self, f }
+    }
+}

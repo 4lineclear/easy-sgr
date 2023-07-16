@@ -38,7 +38,11 @@ fn main() {
     // );
     let i = 1;
     // println!(easy_sgr_macros::sgr!("{i}"), i=i);
-    easy_sgr_macros::println!("Test\x1b[1m{}", i);
+    easy_sgr_macros::println!(
+        "Test\x1b[1m {}\
+    ",
+        i
+    );
     // println!(easy_sgr_macros::sgr!("{i}", i));
     //https://users.rust-lang.org/t/format-with-string-obfuscation/88102/11
 }

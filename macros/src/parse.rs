@@ -1,47 +1,61 @@
-use crate::form::ToTransform;
+use crate::form::ToMapform;
 
-pub(super) fn parse_string(chars: &mut impl Iterator<Item = char>) -> Option<String> {
-    Some(chars.transform(parse_chars).collect())
+pub(super) fn parse_string(s: &str) -> Option<String> {
+    let mut buf = String::with_capacity(s.len());
+    s.chars()
+        .mapform(parse_chars)
+        .for_each(|parsed| match parsed {
+            Parsed::C(ch) => buf.push(ch),
+            Parsed::S(string) => buf.push_str(&string),
+            Parsed::Error => (),
+        });
+    Some(buf)
 }
-fn parse_chars(chars: &mut impl Iterator<Item = char>) -> Option<char> {
-    fn inner(next: char, chars: &mut impl Iterator<Item = char>) -> Option<char> {
+fn parse_chars(chars: &mut impl Iterator<Item = char>) -> Option<Parsed> {
+    use Parsed::*;
+    fn inner(next: char, chars: &mut impl Iterator<Item = char>) -> Parsed {
         match next {
-            '\\' => match chars.next()? {
+            '\\' => match chars.next() {
                 //quote escapes
-                '\'' => Some('\''),
-                '"' => Some('"'),
+                Some('\'') => C('\''),
+                Some('"') => C('"'),
                 //ascii escapes
-                'x' => parse_7bit(chars),
-                'n' => Some('\n'),
-                'r' => Some('\r'),
-                't' => Some('\t'),
-                '\\' => Some('\\'),
-                '\0' => Some('\0'),
+                Some('x') => parse_7bit(chars).into(),
+                Some('n') => C('\n'),
+                Some('r') => C('\r'),
+                Some('t') => C('\t'),
+                Some('\\') => C('\\'),
+                Some('\0') => C('\0'),
                 //unicode escape
-                'u' => parse_24bit(chars),
+                Some('u') => parse_24bit(chars).into(),
                 //whitespace ignore
-                '\n' => {
+                Some('\n') => {
                     for c in chars.by_ref() {
                         let (' ' | '\n' | '\r' | '\t') = c else {
                             return inner(c, chars)
                         };
                     }
-                    None // end of string reached
+                    Error // end of string reached
                 }
-                _ => None, // invalid char
+                _ => Error, // invalid char
             },
-            // '{' => match chars.next()? {
-            //     '{' => Some('{'),
-            //     c => Some(c),
-            // },
-            // '}' => match chars.next()? {
-            //     '}' => Some('}'),
-            //     c => Some(c),
-            // },
-            c => Some(c),
+            '{' => match chars.next() {
+                Some('{') => S(String::from("{{")),
+                Some('}') => S(String::from("{}")),
+                Some(c) => C(c),
+                None => Error,
+            },
+            '}' => match chars.next() {
+                Some('}') => S(String::from("}}")),
+                _ => C('}'),
+            },
+            c => C(c),
         }
     }
-    inner(chars.next()?, chars)
+    match inner(chars.next()?, chars) {
+        Error => None,
+        p => Some(p),
+    }
 }
 fn parse_7bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
     let mut src = String::with_capacity(2);
@@ -55,4 +69,19 @@ fn parse_24bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
     let src: String = chars.take_while(|&c| c != '}').collect();
 
     char::from_u32(u32::from_str_radix(&src, 16).ok()?)
+}
+
+#[derive(Debug)]
+enum Parsed {
+    C(char),
+    S(String),
+    Error,
+}
+impl From<Option<char>> for Parsed {
+    fn from(value: Option<char>) -> Self {
+        match value {
+            Some(c) => Self::C(c),
+            None => Self::Error,
+        }
+    }
 }

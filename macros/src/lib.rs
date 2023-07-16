@@ -18,9 +18,12 @@ fn parse_tokens(input: TokenStream) -> Result<String, TokenStream> {
         // any error should be picked up by the rust compiler,
         // as it would be string literal error
         Some(source) => match source {
-            TokenTree::Literal(s) => match unquote(&s.to_string()) {
-                Some(s) => Ok(parse::parse_string(&mut s.chars())),
-                None => Err(err(s.span(), STR_LIT_ERROR)),
+            TokenTree::Literal(literal) => match unquote(&literal.to_string()) {
+                Some(s) => match parse::parse_string(&mut s.chars()) {
+                    Ok(s) => Ok(s),
+                    Err(parse::ParseError::LendCompiler) => Err(err(literal.span(), STR_LIT_ERROR)),
+                },
+                None => Err(err(literal.span(), STR_LIT_ERROR)),
             },
             tt => Err(err(tt.span(), STR_LIT_ERROR)),
         },

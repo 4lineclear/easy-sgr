@@ -9,5 +9,5 @@ fn main() {
     }}"
     );
     dbg!(TEST);
-    println!("TEST")
+    println!("{TEST}")
 }

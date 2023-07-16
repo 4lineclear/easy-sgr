@@ -20,19 +20,19 @@ where
     }
 }
 
-pub(crate) trait ToTransform<I, F>
-where
-    I: Iterator,
-    F: FnMut(&mut I) -> Option<I::Item>,
-{
-    fn transform(self, f: F) -> Transform<I, F>;
+pub(crate) trait ToTransform<I, F> {
+    fn transform(self, f: F) -> Transform<I, F>
+    where
+        I: Iterator,
+        F: FnMut(&mut I) -> Option<I::Item>;
 }
-impl<I, F> ToTransform<I, F> for I
-where
-    I: Iterator,
-    F: FnMut(&mut I) -> Option<I::Item>,
-{
-    fn transform(self, f: F) -> Transform<I, F> {
+impl<I, F> ToTransform<I, F> for I {
+    fn transform(self, f: F) -> Transform<I, F>
+    where
+        I: Iterator,
+        F: FnMut(&mut I) -> Option<I::Item>,
+    {
+        
         Transform { iter: self, f }
     }
 }

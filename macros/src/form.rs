@@ -1,3 +1,4 @@
+//TODO Consider a 'skip_if' type
 #[derive(Clone)]
 pub(crate) struct Transform<I, F> {
     iter: I,
@@ -32,7 +33,6 @@ impl<I, F> ToTransform<I, F> for I {
         I: Iterator,
         F: FnMut(&mut I) -> Option<I::Item>,
     {
-        
         Transform { iter: self, f }
     }
 }

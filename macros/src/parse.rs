@@ -1,42 +1,47 @@
-pub(crate) fn parse_string(source: String) -> Option<String> {
-    replace_escapes(source.strip_suffix('"')?.strip_prefix('"')?)
+use crate::form::ToTransform;
+
+pub(super) fn parse_string(chars: &mut impl Iterator<Item = char>) -> String {
+    chars.transform(parse_chars).collect()
 }
-fn replace_escapes(src: &str) -> Option<String> {
-    let mut s = String::with_capacity(src.len());
-    let mut chars = src.chars();
-    while let Some(c) = chars.next() {
-        if let '\\' = c {
-            if let Some(c_next) = chars.next() {
-                match c_next {
-                    //quote escapes
-                    '\'' => s.push('\''),
-                    '"' => s.push('"'),
-                    //ascii escapes
-                    'x' => s.push(parse_7bit(&mut chars)?),
-                    'n' => s.push('\n'),
-                    'r' => s.push('\r'),
-                    't' => s.push('\t'),
-                    '\\' => s.push('\\'),
-                    '\0' => s.push('\0'),
-                    //unicode escape
-                    'u' => s.push(parse_24bit(&mut chars)?),
-                    //whitespace ignore
-                    '\n' => {
-                        for c in chars.by_ref() {
-                            let (' ' | '\n' | '\r' | '\t') = c else {
-                                s.push(c);
-                                break;
-                            };
-                        }
+fn parse_chars(chars: &mut impl Iterator<Item = char>) -> Option<char> {
+    fn inner(next: char, chars: &mut impl Iterator<Item = char>) -> Option<char> {
+        match next {
+            '\\' => match chars.next()? {
+                //quote escapes
+                '\'' => Some('\''),
+                '"' => Some('"'),
+                //ascii escapes
+                'x' => parse_7bit(chars),
+                'n' => Some('\n'),
+                'r' => Some('\r'),
+                't' => Some('\t'),
+                '\\' => Some('\\'),
+                '\0' => Some('\0'),
+                //unicode escape
+                'u' => parse_24bit(chars),
+                //whitespace ignore
+                '\n' => {
+                    for c in chars.by_ref() {
+                        let (' ' | '\n' | '\r' | '\t') = c else {
+                            return inner(c, chars)
+                        };
                     }
-                    _ => return None,
+                    None // end of string reached
                 }
-            }
-        } else {
-            s.push(c)
+                _ => None, // invalid char
+            },
+            '{' => match chars.next()? {
+                '{' => Some('{'),
+                c => Some(c),
+            },
+            '}' => match chars.next()? {
+                '}' => Some('}'),
+                c => Some(c),
+            },
+            c => Some(c),
         }
     }
-    Some(s)
+    inner(chars.next()?, chars)
 }
 fn parse_7bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
     let mut src = String::with_capacity(2);

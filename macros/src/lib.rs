@@ -1,12 +1,14 @@
-use form::ToTransform;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 mod form;
+mod parse;
+
+const STR_LIT_ERROR: &str = "first item must be a string literal\ncannot be raw and/or byte string";
 
 #[proc_macro]
 pub fn sgr(input: TokenStream) -> TokenStream {
     match parse_tokens(input) {
-        Ok(s) => tokenize(&s),
+        Ok(s) => tokenize_str(&s),
         Err(error_tokens) => error_tokens,
     }
 }
@@ -16,91 +18,33 @@ fn parse_tokens(input: TokenStream) -> Result<String, TokenStream> {
         // any error should be picked up by the rust compiler,
         // as it would be string literal error
         Some(source) => match source {
-            TokenTree::Literal(s) => match correct_string(&s.to_string()) {
-                Some(s) => Ok(parse_string(&mut s.chars())),
-                None => Err(str_literal_err(s.span())),
+            TokenTree::Literal(s) => match unquote(&s.to_string()) {
+                Some(s) => Ok(parse::parse_string(&mut s.chars())),
+                None => Err(err(s.span(), STR_LIT_ERROR)),
             },
-            _ => Err(str_literal_err(source.span())),
+            tt => Err(err(tt.span(), STR_LIT_ERROR)),
         },
-        None => Err(str_literal_err(Span::mixed_site())),
+        None => Err(err(Span::mixed_site(), STR_LIT_ERROR)),
     }
 }
-fn correct_string<'a>(string: &'a String) -> Option<&'a str> {
+fn unquote(string: &str) -> Option<&str> {
     string.strip_prefix('"')?.strip_suffix('"')
 }
-fn parse_string(chars: &mut impl Iterator<Item = char>) -> String {
-    chars.transform(parse_chars).collect()
-}
-fn parse_chars(chars: &mut impl Iterator<Item = char>) -> Option<char> {
-    fn inner(next: char, chars: &mut impl Iterator<Item = char>) -> Option<char> {
-        match next {
-            '\\' => match chars.next()? {
-                //quote escapes
-                '\'' => Some('\''),
-                '"' => Some('"'),
-                //ascii escapes
-                'x' => parse_7bit(chars),
-                'n' => Some('\n'),
-                'r' => Some('\r'),
-                't' => Some('\t'),
-                '\\' => Some('\\'),
-                '\0' => Some('\0'),
-                //unicode escape
-                'u' => parse_24bit(chars),
-                //whitespace ignore
-                '\n' => {
-                    for c in chars.by_ref() {
-                        let (' ' | '\n' | '\r' | '\t') = c else {
-                            return inner(c, chars)
-                        };
-                    }
-                    None // end of string reached
-                }
-                _ => None, // invalid char
-            },
-            '{' => match chars.next()? {
-                '{' => Some('{'),
-                c => Some(c),
-            },
-            '}' => match chars.next()? {
-                '}' => Some('}'),
-                c => Some(c),
-            },
-            c => Some(c),
-        }
-    }
-    inner(chars.next()?, chars)
-}
-fn parse_7bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
-    let mut src = String::with_capacity(2);
-    src.push(chars.next()?);
-    src.push(chars.next()?);
-
-    char::from_u32(u32::from_str_radix(&src, 16).ok()?)
-}
-fn parse_24bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
-    chars.next()?;
-    let src: String = chars.take_while(|&c| c != '}').collect();
-
-    char::from_u32(u32::from_str_radix(&src, 16).ok()?)
-}
-fn tokenize(s: &str) -> TokenStream {
+fn tokenize_str(s: &str) -> TokenStream {
     [TokenTree::Literal(Literal::string(s))]
         .into_iter()
         .collect()
 }
-fn str_literal_err(span: Span) -> TokenStream {
+/// Returns a compile error with the inputted span & message
+fn err(span: Span, message: &str) -> TokenStream {
     [
         TokenTree::Ident(Ident::new("compile_error", span)),
         TokenTree::Punct(Punct::new('!', Spacing::Alone)),
-        TokenTree::Group(Group::new(
-            Delimiter::Parenthesis,
-            [TokenTree::Literal(Literal::string(
-                "first item must be a string literal\ncannot be raw and/or byte string",
-            ))]
-            .into_iter()
-            .collect(),
-        )),
+        TokenTree::Group({
+            let mut group = Group::new(Delimiter::Parenthesis, tokenize_str(message));
+            group.set_span(span);
+            group
+        }),
     ]
     .into_iter()
     .collect()

@@ -36,10 +36,11 @@ fn main() {
     //     ),
     //     a = a
     // );
-    let i = 1;
+    // let i = 1;
     // println!(easy_sgr_macros::sgr!("{i}"), i=i);
+    let i = 1;
     easy_sgr_macros::println!(
-        "Test\x1b[1m {}\
+        "{Italic}Test\0 {}\
     ",
         i
     );

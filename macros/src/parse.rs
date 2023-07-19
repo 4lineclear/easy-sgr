@@ -45,8 +45,7 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
             '{' => match chars.next()? {
                 '{' => buf.push_str("{{"),
                 '}' => buf.push_str("{}"),
-                ch => {
-                    sgr_buf.push(ch);
+                '!' => {
                     chars
                         .by_ref()
                         .take_while(|ch| ch != &'}')
@@ -64,6 +63,15 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
                         }
                     }
                     sgr_buf.clear()
+                }
+                ch => {
+                    buf.push('{');
+                    buf.push(ch);
+                    chars
+                        .by_ref()
+                        .take_while(|ch| ch != &'}')
+                        .for_each(|ch| buf.push(ch));
+                    buf.push('}');
                 }
             },
             '}' => match chars.next()? {

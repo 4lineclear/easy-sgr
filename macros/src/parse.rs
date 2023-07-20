@@ -45,33 +45,61 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
             '{' => match chars.next()? {
                 '{' => buf.push_str("{{"),
                 '}' => buf.push_str("{}"),
-                '!' => {
-                    chars
-                        .by_ref()
-                        .take_while(|ch| ch != &'}')
-                        .for_each(|ch| sgr_buf.push(ch));
-                    match parse_sgr(&sgr_buf) {
-                        Some(string) => {
-                            buf.push_str("\x1b[");
-                            buf.push_str(string);
-                            buf.push('m');
-                        }
-                        None => {
+                ch => {
+                    let mut close_found = false;
+                    match ch {
+                        '+' | '-' | '#' => (),
+                        _ => {
                             buf.push('{');
-                            buf.push_str(&sgr_buf);
+                            buf.push(ch);
+                            chars
+                                .by_ref()
+                                .take_while(|&c| match c {
+                                    '+' | '-' | '#' => false,
+                                    '}' => {
+                                        close_found = true;
+                                        false
+                                    }
+                                    _ => true,
+                                })
+                                .for_each(|c| buf.push(c));
                             buf.push('}');
                         }
                     }
-                    sgr_buf.clear()
-                }
-                ch => {
-                    buf.push('{');
-                    buf.push(ch);
-                    chars
-                        .by_ref()
-                        .take_while(|ch| ch != &'}')
-                        .for_each(|ch| buf.push(ch));
-                    buf.push('}');
+                    if !close_found {
+                        buf.push_str("\x1b[");
+                        chars
+                            .by_ref()
+                            .take_while(|&c| match c {
+                                '+' | '-' | '#' => false,
+                                '}' => {
+                                    close_found = true;
+                                    false
+                                }
+                                _ => true,
+                            })
+                            .for_each(|ch| sgr_buf.push(ch));
+                        buf.push_str(&parse_sgr(chars.next()?, &mut sgr_buf)?.to_string());
+                        sgr_buf.clear();
+                        while !close_found {
+                            dbg!(&buf);
+                            chars
+                                .by_ref()
+                                .take_while(|&c| match c {
+                                    '+' | '-' | '#' => false,
+                                    '}' => {
+                                        close_found = true;
+                                        false
+                                    }
+                                    _ => true,
+                                })
+                                .for_each(|ch| sgr_buf.push(ch));
+                            buf.push(';');
+                            buf.push_str(&parse_sgr(chars.next()?, &mut sgr_buf)?.to_string());
+                            sgr_buf.clear();
+                        }
+                        buf.push('m');
+                    }
                 }
             },
             '}' => match chars.next()? {
@@ -84,8 +112,6 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
     }
     Some(buf)
 }
-
-// fn parse_char(buf: &mut str) {}
 
 fn parse_7bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
     let mut src = String::with_capacity(2);
@@ -100,43 +126,63 @@ fn parse_24bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
 
     char::from_u32(u32::from_str_radix(&src, 16).ok()?)
 }
-fn parse_sgr(s: &str) -> Option<&str> {
+fn parse_sgr(ch: char, sgr_buf: &str) -> Option<u8> {
+    dbg!(ch);
+    dbg!(&sgr_buf);
+    match ch {
+        '+' => parse_add_style(&sgr_buf),
+        '-' => parse_sub_style(&sgr_buf),
+        '#' => parse_color(&sgr_buf),
+        _ => None,
+    }
+}
+fn parse_add_style(s: &str) -> Option<u8> {
     match s {
-        "Reset" => Some("0"),
-        "Bold" => Some("1"),
-        "Dim" => Some("2"),
-        "Italic" => Some("3"),
-        "Underline" => Some("4"),
-        "Blinking" => Some("5"),
-        "Inverse" => Some("7"),
-        "Hidden" => Some("8"),
-        "Strikethrough" => Some("9"),
-        "NotBold" => Some("22"),
-        "NotDim" => Some("22"),
-        "NotItalic" => Some("23"),
-        "NotUnderline" => Some("24"),
-        "NotBlinking" => Some("25"),
-        "NotInverse" => Some("27"),
-        "NotHidden" => Some("28"),
-        "NotStrikethrough" => Some("29"),
-        "BlackFg" => Some("30"),
-        "RedFg" => Some("31"),
-        "GreenFg" => Some("32"),
-        "YellowFg" => Some("33"),
-        "BlueFg" => Some("34"),
-        "MagentaFg" => Some("35"),
-        "CyanFg" => Some("36"),
-        "WhiteFg" => Some("37"),
-        "DefaultFg" => Some("38"),
-        "BlackBg" => Some("40"),
-        "RedBg" => Some("41"),
-        "GreenBg" => Some("42"),
-        "YellowBg" => Some("43"),
-        "BlueBg" => Some("44"),
-        "MagentaBg" => Some("45"),
-        "CyanBg" => Some("46"),
-        "WhiteBg" => Some("47"),
-        "DefaultBg" => Some("48"),
+        "Reset" => Some(0),
+        "Bold" => Some(1),
+        "Dim" => Some(2),
+        "Italic" => Some(3),
+        "Underline" => Some(4),
+        "Blinking" => Some(5),
+        "Inverse" => Some(7),
+        "Hidden" => Some(8),
+        "Strikethrough" => Some(9),
+        _ => None,
+    }
+}
+fn parse_sub_style(s: &str) -> Option<u8> {
+    match s {
+        "Bold" => Some(22),
+        "Dim" => Some(22),
+        "Italic" => Some(23),
+        "Underline" => Some(24),
+        "Blinking" => Some(25),
+        "Inverse" => Some(27),
+        "Hidden" => Some(28),
+        "Strikethrough" => Some(29),
+        _ => None,
+    }
+}
+fn parse_color(s: &str) -> Option<u8> {
+    match s {
+        "BlackFg" => Some(30),
+        "RedFg" => Some(31),
+        "GreenFg" => Some(32),
+        "YellowFg" => Some(33),
+        "BlueFg" => Some(34),
+        "MagentaFg" => Some(35),
+        "CyanFg" => Some(36),
+        "WhiteFg" => Some(37),
+        "DefaultFg" => Some(38),
+        "BlackBg" => Some(40),
+        "RedBg" => Some(41),
+        "GreenBg" => Some(42),
+        "YellowBg" => Some(43),
+        "BlueBg" => Some(44),
+        "MagentaBg" => Some(45),
+        "CyanBg" => Some(46),
+        "WhiteBg" => Some(47),
+        "DefaultBg" => Some(48),
         _ => None,
     }
 }

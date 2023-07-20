@@ -40,7 +40,7 @@ fn main() {
     // println!(easy_sgr_macros::sgr!("{i}"), i=i);
     let i = 1;
     easy_sgr_macros::println!(
-        "{!Italic}Test\0 {}\
+        "{i+Italic-Bold#RedFg#BlackBg}Test\0 {}\
     ",
         i
     );

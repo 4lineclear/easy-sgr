@@ -1,6 +1,3 @@
-// pub(super) fn parse_string(src: String) -> String {
-//     parse_literal(&src).and_then(parse_inner).unwrap_or(src)
-// }
 pub(super) fn parse_literal(s: &str) -> Option<&str> {
     // s.strip_prefix('r')
     //     .map_or(s, |s| s.trim_matches('#'))
@@ -16,21 +13,14 @@ trait Next {
 impl Next for &[u8] {
     fn next(&self, i: &mut usize) -> Option<&u8> {
         *i += 1;
-        match self.get(*i) {
-            Some(c) => {
-                // dbg!(*c as char);
-                Some(c)
-            }
-            None => None,
-        }
+        self.get(*i)
     }
 }
 pub(super) fn parse_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len()); // most likely too much capacity
-    let bytes = &mut s.as_bytes();
+    let bytes = s.as_bytes();
     let i = &mut 0;
     'outer: while *i < bytes.len() {
-        // dbg!(bytes[*i] as char);
         match bytes[*i] {
             b'\\' => match bytes.next(i)? {
                 //quote escapes
@@ -139,9 +129,9 @@ fn parse_24bit(chars: &[u8], i: &mut usize) -> Option<char> {
 }
 fn parse_sgr(ch: u8, sgr_buf: &str) -> Option<u8> {
     match ch {
-        b'+' => parse_add_style(&sgr_buf),
-        b'-' => parse_sub_style(&sgr_buf),
-        b'#' => parse_color(&sgr_buf),
+        b'+' => parse_add_style(sgr_buf),
+        b'-' => parse_sub_style(sgr_buf),
+        b'#' => parse_color(sgr_buf),
         _ => None,
     }
 }

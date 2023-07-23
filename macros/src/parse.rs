@@ -10,31 +10,45 @@ pub(super) fn parse_literal(s: &str) -> Option<&str> {
 
     s.strip_prefix('"')?.strip_suffix('"')
 }
+trait Next {
+    fn next(&self, i: &mut usize) -> Option<&u8>;
+}
+impl Next for &[u8] {
+    fn next(&self, i: &mut usize) -> Option<&u8> {
+        *i += 1;
+        match self.get(*i) {
+            Some(c) => {
+                // dbg!(*c as char);
+                Some(c)
+            }
+            None => None,
+        }
+    }
+}
 pub(super) fn parse_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len()); // most likely too much capacity
-    let mut sgr_buf = String::new();
-    let chars = &mut s.chars();
-    let mut next = chars.next();
-    'outer: while let Some(ch) = next {
-        match ch {
-            '\\' => match chars.next()? {
+    let bytes = &mut s.as_bytes();
+    let i = &mut 0;
+    'outer: while *i < bytes.len() {
+        // dbg!(bytes[*i] as char);
+        match bytes[*i] {
+            b'\\' => match bytes.next(i)? {
                 //quote escapes
-                '\'' => buf.push('\''),
-                '"' => buf.push('"'),
+                b'\'' => buf.push('\''),
+                b'"' => buf.push('"'),
                 //ascii escapes
-                'x' => buf.push(parse_7bit(chars)?),
-                'n' => buf.push('\n'),
-                'r' => buf.push('\r'),
-                't' => buf.push('\t'),
-                '\\' => buf.push('\\'),
-                '0' => buf.push('\0'),
+                b'x' => buf.push(parse_7bit(bytes, i)?),
+                b'n' => buf.push('\n'),
+                b'r' => buf.push('\r'),
+                b't' => buf.push('\t'),
+                b'\\' => buf.push('\\'),
+                b'0' => buf.push('\0'),
                 //unicode escape
-                'u' => buf.push(parse_24bit(chars)?),
+                b'u' => buf.push(parse_24bit(bytes, i)?),
                 //whitespace ignore
-                '\n' => {
-                    for c in chars.by_ref() {
-                        let (' ' | '\n' | '\r' | '\t') = c else {
-                            next = Some(c);
+                b'\n' => {
+                    while let Some(c) = bytes.next(i) {
+                        let (b' ' | b'\n' | b'\r' | b'\t') = c else {
                             continue 'outer;
                         };
                     }
@@ -42,97 +56,92 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
                 }
                 _ => return None, // invalid char
             },
-            '{' => match chars.next()? {
-                '{' => buf.push_str("{{"),
-                '}' => buf.push_str("{}"),
+            b'{' => match bytes.next(i)? {
+                b'{' => buf.push_str("{{"),
+                b'}' => buf.push_str("{}"),
                 ch => {
                     let mut close_found = false;
+                    let mut output = None;
                     match ch {
-                        '+' | '-' | '#' => (),
+                        b'+' | b'-' | b'#' => (),
                         _ => {
-                            buf.push('{');
-                            buf.push(ch);
-                            chars
-                                .by_ref()
-                                .take_while(|&c| match c {
-                                    '+' | '-' | '#' => false,
-                                    '}' => {
+                            let start = *i;
+                            'inner: while let Some(&c) = bytes.next(i) {
+                                match c {
+                                    b'+' | b'-' | b'#' => break 'inner,
+                                    b'}' => {
                                         close_found = true;
-                                        false
+                                        break 'inner;
                                     }
-                                    _ => true,
-                                })
-                                .for_each(|c| buf.push(c));
-                            buf.push('}');
+                                    _ => (),
+                                }
+                            }
+                            output = Some(&s[start..*i]);
                         }
                     }
                     if !close_found {
                         buf.push_str("\x1b[");
-                        chars
-                            .by_ref()
-                            .take_while(|&c| match c {
-                                '+' | '-' | '#' => false,
-                                '}' => {
-                                    close_found = true;
-                                    false
-                                }
-                                _ => true,
-                            })
-                            .for_each(|ch| sgr_buf.push(ch));
-                        buf.push_str(&parse_sgr(chars.next()?, &mut sgr_buf)?.to_string());
-                        sgr_buf.clear();
                         while !close_found {
-                            dbg!(&buf);
-                            chars
-                                .by_ref()
-                                .take_while(|&c| match c {
-                                    '+' | '-' | '#' => false,
-                                    '}' => {
+                            let start = *i;
+                            'inner: while let Some(&c) = bytes.next(i) {
+                                match c {
+                                    b'+' | b'-' | b'#' => break 'inner,
+                                    b'}' => {
                                         close_found = true;
-                                        false
+                                        break 'inner;
                                     }
-                                    _ => true,
-                                })
-                                .for_each(|ch| sgr_buf.push(ch));
+                                    _ => (),
+                                }
+                            }
+                            buf.push_str(&parse_sgr(bytes[start], &s[start + 1..*i])?.to_string());
                             buf.push(';');
-                            buf.push_str(&parse_sgr(chars.next()?, &mut sgr_buf)?.to_string());
-                            sgr_buf.clear();
                         }
+                        buf.pop()?;
                         buf.push('m');
+                    }
+                    if let Some(output) = output {
+                        buf.push('{');
+                        buf.push_str(output);
+                        buf.push('}');
                     }
                 }
             },
-            '}' => match chars.next()? {
-                '}' => buf.push_str("}}"),
+            b'}' => match bytes.next(i)? {
+                b'}' => buf.push_str("}}"),
                 _ => buf.push('}'),
             },
-            c => buf.push(c),
+            c => buf.push(c as char),
         }
-        next = chars.next();
+        *i += 1;
     }
     Some(buf)
 }
 
-fn parse_7bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
+fn parse_7bit(chars: &[u8], i: &mut usize) -> Option<char> {
     let mut src = String::with_capacity(2);
-    src.push(chars.next()?);
-    src.push(chars.next()?);
+    src.push(*chars.next(i)? as char);
+    src.push(*chars.next(i)? as char);
 
     char::from_u32(u32::from_str_radix(&src, 16).ok()?)
 }
-fn parse_24bit(chars: &mut impl Iterator<Item = char>) -> Option<char> {
-    chars.next()?;
-    let src: String = chars.take_while(|&c| c != '}').collect();
+fn parse_24bit(chars: &[u8], i: &mut usize) -> Option<char> {
+    let mut src = String::new();
+
+    chars.next(i)?;
+    while let Some(&c) = chars.next(i) {
+        if c == b'}' {
+            break;
+        }
+        src.push(c as char)
+    }
 
     char::from_u32(u32::from_str_radix(&src, 16).ok()?)
 }
-fn parse_sgr(ch: char, sgr_buf: &str) -> Option<u8> {
-    dbg!(ch);
-    dbg!(&sgr_buf);
+fn parse_sgr(ch: u8, sgr_buf: &str) -> Option<u8> {
     match ch {
-        '+' => parse_add_style(&sgr_buf),
-        '-' => parse_sub_style(&sgr_buf),
-        '#' => parse_color(&sgr_buf),
+        b'+' => parse_add_style(&sgr_buf),
+        b'-' => parse_sub_style(&sgr_buf),
+        b'#' => parse_color(&sgr_buf),
         _ => None,
     }
 }

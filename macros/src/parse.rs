@@ -1,4 +1,4 @@
-pub(super) fn parse_literal(s: &str) -> Option<&str> {
+pub fn parse_literal(s: &str) -> Option<&str> {
     // s.strip_prefix('r')
     //     .map_or(s, |s| s.trim_matches('#'))
     //     .strip_prefix('"')
@@ -16,7 +16,7 @@ impl Next for &[u8] {
         self.get(*i)
     }
 }
-pub(super) fn parse_string(s: &str) -> Option<String> {
+pub fn parse_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len()); // most likely too much capacity
     let bytes = s.as_bytes();
     let i = &mut 0;
@@ -56,16 +56,7 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
                         b'+' | b'-' | b'#' => (),
                         _ => {
                             let start = *i;
-                            'inner: while let Some(&c) = bytes.next(i) {
-                                match c {
-                                    b'+' | b'-' | b'#' => break 'inner,
-                                    b'}' => {
-                                        close_found = true;
-                                        break 'inner;
-                                    }
-                                    _ => (),
-                                }
-                            }
+                            until_next(bytes, i, &mut close_found);
                             output = Some(&s[start..*i]);
                         }
                     }
@@ -73,16 +64,7 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
                         buf.push_str("\x1b[");
                         while !close_found {
                             let start = *i;
-                            'inner: while let Some(&c) = bytes.next(i) {
-                                match c {
-                                    b'+' | b'-' | b'#' => break 'inner,
-                                    b'}' => {
-                                        close_found = true;
-                                        break 'inner;
-                                    }
-                                    _ => (),
-                                }
-                            }
+                            until_next(bytes, i, &mut close_found);
                             buf.push_str(&parse_sgr(bytes[start], &s[start + 1..*i])?.to_string());
                             buf.push(';');
                         }
@@ -106,6 +88,19 @@ pub(super) fn parse_string(s: &str) -> Option<String> {
     }
     Some(buf)
 }
+#[inline]
+fn until_next(bytes: &[u8], i: &mut usize, close_found: &mut bool) {
+    while let Some(&c) = bytes.next(i) {
+        match c {
+            b'+' | b'-' | b'#' => return,
+            b'}' => {
+                *close_found = true;
+                return;
+            }
+            _ => (),
+        }
+    }
+}
 
 fn parse_7bit(chars: &[u8], i: &mut usize) -> Option<char> {
     let mut src = String::with_capacity(2);
@@ -122,7 +117,7 @@ fn parse_24bit(chars: &[u8], i: &mut usize) -> Option<char> {
         if c == b'}' {
             break;
         }
-        src.push(c as char)
+        src.push(c as char);
     }
 
     char::from_u32(u32::from_str_radix(&src, 16).ok()?)
@@ -151,8 +146,7 @@ fn parse_add_style(s: &str) -> Option<u8> {
 }
 fn parse_sub_style(s: &str) -> Option<u8> {
     match s {
-        "Bold" => Some(22),
-        "Dim" => Some(22),
+        "Bold" | "Dim" => Some(22),
         "Italic" => Some(23),
         "Underline" => Some(24),
         "Blinking" => Some(25),

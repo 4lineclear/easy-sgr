@@ -3,10 +3,27 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, TokenStream, 
 
 mod parse;
 
-#[proc_macro]
-pub fn println(input: TokenStream) -> TokenStream {
-    sgr("println", input)
+macro_rules! def_macros {
+    ($($name:ident),*) => {
+        $(
+            #[proc_macro]
+            pub fn $name(input: TokenStream) -> TokenStream {
+                sgr(stringify!($name), input)
+            }
+        )*
+    };
 }
+
+def_macros!(
+    format,
+    write,
+    writeln,
+    print,
+    println,
+    eprint,
+    eprintln,
+    format_args
+);
 
 fn sgr(macro_call: &str, input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter();
@@ -19,13 +36,6 @@ fn sgr(macro_call: &str, input: TokenStream) -> TokenStream {
                 None => literal,
             })
         }
-        // Some(TokenTree::Literal(s)) => match parse_literal(&s.to_string()) {
-        //     Ok(s) => TokenTree::Literal(Literal::string(match parse_string(&s) {
-        //         Some(s) => &s,
-        //         None => s,
-        //     })),
-        //     Err(s) => TokenTree::Literal(Literal::string(&s)),
-        // },
         Some(t) => t,
         None => TokenTree::Literal(Literal::string("")),
     };

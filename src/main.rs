@@ -1,10 +1,12 @@
-// use easy_sgr_macros::{replace_sgr, sgr_test};
+use easy_sgr_macros as esm;
 
 fn main() {
     let i = "should be styled,";
-    easy_sgr_macros::println!(
-        "{i+Italic-Bold#RedFg#BlackBg} this too\0 {}\
+    esm::println!(
+        "{i+Italic+Strikethrough#RedFg#BlackBg} this too\0 {}\
     ",
         i
     );
+    esm::println!("{-Italic-Strikethrough}less styles");
+    esm::println!("{#DefaultFg#DefaultBg}no styles");
 }

@@ -1,5 +1,5 @@
 //!The proc-macro implementation for the easy-sgr string
-#![forbid(unsafe_code)]
+#![allow(unsafe_code)]
 #![deny(
     clippy::all,
     clippy::pedantic,

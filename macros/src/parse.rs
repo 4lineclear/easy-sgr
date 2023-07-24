@@ -12,13 +12,13 @@ struct Bytes<'a> {
     i: usize,
 }
 
-impl<'a> std::ops::Index<usize> for Bytes<'a> {
-    type Output = u8;
+// impl<'a> std::ops::Index<usize> for Bytes<'a> {
+//     type Output = u8;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.bytes[index]
-    }
-}
+//     fn index(&self, index: usize) -> &Self::Output {
+//         &self.bytes[index]
+//     }
+// }
 
 impl<'a> Bytes<'a> {
     const fn current(&self) -> u8 {
@@ -52,14 +52,14 @@ pub fn parse_string(s: &str) -> Option<String> {
                 b'\'' => buf.push('\''),
                 b'"' => buf.push('"'),
                 //ascii escapes
-                b'x' => buf.push(parse_7bit(bytes)?),
+                b'x' => buf.push(parse_7bit(bytes, s)?),
                 b'n' => buf.push('\n'),
                 b'r' => buf.push('\r'),
                 b't' => buf.push('\t'),
                 b'\\' => buf.push('\\'),
                 b'0' => buf.push('\0'),
                 //unicode escape
-                b'u' => buf.push(parse_24bit(bytes)?),
+                b'u' => buf.push(parse_24bit(bytes, s)?),
                 //whitespace ignore
                 b'\n' => {
                     while let Some(b) = bytes.next() {
@@ -91,7 +91,9 @@ pub fn parse_string(s: &str) -> Option<String> {
                             let delim = bytes.i;
                             let start = bytes.i + 1;
                             until_next(bytes, &mut close_found);
-                            buf.push_str(&parse_sgr(bytes[delim], &s[start..bytes.i])?.to_string());
+                            buf.push_str(
+                                &parse_sgr(bytes.bytes[delim], &s[start..bytes.i])?.to_string(),
+                            );
                             buf.push(';');
                         }
                         buf.pop()?;
@@ -142,25 +144,20 @@ fn until_next(bytes: &mut Bytes, close_found: &mut bool) {
     }
 }
 
-fn parse_7bit(bytes: &mut Bytes) -> Option<char> {
-    let mut src = String::with_capacity(2);
-    src.push(bytes.next()? as char);
-    src.push(bytes.next()? as char);
-
-    char::from_u32(u32::from_str_radix(&src, 16).ok()?)
+fn parse_7bit(bytes: &mut Bytes, s: &str) -> Option<char> {
+    let start = bytes.i + 1;
+    bytes.i += 2;
+    char::from_u32(u32::from_str_radix(dbg!(&s[start..=bytes.i]), 16).ok()?)
 }
-fn parse_24bit(bytes: &mut Bytes) -> Option<char> {
-    let mut src = String::new();
-
-    bytes.next()?;
+fn parse_24bit(bytes: &mut Bytes, s: &str) -> Option<char> {
+    bytes.i += 2;
+    let start = bytes.i;
     while let Some(c) = bytes.next() {
         if c == b'}' {
             break;
         }
-        src.push(c as char);
     }
-
-    char::from_u32(u32::from_str_radix(&src, 16).ok()?)
+    char::from_u32(u32::from_str_radix(&s[start..bytes.i], 16).ok()?)
 }
 fn parse_sgr(ch: u8, s: &str) -> Option<u8> {
     match ch {
@@ -206,7 +203,7 @@ fn parse_color(s: &str) -> Option<u8> {
         "MagentaFg" => Some(35),
         "CyanFg" => Some(36),
         "WhiteFg" => Some(37),
-        "DefaultFg" => Some(38),
+        "DefaultFg" => Some(39),
         "BlackBg" => Some(40),
         "RedBg" => Some(41),
         "GreenBg" => Some(42),
@@ -215,7 +212,7 @@ fn parse_color(s: &str) -> Option<u8> {
         "MagentaBg" => Some(45),
         "CyanBg" => Some(46),
         "WhiteBg" => Some(47),
-        "DefaultBg" => Some(48),
+        "DefaultBg" => Some(49),
         _ => None,
     }
 }

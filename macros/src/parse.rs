@@ -16,6 +16,7 @@ impl Next for &[u8] {
         self.get(*i)
     }
 }
+#[allow(clippy::cast_possible_wrap)]
 pub fn parse_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len()); // most likely too much capacity
     let bytes = s.as_bytes();
@@ -82,7 +83,21 @@ pub fn parse_string(s: &str) -> Option<String> {
                 b'}' => buf.push_str("}}"),
                 _ => buf.push('}'),
             },
-            c => buf.push(c as char),
+            c => {
+                if (c as i8) >= -0x40 {
+                    buf.push(c as char);
+                } else {
+                    let start = *i;
+                    while let Some(&c) = bytes.next(i) {
+                        if (c as i8) >= -0x40 {
+                            *i -= 1;
+                            break;
+                        }
+                    }
+                    buf.pop()?;
+                    buf.push_str(std::str::from_utf8(&bytes[start - 1..=*i]).ok()?);
+                }
+            }
         }
         *i += 1;
     }

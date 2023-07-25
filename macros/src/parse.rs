@@ -1,3 +1,5 @@
+use std::str::CharIndices;
+
 pub fn parse_literal(s: &str) -> Option<&str> {
     // s.strip_prefix('r')
     //     .map_or(s, |s| s.trim_matches('#'))
@@ -7,63 +9,31 @@ pub fn parse_literal(s: &str) -> Option<&str> {
 
     s.strip_prefix('"')?.strip_suffix('"')
 }
-struct Bytes<'a> {
-    bytes: &'a [u8],
-    i: usize,
-}
-
-// impl<'a> std::ops::Index<usize> for Bytes<'a> {
-//     type Output = u8;
-
-//     fn index(&self, index: usize) -> &Self::Output {
-//         &self.bytes[index]
-//     }
-// }
-
-impl<'a> Bytes<'a> {
-    const fn current(&self) -> u8 {
-        self.bytes[self.i]
-    }
-    const fn remaining(&self) -> bool {
-        self.i < self.bytes.len()
-    }
-    fn next(&mut self) -> Option<u8> {
-        self.i += 1;
-        // SAFETY: index is checked
-        if self.i < self.bytes.len() {
-            unsafe { Some(*self.bytes.get_unchecked(self.i)) }
-        } else {
-            None
-        }
-    }
-}
 
 #[allow(clippy::cast_possible_wrap)]
 pub fn parse_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len()); // most likely too much capacity
-    let bytes = &mut Bytes {
-        bytes: s.as_bytes(),
-        i: 0,
-    };
-    'outer: while bytes.remaining() {
-        match bytes.current() {
-            b'\\' => match bytes.next()? {
+    let chars = &mut s.char_indices();
+    let mut next = chars.next();
+    'outer: while next.is_some() {
+        match next?.1 {
+            '\\' => match chars.next()? {
                 //quote escapes
-                b'\'' => buf.push('\''),
-                b'"' => buf.push('"'),
+                (_, '\'') => buf.push('\''),
+                (_, '"') => buf.push('"'),
                 //ascii escapes
-                b'x' => buf.push(parse_7bit(bytes, s)?),
-                b'n' => buf.push('\n'),
-                b'r' => buf.push('\r'),
-                b't' => buf.push('\t'),
-                b'\\' => buf.push('\\'),
-                b'0' => buf.push('\0'),
+                (i, 'x') => buf.push(parse_7bit(i, chars, s)?),
+                (_, 'n') => buf.push('\n'),
+                (_, 'r') => buf.push('\r'),
+                (_, 't') => buf.push('\t'),
+                (_, '\\') => buf.push('\\'),
+                (_, '0') => buf.push('\0'),
                 //unicode escape
-                b'u' => buf.push(parse_24bit(bytes, s)?),
+                (_, 'u') => buf.push(parse_24bit(chars, s)?),
                 //whitespace ignore
-                b'\n' => {
-                    while let Some(b) = bytes.next() {
-                        let (b' ' | b'\n' | b'\r' | b'\t') = b else {
+                (_, '\n') => {
+                    while let Some(b) = chars.next() {
+                        let (' ' | '\n' | '\r' | '\t') = b.1 else {
                             continue 'outer;
                         };
                     }
@@ -71,30 +41,31 @@ pub fn parse_string(s: &str) -> Option<String> {
                 }
                 _ => return None, // invalid char
             },
-            b'{' => match bytes.next()? {
-                b'{' => buf.push_str("{{"),
-                b'}' => buf.push_str("{}"),
-                ch => {
+            '{' => match chars.next()? {
+                (_, '{') => buf.push_str("{{"),
+                (_, '}') => buf.push_str("{}"),
+                (mut i, mut ch) => {
                     let mut close_found = false;
                     let mut output = None;
                     match ch {
-                        b'+' | b'-' | b'#' => (),
+                        '+' | '-' | '#' => (),
                         _ => {
-                            let start = bytes.i;
-                            until_next(bytes, &mut close_found);
-                            output = Some(&s[start..bytes.i]);
+                            let start = i;
+                            let (end, next_ch) = until_next(chars, &mut close_found)?;
+                            output = Some(&s[start..end]);
+                            i = end;
+                            ch = next_ch;
                         }
                     }
                     if !close_found {
                         buf.push_str("\x1b[");
                         while !close_found {
-                            let delim = bytes.i;
-                            let start = bytes.i + 1;
-                            until_next(bytes, &mut close_found);
-                            buf.push_str(
-                                &parse_sgr(bytes.bytes[delim], &s[start..bytes.i])?.to_string(),
-                            );
+                            let start = i + 1;
+                            let (end, next_ch) = until_next(chars, &mut close_found)?;
+                            buf.push_str(&parse_sgr(ch, &s[start..end])?.to_string());
                             buf.push(';');
+                            i = end;
+                            ch = next_ch;
                         }
                         buf.pop()?;
                         buf.push('m');
@@ -106,64 +77,45 @@ pub fn parse_string(s: &str) -> Option<String> {
                     }
                 }
             },
-            b'}' => match bytes.next()? {
-                b'}' => buf.push_str("}}"),
+            '}' => match chars.next()?.1 {
+                '}' => buf.push_str("}}"),
                 _ => buf.push('}'),
             },
-            b => {
-                if (b as i8) >= -0x40 {
-                    buf.push(b as char);
-                } else {
-                    let start = bytes.i - 1;
-                    while let Some(c) = bytes.next() {
-                        if (c as i8) >= -0x40 {
-                            bytes.i -= 1;
-                            break;
-                        }
-                    }
-                    buf.pop()?;
-                    buf.push_str(std::str::from_utf8(&bytes.bytes[start..=bytes.i]).ok()?);
-                }
+            c => {
+                buf.push(c as char);
             }
         }
-        bytes.i += 1;
+        next = chars.next();
     }
     Some(buf)
 }
 #[inline]
-fn until_next(bytes: &mut Bytes, close_found: &mut bool) {
-    while let Some(c) = bytes.next() {
-        match c {
-            b'+' | b'-' | b'#' => return,
-            b'}' => {
-                *close_found = true;
-                return;
-            }
-            _ => (),
+fn until_next(chars: &mut CharIndices, close_found: &mut bool) -> Option<(usize, char)> {
+    chars.find(|(_, c)| match c {
+        '+' | '-' | '#' => true,
+        '}' => {
+            *close_found = true;
+            true
         }
-    }
+        _ => false,
+    })
 }
 
-fn parse_7bit(bytes: &mut Bytes, s: &str) -> Option<char> {
-    let start = bytes.i + 1;
-    bytes.i += 2;
-    char::from_u32(u32::from_str_radix(dbg!(&s[start..=bytes.i]), 16).ok()?)
+fn parse_7bit(i: usize, chars: &mut CharIndices, s: &str) -> Option<char> {
+    let start = i + 1;
+    let (end, _) = chars.nth(2)?;
+    char::from_u32(u32::from_str_radix(&s[start..=end], 16).ok()?)
 }
-fn parse_24bit(bytes: &mut Bytes, s: &str) -> Option<char> {
-    bytes.i += 2;
-    let start = bytes.i;
-    while let Some(c) = bytes.next() {
-        if c == b'}' {
-            break;
-        }
-    }
-    char::from_u32(u32::from_str_radix(&s[start..bytes.i], 16).ok()?)
+fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
+    let (start, _) = chars.nth(1)?;
+    let (end, _) = chars.find(|c| c.1 == '}')?;
+    char::from_u32(u32::from_str_radix(&s[start..end], 16).ok()?)
 }
-fn parse_sgr(ch: u8, s: &str) -> Option<u8> {
+fn parse_sgr(ch: char, s: &str) -> Option<u8> {
     match ch {
-        b'+' => parse_add_style(s),
-        b'-' => parse_sub_style(s),
-        b'#' => parse_color(s),
+        '+' => parse_add_style(s),
+        '-' => parse_sub_style(s),
+        '#' => parse_color(s),
         _ => None,
     }
 }

@@ -11,13 +11,14 @@ pub fn parse_literal(s: &str) -> Option<&str> {
 }
 
 #[allow(clippy::cast_possible_wrap)]
-pub fn parse_string(s: &str) -> Option<String> {
-    let mut buf = String::with_capacity(s.len()); // most likely too much capacity
+pub fn parse_string(s: &str) -> String {
+    let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
     let mut next = chars.next();
     'outer: while let Some((_, ch)) = next {
         match ch {
-            '\\' => match chars.next()? {
+            // cannot fail, in the case that it does something is very wrong
+            '\\' => match chars.next().unwrap() {
                 //quote escapes
                 (_, '\'') => buf.push('\''),
                 (_, '"') => buf.push('"'),
@@ -51,13 +52,14 @@ pub fn parse_string(s: &str) -> Option<String> {
                 Some((mut i, mut ch)) => {
                     let mut close_found = false;
                     let mut output = None;
+                    // ch is the delimiter, if not + | - | # it is a var/format param
                     match ch {
                         '+' | '-' | '#' => (),
                         _ => {
                             let start = i;
                             let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
                                 buf.push_str(&s[start-1..]);
-                                return Some(buf);
+                                return buf;
                             };
                             output = Some(&s[start..end]);
                             i = end; // current end is next delimiter's index
@@ -69,8 +71,7 @@ pub fn parse_string(s: &str) -> Option<String> {
                         while !close_found {
                             let start = i + 1; // char at i is the delimiter, add by one to ignore it
                             let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                                buf.push_str(&s[start-2..]);
-                                return Some(buf);
+                                panic!("Bracket close not found")
                             };
                             let Some(_) = parse_sgr(ch, &s[start..end], &mut buf) else{
                                 panic!("Invalid keyword: {}", &s[start..end])
@@ -79,7 +80,8 @@ pub fn parse_string(s: &str) -> Option<String> {
                             i = end; // current end is next delimiter's index
                             ch = next_ch; // current next_ch is next delimiter
                         }
-                        buf.pop()?; // remove last ';'
+                        // cannot fail, in the case that it does something is very wrong
+                        buf.pop().unwrap(); // remove last ';'
                         buf.push('m');
                     }
                     if let Some(output) = output {
@@ -101,7 +103,7 @@ pub fn parse_string(s: &str) -> Option<String> {
         }
         next = chars.next();
     }
-    Some(buf)
+    buf
 }
 #[inline]
 fn find_delimiter(chars: &mut CharIndices, close_found: &mut bool) -> Option<(usize, char)> {

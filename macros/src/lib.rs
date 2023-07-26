@@ -47,19 +47,27 @@ def_macros!(
     format_args
 );
 
+/// Creates a [`TokenStream`] macro call,
+/// meant for `fmt` macros
+///
+/// # Params
+///
+/// - `macro_call`: What macro to make
+/// - `input`: The [`TokenStream`] to parse
+///
+/// This may change in the future to just returning the [`TokenStream`]
+/// that is inputted in the macro call
 fn sgr(macro_call: &str, input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter();
-    let token = match tokens.next() {
-        Some(TokenTree::Literal(literal)) => {
-            TokenTree::Literal(parse_literal(&literal.to_string()).map_or(literal, |s| {
-                parse_string(s)
-                    .map_or_else(|| Literal::string(s), |parsed| Literal::string(&parsed))
-            }))
-        }
+    let literal = match tokens.next() {
+        Some(TokenTree::Literal(literal)) => TokenTree::Literal(
+            parse_literal(&literal.to_string())
+                .map_or(literal, |s| Literal::string(&parse_string(s))),
+        ),
         Some(t) => t,
         None => TokenTree::Literal(Literal::string("")),
     };
-    let span = token.span();
+    let span = literal.span();
 
     [
         TokenTree::Ident(Ident::new(macro_call, span)),
@@ -67,7 +75,7 @@ fn sgr(macro_call: &str, input: TokenStream) -> TokenStream {
         TokenTree::Group({
             let mut group = Group::new(
                 Delimiter::Parenthesis,
-                std::iter::once(token).chain(tokens).collect(),
+                std::iter::once(literal).chain(tokens).collect(),
             );
             group.set_span(span);
             group

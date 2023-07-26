@@ -10,6 +10,18 @@ pub fn parse_literal(s: &str) -> Option<&str> {
     s.strip_prefix('"')?.strip_suffix('"')
 }
 
+/// Removes escapes, parses keywords into their SGR code counterparts
+///
+/// # Panics
+///
+/// When invalid string is inputted:
+///
+/// - Invalid escape
+/// - Unclosed bracket
+/// - Invalid keyword
+///
+/// Other than that, the string returned may be an invalid string literal.
+/// In these cases, the rust compiler should alert the user of the error.
 #[allow(clippy::cast_possible_wrap)]
 pub fn parse_string(s: &str) -> String {
     let mut buf = String::with_capacity(s.len());
@@ -17,26 +29,22 @@ pub fn parse_string(s: &str) -> String {
     let mut next = chars.next();
     'outer: while let Some((_, ch)) = next {
         match ch {
-            // cannot fail, in the case that it does something is very wrong
-            '\\' => match chars.next().unwrap() {
+            // unwrap cannot fail, in the case that it does something is very wrong
+            '\\' => match chars.next().unwrap().1 {
                 //quote escapes
-                (_, '\'') => buf.push('\''),
-                (_, '"') => buf.push('"'),
+                '\'' => buf.push('\''),
+                '"' => buf.push('"'),
                 //ascii escapes
-                (i, 'x') => {
-                    buf.push(parse_7bit(i, chars, s).expect("Invalid escape, see compiler error"));
-                }
-                (_, 'n') => buf.push('\n'),
-                (_, 'r') => buf.push('\r'),
-                (_, 't') => buf.push('\t'),
-                (_, '\\') => buf.push('\\'),
-                (_, '0') => buf.push('\0'),
+                'x' => buf.push(parse_7bit(chars, s).expect("Invalid escape, see compiler error")),
+                'n' => buf.push('\n'),
+                'r' => buf.push('\r'),
+                't' => buf.push('\t'),
+                '\\' => buf.push('\\'),
+                '0' => buf.push('\0'),
                 //unicode escape
-                (_, 'u') => {
-                    buf.push(parse_24bit(chars, s).expect("Invalid escape, see compiler error"));
-                }
+                'u' => buf.push(parse_24bit(chars, s).expect("Invalid escape, see compiler error")),
                 //whitespace ignore
-                (_, '\n') => {
+                '\n' => {
                     for (_, c) in chars.by_ref() {
                         let (' ' | '\n' | '\r' | '\t') = c else {
                             continue 'outer;
@@ -44,7 +52,7 @@ pub fn parse_string(s: &str) -> String {
                     }
                     // end of string reached
                 }
-                (_, ch) => panic!(" Invalid escape '\\{ch}', see compile error"), // invalid char
+                ch => panic!("Invalid escape '\\{ch}', see compile error"), // invalid char
             },
             '{' => match chars.next() {
                 Some((_, '{')) => buf.push_str("{{"),
@@ -58,8 +66,10 @@ pub fn parse_string(s: &str) -> String {
                         _ => {
                             let start = i;
                             let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                                buf.push_str(&s[start-1..]);
+                                buf.push_str(dbg!(&s[start-1..])); // -1 to include bracket
                                 return buf;
+                                // ignores invalid bracket, push rest of string to buf
+                                // compiler will let user know of error
                             };
                             output = Some(&s[start..end]);
                             i = end; // current end is next delimiter's index
@@ -71,17 +81,19 @@ pub fn parse_string(s: &str) -> String {
                         while !close_found {
                             let start = i + 1; // char at i is the delimiter, add by one to ignore it
                             let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                                panic!("Bracket close not found")
+                                panic!("Close bracket not found")
                             };
-                            let Some(_) = parse_sgr(ch, &s[start..end], &mut buf) else{
-                                panic!("Invalid keyword: {}", &s[start..end])
-                            };
+                            assert!(
+                                parse_sgr(ch, &s[start..end], &mut buf).is_some(),
+                                "Invalid keyword: {}",
+                                &s[start..end]
+                            );
                             buf.push(';');
                             i = end; // current end is next delimiter's index
                             ch = next_ch; // current next_ch is next delimiter
                         }
-                        // cannot fail, in the case that it does something is very wrong
-                        buf.pop().unwrap(); // remove last ';'
+                        // unwrap cannot fail, in the case that it does something is very wrong
+                        buf.pop().unwrap(); // removes last ';'
                         buf.push('m');
                     }
                     if let Some(output) = output {
@@ -90,7 +102,7 @@ pub fn parse_string(s: &str) -> String {
                         buf.push('}');
                     }
                 }
-                // compiler will let user know of error
+                // unclosed bracket, compiler will let user know of error
                 None => buf.push('{'),
             },
             '}' => match chars.next() {
@@ -105,6 +117,7 @@ pub fn parse_string(s: &str) -> String {
     }
     buf
 }
+/// Finds next valid delimiter
 #[inline]
 fn find_delimiter(chars: &mut CharIndices, close_found: &mut bool) -> Option<(usize, char)> {
     chars.find(|(_, c)| match c {
@@ -117,11 +130,13 @@ fn find_delimiter(chars: &mut CharIndices, close_found: &mut bool) -> Option<(us
     })
 }
 
-fn parse_7bit(i: usize, chars: &mut CharIndices, s: &str) -> Option<char> {
-    let start = i + 1;
+/// Parses 7bit escape(`\x..`) into a char
+fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
     let (end, _) = chars.nth(1)?;
+    let start = end - 2;
     char::from_u32(u32::from_str_radix(&s[start..=end], 16).ok()?)
 }
+/// Parses 7bit escape(`\u{..}`) into a char
 fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
     let (start, _) = chars.nth(1)?;
     let (end, _) = chars.find(|c| c.1 == '}')?;
@@ -240,6 +255,7 @@ trait AppendToString {
 impl AppendToString for u8 {
     /// Appends self converted to a string to an existing string
     fn append_to(&self, s: &mut String) {
+        s.reserve(3); // probably unneeded
         let mut n = *self;
         if n >= 10 {
             if n >= 100 {

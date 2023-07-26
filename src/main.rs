@@ -6,5 +6,4 @@ fn main() {
     );
     easy_sgr::println!("\u{1f604} ☀ ☁ ☂ less styles{#DefaultFg#DefaultBg}");
     easy_sgr::println!("\u{1f604} ☀ ☁ ☂ no styles");
-    easy_sgr::println!(r"hello y'all{}", i);
 }

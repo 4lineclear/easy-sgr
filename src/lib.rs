@@ -225,3 +225,5 @@ pub mod writing;
 pub use discrete::*;
 pub use graphics::*;
 pub use writing::*;
+
+pub use easy_sgr_macros::*;

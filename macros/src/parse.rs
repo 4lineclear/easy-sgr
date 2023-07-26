@@ -93,9 +93,9 @@ pub fn parse_string(s: &str) -> Option<String> {
                 None => buf.push('{'),
             },
             '}' => match chars.next() {
+                Some((_, '}')) => buf.push_str("}}"),
                 // ignores invalid bracket, continues parsing
                 // compiler will let user know of error
-                Some((_, '}')) => buf.push_str("}}"),
                 _ => buf.push('}'),
             },
             ch => buf.push(ch),

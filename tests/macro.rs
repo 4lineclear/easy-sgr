@@ -39,3 +39,31 @@ fn standard_colors() {
     assert_eq!("\x1b[47m", easy_sgr::format!("{#WhiteBg}"));
     assert_eq!("\x1b[49m", easy_sgr::format!("{#DefaultBg}"));
 }
+
+#[test]
+fn byte_color() {
+    assert_eq!(format!("\x1b[38;5;0m"), easy_sgr::format!("{#f(0)}"));
+    assert_eq!(format!("\x1b[48;5;0m"), easy_sgr::format!("{#b(0)}"));
+    assert_eq!(format!("\x1b[38;5;255m"), easy_sgr::format!("{#f(255)}"));
+    assert_eq!(format!("\x1b[48;5;255m"), easy_sgr::format!("{#b(255)}"));
+}
+
+#[test]
+fn rgb_color() {
+    assert_eq!(
+        format!("\x1b[38;2;0;0;0m"),
+        easy_sgr::format!("{#f(0,0,0)}")
+    );
+    assert_eq!(
+        format!("\x1b[48;2;0;0;0m"),
+        easy_sgr::format!("{#b(0,0,0)}")
+    );
+    assert_eq!(
+        format!("\x1b[38;2;255;255;255m"),
+        easy_sgr::format!("{#f(255,255,255)}")
+    );
+    assert_eq!(
+        format!("\x1b[48;2;255;255;255m"),
+        easy_sgr::format!("{#b(255,255,255)}")
+    );
+}

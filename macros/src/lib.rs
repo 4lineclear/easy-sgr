@@ -11,7 +11,7 @@
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
 use parse::{parse_literal, parse_string};
-use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 #[allow(clippy::module_name_repetitions)]
 mod parse;
@@ -22,7 +22,7 @@ macro_rules! def_macros {
             #[$attr]
             #[proc_macro]
             pub fn $name(input: TokenStream) -> TokenStream {
-                sgr(stringify!($name), input)
+                sgr_macro(stringify!($name), input)
             }
         )*
     };
@@ -57,7 +57,23 @@ def_macros!(
 ///
 /// This may change in the future to just returning the [`TokenStream`]
 /// that is inputted in the macro call
-fn sgr(macro_call: &str, input: TokenStream) -> TokenStream {
+fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
+    let (span, stream) = sgr_arguments(input);
+
+    [
+        TokenTree::Ident(Ident::new(macro_call, span)),
+        TokenTree::Punct(Punct::new('!', Spacing::Alone)),
+        TokenTree::Group({
+            let mut group = Group::new(Delimiter::Parenthesis, stream);
+            group.set_span(span);
+            group
+        }),
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn sgr_arguments(input: TokenStream) -> (Span, TokenStream) {
     let mut tokens = input.into_iter();
     let literal = match tokens.next() {
         Some(TokenTree::Literal(literal)) => TokenTree::Literal(
@@ -68,19 +84,5 @@ fn sgr(macro_call: &str, input: TokenStream) -> TokenStream {
         None => TokenTree::Literal(Literal::string("")),
     };
     let span = literal.span();
-
-    [
-        TokenTree::Ident(Ident::new(macro_call, span)),
-        TokenTree::Punct(Punct::new('!', Spacing::Alone)),
-        TokenTree::Group({
-            let mut group = Group::new(
-                Delimiter::Parenthesis,
-                std::iter::once(literal).chain(tokens).collect(),
-            );
-            group.set_span(span);
-            group
-        }),
-    ]
-    .into_iter()
-    .collect()
+    (span, std::iter::once(literal).chain(tokens).collect())
 }

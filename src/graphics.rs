@@ -101,8 +101,8 @@ impl SGRString {
             Magenta => builder.write_code(35),
             Cyan => builder.write_code(36),
             White => builder.write_code(37),
-            Byte(n) => builder.write_codes(&[38, 2, n]),
-            Rgb(r, g, b) => builder.write_codes(&[38, 5, r, g, b]),
+            Byte(n) => builder.write_codes(&[38, 5, n]),
+            Rgb(r, g, b) => builder.write_codes(&[38, 2, r, g, b]),
             Default => builder.write_code(39),
             ColorKind::None => (),
         };
@@ -115,8 +115,8 @@ impl SGRString {
             Magenta => builder.write_code(45),
             Cyan => builder.write_code(46),
             White => builder.write_code(47),
-            Byte(n) => builder.write_codes(&[48, 2, n]),
-            Rgb(r, g, b) => builder.write_codes(&[48, 5, r, g, b]),
+            Byte(n) => builder.write_codes(&[48, 5, n]),
+            Rgb(r, g, b) => builder.write_codes(&[48, 2, r, g, b]),
             Default => builder.write_code(49),
             ColorKind::None => (),
         };

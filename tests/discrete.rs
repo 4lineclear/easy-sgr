@@ -61,8 +61,8 @@ mod normal {
     #[test]
     fn byte_color() {
         for i in (0u8..255).step_by(17) {
-            assert_eq!(format!("\x1b[38;2;{i}m"), format!("{}", ByteFg(i)));
-            assert_eq!(format!("\x1b[48;2;{i}m"), format!("{}", ByteBg(i)));
+            assert_eq!(format!("\x1b[38;5;{i}m"), format!("{}", ByteFg(i)));
+            assert_eq!(format!("\x1b[48;5;{i}m"), format!("{}", ByteBg(i)));
         }
     }
 
@@ -72,11 +72,11 @@ mod normal {
             for j in (0u8..255).step_by(17) {
                 for k in (0u8..255).step_by(17) {
                     assert_eq!(
-                        format!("\x1b[38;5;{i};{j};{k}m"),
+                        format!("\x1b[38;2;{i};{j};{k}m"),
                         format!("{}", RgbFg(i, j, k))
                     );
                     assert_eq!(
-                        format!("\x1b[48;5;{i};{j};{k}m"),
+                        format!("\x1b[48;2;{i};{j};{k}m"),
                         format!("{}", RgbBg(i, j, k))
                     );
                 }
@@ -219,8 +219,8 @@ mod partial {
     #[test]
     fn byte_color() {
         for i in (0u8..255).step_by(17) {
-            assert_eq!(format!("38;2;{i}"), format!("{}", ByteFg(i)));
-            assert_eq!(format!("48;2;{i}"), format!("{}", ByteBg(i)));
+            assert_eq!(format!("38;5;{i}"), format!("{}", ByteFg(i)));
+            assert_eq!(format!("48;5;{i}"), format!("{}", ByteBg(i)));
         }
     }
     #[test]
@@ -228,8 +228,8 @@ mod partial {
         for i in (0u8..255).step_by(17) {
             for j in (0u8..255).step_by(17) {
                 for k in (0u8..255).step_by(17) {
-                    assert_eq!(format!("38;5;{i};{j};{k}"), format!("{}", RgbFg(i, j, k)));
-                    assert_eq!(format!("48;5;{i};{j};{k}"), format!("{}", RgbBg(i, j, k)));
+                    assert_eq!(format!("38;2;{i};{j};{k}"), format!("{}", RgbFg(i, j, k)));
+                    assert_eq!(format!("48;2;{i};{j};{k}"), format!("{}", RgbBg(i, j, k)));
                 }
             }
         }

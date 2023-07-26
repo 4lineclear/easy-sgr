@@ -150,7 +150,7 @@ pub enum Color {
     CyanFg,
     /// Represents the SGR code `37`
     WhiteFg,
-    /// Represents the SGR codes `38;2;<n>`
+    /// Represents the SGR codes `38;5;<n>`
     ///
     /// Where `<n>` is an 8 bit color
     ByteFg(u8),
@@ -177,7 +177,7 @@ pub enum Color {
     CyanBg,
     /// Represents the SGR code `47`
     WhiteBg,
-    /// Represents the SGR codes `48;2;<n>`
+    /// Represents the SGR codes `48;5;<n>`
     ///
     /// Where `<n>` is an 8 bit color
     ByteBg(u8),
@@ -205,8 +205,8 @@ impl DiscreteSGR for Color {
             MagentaFg => builder.write_code(35),
             CyanFg => builder.write_code(36),
             WhiteFg => builder.write_code(37),
-            ByteFg(n) => builder.write_codes(&[38, 2, *n]),
-            RgbFg(r, g, b) => builder.write_codes(&[38, 5, *r, *g, *b]),
+            ByteFg(n) => builder.write_codes(&[38, 5, *n]),
+            RgbFg(r, g, b) => builder.write_codes(&[38, 2, *r, *g, *b]),
             DefaultFg => builder.write_code(39),
 
             BlackBg => builder.write_code(40),
@@ -217,8 +217,8 @@ impl DiscreteSGR for Color {
             MagentaBg => builder.write_code(45),
             CyanBg => builder.write_code(46),
             WhiteBg => builder.write_code(47),
-            ByteBg(n) => builder.write_codes(&[48, 2, *n]),
-            RgbBg(r, g, b) => builder.write_codes(&[48, 5, *r, *g, *b]),
+            ByteBg(n) => builder.write_codes(&[48, 5, *n]),
+            RgbBg(r, g, b) => builder.write_codes(&[48, 2, *r, *g, *b]),
             DefaultBg => builder.write_code(49),
         }
     }

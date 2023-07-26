@@ -45,9 +45,10 @@ pub fn parse_string(s: &str) -> String {
                 'u' => buf.push(parse_24bit(chars, s).expect("Invalid escape, see compiler error")),
                 //whitespace ignore
                 '\n' => {
-                    for (_, c) in chars.by_ref() {
+                    for (i, c) in chars.by_ref() {
                         let (' ' | '\n' | '\r' | '\t') = c else {
-                            continue 'outer;
+                            next = Some((i,c));
+                            continue 'outer; // skip calling: next = chars.next();
                         };
                     }
                     // end of string reached
@@ -66,10 +67,9 @@ pub fn parse_string(s: &str) -> String {
                         _ => {
                             let start = i;
                             let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                                buf.push_str(dbg!(&s[start-1..])); // -1 to include bracket
-                                return buf;
-                                // ignores invalid bracket, push rest of string to buf
+                                // ignores invalid bracket, add rest of string to buf
                                 // compiler will let user know of error
+                                return buf + &s[start-1..];// -1 to include bracket
                             };
                             output = Some(&s[start..end]);
                             i = end; // current end is next delimiter's index
@@ -84,6 +84,8 @@ pub fn parse_string(s: &str) -> String {
                                 panic!("Close bracket not found")
                             };
                             assert!(
+                                // parse_sgr should append the string to the buf
+                                // assert! is to check that an error hasn't occurred
                                 parse_sgr(ch, &s[start..end], &mut buf).is_some(),
                                 "Invalid keyword: {}",
                                 &s[start..end]
@@ -216,29 +218,48 @@ fn parse_color(s: &str, buf: &mut String) -> Option<()> {
             'b' => buf.push_str("48;"),
             _ => return None,
         }
-        if chars.next()? == '(' && chars.next_back()? == ')' {
-            let parts = s[2..s.as_bytes().len() - 1]
-                .split(',')
-                .map(std::str::FromStr::from_str)
-                .collect::<Result<Vec<u8>, _>>()
-                .ok()?;
-            match parts[..] {
-                [n] => {
-                    buf.push_str("5;");
-                    n.append_to(buf);
+        let (left, right) = (chars.next()?, chars.next_back()?);
+        // x[..] -> ..
+        let s = &s[2..s.as_bytes().len() - 1];
+        match (left, right) {
+            ('(', ')') => {
+                let parts = s
+                    .split(',')
+                    .map(std::str::FromStr::from_str)
+                    .collect::<Result<Vec<u8>, _>>()
+                    .ok()?;
+                match parts[..] {
+                    [n] => {
+                        buf.push_str("5;");
+                        n.append_to(buf);
+                    }
+                    [n1, n2, n3] => {
+                        buf.push_str("2;");
+                        n1.append_to(buf);
+                        buf.push(';');
+                        n2.append_to(buf);
+                        buf.push(';');
+                        n3.append_to(buf);
+                    }
+                    _ => return None,
                 }
-                [n1, n2, n3] => {
+            }
+            ('[', ']') => match s.len() {
+                2 => {
+                    buf.push_str("5;");
+                    u8::from_str_radix(s, 16).ok()?.append_to(buf);
+                }
+                6 => {
                     buf.push_str("2;");
-                    n1.append_to(buf);
+                    u8::from_str_radix(&s[0..2], 16).ok()?.append_to(buf);
                     buf.push(';');
-                    n2.append_to(buf);
+                    u8::from_str_radix(&s[2..4], 16).ok()?.append_to(buf);
                     buf.push(';');
-                    n3.append_to(buf);
+                    u8::from_str_radix(&s[4..6], 16).ok()?.append_to(buf);
                 }
                 _ => return None,
-            };
-        } else {
-            return None;
+            },
+            _ => return None,
         }
     }
     Some(())
@@ -255,7 +276,6 @@ trait AppendToString {
 impl AppendToString for u8 {
     /// Appends self converted to a string to an existing string
     fn append_to(&self, s: &mut String) {
-        s.reserve(3); // probably unneeded
         let mut n = *self;
         if n >= 10 {
             if n >= 100 {

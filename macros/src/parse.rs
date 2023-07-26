@@ -166,56 +166,62 @@ fn parse_sub_style(s: &str) -> Option<u8> {
     }
 }
 fn parse_color(s: &str, buf: &mut String) -> Option<()> {
-    match s {
-        "BlackFg" => buf.push_str(&30.to_string()),
-        "RedFg" => buf.push_str(&31.to_string()),
-        "GreenFg" => buf.push_str(&32.to_string()),
-        "YellowFg" => buf.push_str(&33.to_string()),
-        "BlueFg" => buf.push_str(&34.to_string()),
-        "MagentaFg" => buf.push_str(&35.to_string()),
-        "CyanFg" => buf.push_str(&36.to_string()),
-        "WhiteFg" => buf.push_str(&37.to_string()),
-        "DefaultFg" => buf.push_str(&39.to_string()),
-        "BlackBg" => buf.push_str(&40.to_string()),
-        "RedBg" => buf.push_str(&41.to_string()),
-        "GreenBg" => buf.push_str(&42.to_string()),
-        "YellowBg" => buf.push_str(&43.to_string()),
-        "BlueBg" => buf.push_str(&44.to_string()),
-        "MagentaBg" => buf.push_str(&45.to_string()),
-        "CyanBg" => buf.push_str(&46.to_string()),
-        "WhiteBg" => buf.push_str(&47.to_string()),
-        "DefaultBg" => buf.push_str(&49.to_string()),
-        _ => {
-            let mut chars = s.chars();
-            match chars.next()? {
-                'f' => buf.push_str("38;"),
-                'b' => buf.push_str("48;"),
+    #[inline]
+    fn parse_color_simple(s: &str) -> Option<u8> {
+        match s {
+            "BlackFg" => Some(30),
+            "RedFg" => Some(31),
+            "GreenFg" => Some(32),
+            "YellowFg" => Some(33),
+            "BlueFg" => Some(34),
+            "MagentaFg" => Some(35),
+            "CyanFg" => Some(36),
+            "WhiteFg" => Some(37),
+            "DefaultFg" => Some(39),
+            "BlackBg" => Some(40),
+            "RedBg" => Some(41),
+            "GreenBg" => Some(42),
+            "YellowBg" => Some(43),
+            "BlueBg" => Some(44),
+            "MagentaBg" => Some(45),
+            "CyanBg" => Some(46),
+            "WhiteBg" => Some(47),
+            "DefaultBg" => Some(49),
+            _ => None,
+        }
+    }
+    if let Some(n) = parse_color_simple(s) {
+        buf.push_str(&n.to_string());
+    } else {
+        let mut chars = s.chars();
+        match chars.next()? {
+            'f' => buf.push_str("38;"),
+            'b' => buf.push_str("48;"),
+            _ => return None,
+        }
+        if chars.next()? == '(' && chars.next_back()? == ')' {
+            let parts = s[2..s.as_bytes().len() - 1]
+                .split(',')
+                .map(std::str::FromStr::from_str)
+                .collect::<Result<Vec<u8>, _>>()
+                .ok()?;
+            match parts[..] {
+                [n] => {
+                    buf.push_str("5;");
+                    buf.push_str(&n.to_string());
+                }
+                [n1, n2, n3] => {
+                    buf.push_str("2;");
+                    buf.push_str(&n1.to_string());
+                    buf.push(';');
+                    buf.push_str(&n2.to_string());
+                    buf.push(';');
+                    buf.push_str(&n3.to_string());
+                }
                 _ => return None,
-            }
-            if chars.next()? == '(' && chars.next_back()? == ')' {
-                let parts = s[2..s.as_bytes().len() - 1]
-                    .split(',')
-                    .map(std::str::FromStr::from_str)
-                    .collect::<Result<Vec<u8>, _>>()
-                    .ok()?;
-                match parts[..] {
-                    [n] => {
-                        buf.push_str("2;");
-                        buf.push_str(&n.to_string());
-                    }
-                    [n1, n2, n3] => {
-                        buf.push_str("5;");
-                        buf.push_str(&n1.to_string());
-                        buf.push(';');
-                        buf.push_str(&n2.to_string());
-                        buf.push(';');
-                        buf.push_str(&n3.to_string());
-                    }
-                    _ => return None,
-                };
-            } else {
-                return None;
-            }
+            };
+        } else {
+            return None;
         }
     }
     Some(())

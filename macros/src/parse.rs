@@ -130,11 +130,11 @@ fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
 fn parse_sgr(ch: char, s: &str, buf: &mut String) -> Option<()> {
     match ch {
         '+' => {
-            buf.push_str(&parse_add_style(s)?.to_string());
+            parse_add_style(s)?.append_to(buf);
             Some(())
         }
         '-' => {
-            buf.push_str(&parse_sub_style(s)?.to_string());
+            parse_sub_style(s)?.append_to(buf);
             Some(())
         }
         '#' => parse_color(s, buf),
@@ -193,7 +193,7 @@ fn parse_color(s: &str, buf: &mut String) -> Option<()> {
         }
     }
     if let Some(n) = parse_color_simple(s) {
-        buf.push_str(&n.to_string());
+        n.append_to(buf);
     } else {
         let mut chars = s.chars();
         match chars.next()? {
@@ -210,15 +210,15 @@ fn parse_color(s: &str, buf: &mut String) -> Option<()> {
             match parts[..] {
                 [n] => {
                     buf.push_str("5;");
-                    buf.push_str(&n.to_string());
+                    n.append_to(buf);
                 }
                 [n1, n2, n3] => {
                     buf.push_str("2;");
-                    buf.push_str(&n1.to_string());
+                    n1.append_to(buf);
                     buf.push(';');
-                    buf.push_str(&n2.to_string());
+                    n2.append_to(buf);
                     buf.push(';');
-                    buf.push_str(&n3.to_string());
+                    n3.append_to(buf);
                 }
                 _ => return None,
             };
@@ -227,4 +227,28 @@ fn parse_color(s: &str, buf: &mut String) -> Option<()> {
         }
     }
     Some(())
+}
+
+/// A trait for appending self to a given string
+///
+/// Similar to [`ToString`] but appends to existing string
+/// instead of allocating a new one
+trait AppendToString {
+    fn append_to(&self, s: &mut String);
+}
+
+impl AppendToString for u8 {
+    /// Appends self converted to a string to an existing string
+    fn append_to(&self, s: &mut String) {
+        let mut n = *self;
+        if n >= 10 {
+            if n >= 100 {
+                s.push((b'0' + n / 100) as char);
+                n %= 100;
+            }
+            s.push((b'0' + n / 10) as char);
+            n %= 10;
+        }
+        s.push((b'0' + n) as char);
+    }
 }

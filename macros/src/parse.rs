@@ -12,45 +12,24 @@ pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
             let len = s.as_bytes().len();
             let s = s.trim_matches('#');
             let diff = len - s.as_bytes().len();
-            s.strip_prefix('"')?
-                .strip_suffix('"')
-                .map(|s| RawString(s, diff))
+            if diff % 2 == 0 {
+                s.strip_prefix('"')?
+                    .strip_suffix('"')
+                    .map(|s| RawString(s, diff / 2))
+            } else {
+                None
+            }
         }
         None => s.strip_prefix('"')?.strip_suffix('"').map(String),
     }
 }
 pub fn parse_raw_string(s: &str, i: usize) -> String {
-    let mut buf = String::with_capacity(s.len() + i);
-    let chars = &mut s.char_indices();
-    let mut next = chars.next();
+    // add space for r#""#
+    let mut buf = String::with_capacity(s.len() + i * 2 + 3);
     buf.push('r');
-    buf.push('"');
     (0..i).for_each(|_| buf.push('#'));
-
-    while let Some((_, ch)) = next {
-        match ch {
-            '{' => match chars.next() {
-                Some((_, '{')) => buf.push_str("{{"),
-                Some((_, '}')) => buf.push_str("{}"),
-                Some((i, ch)) => {
-                    buf = match parse_param(ch, i, s, chars, buf) {
-                        Ok(s) => s,
-                        Err(s) => return s,
-                    }
-                }
-                // unclosed bracket, compiler will let user know of error
-                None => buf.push('{'),
-            },
-            '}' => match chars.next() {
-                Some((_, '}')) => buf.push_str("}}"),
-                // ignores invalid bracket, continues parsing
-                // compiler will let user know of error
-                _ => buf.push('}'),
-            },
-            ch => buf.push(ch),
-        }
-        next = chars.next();
-    }
+    buf.push('"');
+    buf.push_str(s);
     buf.push('"');
     (0..i).for_each(|_| buf.push('#'));
     buf

@@ -7,5 +7,5 @@ fn main() {
     );
     easy_sgr::println!("\u{1f604} ☀ ☁ ☂ less styles{#DefaultFg#DefaultBg}");
     easy_sgr::println!("\u{1f604} ☀ ☁ ☂ no styles");
-    easy_sgr::println!(r##"{+Italic}#"This\u{1f604} works?"#"##);
+    easy_sgr::println!(r#""You can even use raw strings!""#);
 }

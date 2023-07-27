@@ -10,8 +10,9 @@
 )]
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
+
 use parse::{parse_string, unwrap_string, UnwrappedLiteral};
-use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 use crate::parse::parse_raw_string;
 
@@ -60,21 +61,64 @@ def_macros!(
 /// This may change in the future to just returning the [`TokenStream`]
 /// that is inputted in the macro call
 fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
-    use UnwrappedLiteral::*;
     let mut tokens = input.into_iter();
-    let literal = match tokens.next() {
-        Some(TokenTree::Literal(literal)) => {
-            TokenTree::Literal(match unwrap_string(&literal.to_string()) {
-                Some(String(s)) => Literal::string(&parse_string(s)),
-                Some(RawString(s, i)) => Literal::string(&parse_raw_string(s, i)),
-                None => literal,
+    match create_literal(tokens.next()) {
+        ParsedLiteral::String(token) => create_macro(
+            macro_call,
+            token.span(),
+            std::iter::once(TokenTree::Literal(token))
+                .chain(tokens)
+                .collect(),
+        ),
+        ParsedLiteral::RawString(string) => {
+            // Should not fail
+            create_macro(macro_call, Span::mixed_site(), {
+                // using FromStr is the only way to return a raw string
+                let mut stream: TokenStream = string
+                    .parse()
+                    .expect("Raw string parsing failed, this error should never happen");
+                stream.extend(tokens);
+                stream
             })
         }
-        Some(t) => t,
-        None => TokenTree::Literal(Literal::string("")),
-    };
-    let span = literal.span();
-    let stream = std::iter::once(literal).chain(tokens).collect();
+        // compiler will let user know of invalid token
+        ParsedLiteral::Invalid(token) => create_macro(
+            macro_call,
+            token.span(),
+            std::iter::once(token).chain(tokens).collect(),
+        ),
+        ParsedLiteral::Empty => {
+            create_macro(macro_call, Span::mixed_site(), TokenStream::new())
+        }
+    }
+}
+enum ParsedLiteral {
+    String(Literal),
+    RawString(String),
+    Invalid(TokenTree),
+    Empty,
+}
+impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
+    fn from(value: UnwrappedLiteral) -> Self {
+        use UnwrappedLiteral::*;
+        match value {
+            String(s) => Self::String(Literal::string(&parse_string(s))),
+            RawString(s, i) => Self::RawString(parse_raw_string(s, i)),
+        }
+    }
+}
+fn create_literal(token: Option<TokenTree>) -> ParsedLiteral {
+    use ParsedLiteral::*;
+    match token {
+        Some(TokenTree::Literal(literal)) => match unwrap_string(&literal.to_string()) {
+            Some(unwrapped_literal) => unwrapped_literal.into(),
+            None => Invalid(TokenTree::Literal(literal)),
+        },
+        Some(t) => Invalid(t),
+        None => Empty,
+    }
+}
+fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStream {
     [
         TokenTree::Ident(Ident::new(macro_call, span)),
         TokenTree::Punct(Punct::new('!', Spacing::Alone)),

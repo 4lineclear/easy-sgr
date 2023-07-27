@@ -10,8 +10,8 @@
 )]
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
-use parse::{parse_literal, parse_string};
-use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use parse::{parse_literal, parse_string, UnwrappedLiteral};
+use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, TokenStream, TokenTree};
 
 #[allow(clippy::module_name_repetitions)]
 mod parse;
@@ -58,8 +58,10 @@ def_macros!(
 /// This may change in the future to just returning the [`TokenStream`]
 /// that is inputted in the macro call
 fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
-    let (span, stream) = sgr_arguments(input);
-    //TODO remove this, put it into the macro call
+    let mut tokens = input.into_iter();
+    let literal = sgr(tokens.next());
+    let span = literal.span();
+    let stream = std::iter::once(literal).chain(tokens).collect();
     [
         TokenTree::Ident(Ident::new(macro_call, span)),
         TokenTree::Punct(Punct::new('!', Spacing::Alone)),
@@ -73,16 +75,16 @@ fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     .collect()
 }
 
-fn sgr_arguments(input: TokenStream) -> (Span, TokenStream) {
-    let mut tokens = input.into_iter();
-    let literal = match tokens.next() {
+fn sgr(input: Option<TokenTree>) -> TokenTree {
+    match input {
         Some(TokenTree::Literal(literal)) => TokenTree::Literal(
-            parse_literal(&literal.to_string())
-                .map_or(literal, |s| Literal::string(&parse_string(s))),
+            parse_literal(dbg!(&literal.to_string())).map_or(literal, |s| {
+                Literal::string(&parse_string(match s {
+                    UnwrappedLiteral::String(s) | UnwrappedLiteral::RawString(s, _) => s,
+                }))
+            }),
         ),
         Some(t) => t,
         None => TokenTree::Literal(Literal::string("")),
-    };
-    let span = literal.span();
-    (span, std::iter::once(literal).chain(tokens).collect()) // TODO do not chain tokens
+    }
 }

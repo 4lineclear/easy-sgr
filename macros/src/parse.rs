@@ -1,13 +1,23 @@
 use std::str::CharIndices;
 
-pub fn parse_literal(s: &str) -> Option<&str> {
-    // s.strip_prefix('r')
-    //     .map_or(s, |s| s.trim_matches('#'))
-    //     .strip_prefix('"')
-    //     .and_then(|s| s.strip_suffix('"'))
-    //     .ok_or(s)
-
-    s.strip_prefix('"')?.strip_suffix('"')
+#[derive(Debug)]
+pub enum UnwrappedLiteral<'a> {
+    String(&'a str),
+    RawString(&'a str, usize),
+}
+pub fn parse_literal(s: &str) -> Option<UnwrappedLiteral> {
+    use UnwrappedLiteral::*;
+    match s.strip_prefix('r') {
+        Some(s) => {
+            let len = s.as_bytes().len();
+            let s = s.trim_matches('#');
+            let diff = len - s.as_bytes().len();
+            s.strip_prefix('"')?
+                .strip_suffix('"')
+                .map(|s| RawString(s, diff))
+        }
+        None => s.strip_prefix('"')?.strip_suffix('"').map(String),
+    }
 }
 // TODO remove all panics, return Result instead
 /// Removes escapes, parses keywords into their SGR code counterparts
@@ -94,17 +104,17 @@ pub fn parse_string(s: &str) -> String {
 /// - `s`: the full string to parse
 /// - `chars`: the string's `char_indices`, with chars.next() being the char after ch
 /// - `buf`: the string buf to append and return
-/// 
+///
 /// # Returns
 ///
 /// `buf` with the parsed param appended
-/// 
+///
 /// # Errors
-/// 
+///
 /// Returns `Err(String)` when an unclosed closed brace is found.
-/// 
+///
 /// # Panics
-/// 
+///
 /// When an
 fn parse_param(
     mut ch: char,

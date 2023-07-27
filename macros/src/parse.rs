@@ -9,7 +9,7 @@ pub fn parse_literal(s: &str) -> Option<&str> {
 
     s.strip_prefix('"')?.strip_suffix('"')
 }
-
+// TODO remove all panics, return Result instead
 /// Removes escapes, parses keywords into their SGR code counterparts
 ///
 /// # Panics
@@ -58,50 +58,10 @@ pub fn parse_string(s: &str) -> String {
             '{' => match chars.next() {
                 Some((_, '{')) => buf.push_str("{{"),
                 Some((_, '}')) => buf.push_str("{}"),
-                Some((mut i, mut ch)) => {
-                    let mut close_found = false;
-                    let mut output = None;
-                    // ch is the delimiter, if not + | - | # it is a var/format param
-                    match ch {
-                        '+' | '-' | '#' => (),
-                        _ => {
-                            let start = i;
-                            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                                // ignores invalid bracket, add rest of string to buf
-                                // compiler will let user know of error
-                                return buf + &s[start-1..];// -1 to include bracket
-                            };
-                            output = Some(&s[start..end]);
-                            i = end; // current end is next delimiter's index
-                            ch = next_ch; // current next_ch is next delimiter
-                        }
-                    }
-                    if !close_found {
-                        buf.push_str("\x1b[");
-                        while !close_found {
-                            let start = i + 1; // char at i is the delimiter, add by one to ignore it
-                            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                                panic!("Close bracket not found")
-                            };
-                            assert!(
-                                // parse_sgr should append the string to the buf
-                                // assert! is to check that an error hasn't occurred
-                                parse_sgr(ch, &s[start..end], &mut buf).is_some(),
-                                "Invalid keyword: {}",
-                                &s[start..end]
-                            );
-                            buf.push(';');
-                            i = end; // current end is next delimiter's index
-                            ch = next_ch; // current next_ch is next delimiter
-                        }
-                        // unwrap cannot fail, in the case that it does something is very wrong
-                        buf.pop().unwrap(); // removes last ';'
-                        buf.push('m');
-                    }
-                    if let Some(output) = output {
-                        buf.push('{');
-                        buf.push_str(output);
-                        buf.push('}');
+                Some((i, ch)) => {
+                    buf = match parse_param(ch, i, s, chars, buf) {
+                        Ok(s) => s,
+                        Err(s) => return s,
                     }
                 }
                 // unclosed bracket, compiler will let user know of error
@@ -118,6 +78,86 @@ pub fn parse_string(s: &str) -> String {
         next = chars.next();
     }
     buf
+}
+/// Parses a format param
+///
+/// i.e. something within curly braces:
+///
+/// ```plain
+///"{..}"
+///   ^^
+/// ```
+///
+/// # Params
+/// - `ch`: the char after the opening brace
+/// - `i`: the index of the opening brace plus one(index of `ch`)
+/// - `s`: the full string to parse
+/// - `chars`: the string's `char_indices`, with chars.next() being the char after ch
+/// - `buf`: the string buf to append and return
+/// 
+/// # Returns
+///
+/// `buf` with the parsed param appended
+/// 
+/// # Errors
+/// 
+/// Returns `Err(String)` when an unclosed closed brace is found.
+/// 
+/// # Panics
+/// 
+/// When an
+fn parse_param(
+    mut ch: char,
+    mut i: usize,
+    s: &str,
+    chars: &mut CharIndices,
+    mut buf: String,
+) -> Result<String, String> {
+    let mut close_found = false;
+    let mut output = None;
+    // ch is the delimiter, if not + | - | # it is a var/format param
+    match ch {
+        '+' | '-' | '#' => (),
+        _ => {
+            let start = i;
+            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
+                // ignores invalid bracket, add rest of string to buf
+                // compiler will let user know of error
+                return Err(buf + &s[start-1..]);// -1 to include bracket
+            };
+            output = Some(&s[start..end]);
+            i = end; // current end is next delimiter's index
+            ch = next_ch; // current next_ch is next delimiter
+        }
+    }
+    if !close_found {
+        buf.push_str("\x1b[");
+        while !close_found {
+            let start = i + 1; // char at i is the delimiter, add by one to ignore it
+            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
+                panic!("Close bracket not found")
+            };
+            assert!(
+                // parse_sgr should append the string to the buf
+                // assert! is to check that an error hasn't occurred
+                parse_sgr(ch, &s[start..end], &mut buf).is_some(),
+                "Invalid keyword: {}",
+                &s[start..end]
+            );
+            buf.push(';');
+            i = end; // current end is next delimiter's index
+            ch = next_ch; // current next_ch is next delimiter
+        }
+        // unwrap cannot fail, in the case that it does something is very wrong
+        buf.pop().unwrap(); // removes last ';'
+        buf.push('m');
+    }
+    if let Some(output) = output {
+        buf.push('{');
+        buf.push_str(output);
+        buf.push('}');
+    }
+    Ok(buf)
 }
 /// Finds next valid delimiter
 #[inline]

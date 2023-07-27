@@ -59,7 +59,7 @@ def_macros!(
 /// that is inputted in the macro call
 fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     let (span, stream) = sgr_arguments(input);
-
+    //TODO remove this, put it into the macro call
     [
         TokenTree::Ident(Ident::new(macro_call, span)),
         TokenTree::Punct(Punct::new('!', Spacing::Alone)),
@@ -84,5 +84,5 @@ fn sgr_arguments(input: TokenStream) -> (Span, TokenStream) {
         None => TokenTree::Literal(Literal::string("")),
     };
     let span = literal.span();
-    (span, std::iter::once(literal).chain(tokens).collect())
+    (span, std::iter::once(literal).chain(tokens).collect()) // TODO do not chain tokens
 }

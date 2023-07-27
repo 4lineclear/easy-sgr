@@ -12,13 +12,9 @@ pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
             let len = s.as_bytes().len();
             let s = s.trim_matches('#');
             let diff = len - s.as_bytes().len();
-            if diff % 2 == 0 {
-                s.strip_prefix('"')?
-                    .strip_suffix('"')
-                    .map(|s| RawString(s, diff / 2))
-            } else {
-                None
-            }
+            s.strip_prefix('"')?
+                .strip_suffix('"')
+                .map(|s| RawString(s, diff / 2))
         }
         None => s.strip_prefix('"')?.strip_suffix('"').map(String),
     }

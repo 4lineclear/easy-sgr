@@ -87,9 +87,7 @@ fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
             token.span(),
             std::iter::once(token).chain(tokens).collect(),
         ),
-        ParsedLiteral::Empty => {
-            create_macro(macro_call, Span::mixed_site(), TokenStream::new())
-        }
+        ParsedLiteral::Empty => create_macro(macro_call, Span::mixed_site(), TokenStream::new()),
     }
 }
 enum ParsedLiteral {
@@ -110,10 +108,8 @@ impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
 fn create_literal(token: Option<TokenTree>) -> ParsedLiteral {
     use ParsedLiteral::*;
     match token {
-        Some(TokenTree::Literal(literal)) => match unwrap_string(&literal.to_string()) {
-            Some(unwrapped_literal) => unwrapped_literal.into(),
-            None => Invalid(TokenTree::Literal(literal)),
-        },
+        Some(TokenTree::Literal(literal)) => unwrap_string(&literal.to_string())
+            .map_or_else(|| Invalid(TokenTree::Literal(literal)), Into::into),
         Some(t) => Invalid(t),
         None => Empty,
     }

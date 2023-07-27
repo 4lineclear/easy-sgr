@@ -10,8 +10,10 @@
 )]
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
-use parse::{parse_literal, parse_string, UnwrappedLiteral};
+use parse::{parse_string, unwrap_string, UnwrappedLiteral};
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, TokenStream, TokenTree};
+
+use crate::parse::parse_raw_string;
 
 #[allow(clippy::module_name_repetitions)]
 mod parse;
@@ -58,8 +60,19 @@ def_macros!(
 /// This may change in the future to just returning the [`TokenStream`]
 /// that is inputted in the macro call
 fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
+    use UnwrappedLiteral::*;
     let mut tokens = input.into_iter();
-    let literal = sgr(tokens.next());
+    let literal = match tokens.next() {
+        Some(TokenTree::Literal(literal)) => {
+            TokenTree::Literal(match unwrap_string(&literal.to_string()) {
+                Some(String(s)) => Literal::string(&parse_string(s)),
+                Some(RawString(s, i)) => Literal::string(&parse_raw_string(s, i)),
+                None => literal,
+            })
+        }
+        Some(t) => t,
+        None => TokenTree::Literal(Literal::string("")),
+    };
     let span = literal.span();
     let stream = std::iter::once(literal).chain(tokens).collect();
     [
@@ -73,18 +86,4 @@ fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     ]
     .into_iter()
     .collect()
-}
-
-fn sgr(input: Option<TokenTree>) -> TokenTree {
-    match input {
-        Some(TokenTree::Literal(literal)) => TokenTree::Literal(
-            parse_literal(dbg!(&literal.to_string())).map_or(literal, |s| {
-                Literal::string(&parse_string(match s {
-                    UnwrappedLiteral::String(s) | UnwrappedLiteral::RawString(s, _) => s,
-                }))
-            }),
-        ),
-        Some(t) => t,
-        None => TokenTree::Literal(Literal::string("")),
-    }
 }

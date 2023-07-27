@@ -5,7 +5,7 @@ pub enum UnwrappedLiteral<'a> {
     String(&'a str),
     RawString(&'a str, usize),
 }
-pub fn parse_literal(s: &str) -> Option<UnwrappedLiteral> {
+pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
     use UnwrappedLiteral::*;
     match s.strip_prefix('r') {
         Some(s) => {
@@ -18,6 +18,42 @@ pub fn parse_literal(s: &str) -> Option<UnwrappedLiteral> {
         }
         None => s.strip_prefix('"')?.strip_suffix('"').map(String),
     }
+}
+pub fn parse_raw_string(s: &str, i: usize) -> String {
+    let mut buf = String::with_capacity(s.len() + i);
+    let chars = &mut s.char_indices();
+    let mut next = chars.next();
+    buf.push('r');
+    buf.push('"');
+    (0..i).for_each(|_| buf.push('#'));
+
+    while let Some((_, ch)) = next {
+        match ch {
+            '{' => match chars.next() {
+                Some((_, '{')) => buf.push_str("{{"),
+                Some((_, '}')) => buf.push_str("{}"),
+                Some((i, ch)) => {
+                    buf = match parse_param(ch, i, s, chars, buf) {
+                        Ok(s) => s,
+                        Err(s) => return s,
+                    }
+                }
+                // unclosed bracket, compiler will let user know of error
+                None => buf.push('{'),
+            },
+            '}' => match chars.next() {
+                Some((_, '}')) => buf.push_str("}}"),
+                // ignores invalid bracket, continues parsing
+                // compiler will let user know of error
+                _ => buf.push('}'),
+            },
+            ch => buf.push(ch),
+        }
+        next = chars.next();
+    }
+    buf.push('"');
+    (0..i).for_each(|_| buf.push('#'));
+    buf
 }
 // TODO remove all panics, return Result instead
 /// Removes escapes, parses keywords into their SGR code counterparts
@@ -320,11 +356,11 @@ fn parse_color(s: &str, buf: &mut String) -> Option<()> {
 /// Similar to [`ToString`] but appends to existing string
 /// instead of allocating a new one
 trait AppendToString {
+    /// Appends self converted to a string to an existing string
     fn append_to(&self, s: &mut String);
 }
 
 impl AppendToString for u8 {
-    /// Appends self converted to a string to an existing string
     fn append_to(&self, s: &mut String) {
         let mut n = *self;
         if n >= 10 {

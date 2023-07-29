@@ -135,13 +135,14 @@ fn parse_param(
     mut buf: String,
 ) -> String {
     let mut close_found = false;
+    let mut after_output = false;
     let mut output = None;
     // ch is the delimiter, if not + | - | # it is a var/format param
     match ch {
         '+' | '-' | '#' => (),
         _ => {
             let start = i;
-            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
+            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found, &mut after_output) else {
                 // compiler does not pickup this error unless macro is made
                 // other errors can just be picked up without macro creation
                 return buf + &s[start-1..];// -1 to include bracket
@@ -153,11 +154,21 @@ fn parse_param(
     }
     if !close_found {
         buf.push_str("\x1b[");
+        let mut start = i + 1;
         while !close_found {
-            let start = i + 1; // char at i is the delimiter, add by one to ignore it
-            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                panic!("Close bracket not found")
-            };
+            let (next_start, end, next_ch) =
+                match find_delimiter(chars, &mut close_found, &mut after_output) {
+                    Some((end, next_ch)) => {
+                        if after_output {
+                            // char at i is &, i + 1 is the delimiter, add by two to ignore them
+                            (end + 2, end, chars.next().expect("String ended early").1)
+                        } else {
+                            // char at i is the delimiter, add by one to ignore it
+                            (end + 1, end, next_ch)
+                        }
+                    }
+                    None => panic!("Close bracket not found"),
+                };
             assert!(
                 // parse_sgr should append the string to the buf
                 // assert! is to check that an error hasn't occurred
@@ -165,8 +176,20 @@ fn parse_param(
                 "Invalid keyword: {}",
                 &s[start..end]
             );
-            buf.push(';');
-            i = end; // current end is next delimiter's index
+            if after_output {
+                if let Some(output) = output {
+                    buf.push('m');
+                    buf.push('{');
+                    buf.push_str(output);
+                    buf.push('}');
+                    buf.push_str("\x1b[");
+                }
+                output = None;
+                after_output = false;
+            } else {
+                buf.push(';');
+            }
+            start = next_start;
             ch = next_ch; // current next_ch is next delimiter
         }
         // unwrap cannot fail, in the case that it does something is very wrong
@@ -182,11 +205,19 @@ fn parse_param(
 }
 /// Finds next valid delimiter
 #[inline]
-fn find_delimiter(chars: &mut CharIndices, close_found: &mut bool) -> Option<(usize, char)> {
+fn find_delimiter(
+    chars: &mut CharIndices,
+    close_found: &mut bool,
+    after_output: &mut bool,
+) -> Option<(usize, char)> {
     chars.find(|(_, c)| match c {
         '+' | '-' | '#' => true,
         '}' => {
             *close_found = true;
+            true
+        }
+        '&' => {
+            *after_output = true;
             true
         }
         _ => false,
@@ -328,7 +359,14 @@ trait AppendToString {
     /// Appends self converted to a string to an existing string
     fn append_to(&self, s: &mut String);
 }
-
+// this would be cool
+// impl<AppendToString> ToString for A {
+//     fn to_string(&self) -> String {
+//         let mut buf = String::new();
+//         self.append_to(&mut buf);
+//         buf
+//     }
+// }
 impl AppendToString for u8 {
     fn append_to(&self, s: &mut String) {
         let mut n = *self;

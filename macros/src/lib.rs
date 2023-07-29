@@ -14,7 +14,7 @@
 use parse::{parse_string, unwrap_string, UnwrappedLiteral};
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
-use crate::parse::{parse_raw_string, ParseEscapeError, ParseStringError};
+use crate::parse::parse_raw_string;
 
 #[allow(clippy::module_name_repetitions)]
 mod parse;
@@ -100,7 +100,7 @@ fn sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
             .into_iter()
             .collect()
         }
-        ParsedLiteral::InvalidString(s) => create_compiler_error(&s),
+        ParsedLiteral::InvalidString => TokenStream::new(),
         ParsedLiteral::Empty => create_macro(macro_call, Span::mixed_site(), TokenStream::new()),
     }
 }
@@ -108,29 +108,17 @@ enum ParsedLiteral {
     String(Literal),
     RawString(String),
     InvalidToken(TokenTree, &'static str),
-    InvalidString(String),
+    InvalidString,
     Empty,
 }
 impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
     fn from(value: UnwrappedLiteral) -> Self {
-        use ParseEscapeError::*;
         use UnwrappedLiteral::*;
 
         match value {
-            String(s) => match parse_string(s) {
-                Ok(s) => Self::String(Literal::string(&s)),
-                Err(e) => match e {
-                    ParseStringError::ParseEscape(e) => Self::InvalidString(match e {
-                        EarlyTerminated => "String terminated early".to_string(),
-                        UnclosedBracket => "Bracket unclosed".to_string(),
-                        InvalidU32 => "Invalid character found in escape".to_string(),
-                        ParseIntError(s) => std::format!("{s}"),
-                    }),
-                    ParseStringError::InvalidEscape(ch) => {
-                        Self::InvalidString(std::format!("Invalid character escape found: \\{ch}"))
-                    }
-                },
-            },
+            String(s) => {
+                parse_string(s).map_or(Self::InvalidString, |s| Self::String(Literal::string(&s)))
+            }
             RawString(s, i) => Self::RawString(parse_raw_string(s, i)),
         }
     }
@@ -161,11 +149,4 @@ fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStrea
     ]
     .into_iter()
     .collect()
-}
-fn create_compiler_error(s: &str) -> TokenStream {
-    create_macro(
-        "compile_error",
-        Span::mixed_site(),
-        TokenTree::Literal(Literal::string(s)).into(),
-    )
 }

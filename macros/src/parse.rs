@@ -1,4 +1,4 @@
-use std::{num::ParseIntError, str::CharIndices};
+use std::str::CharIndices;
 
 #[derive(Debug)]
 pub enum UnwrappedLiteral<'a> {
@@ -30,15 +30,6 @@ pub fn parse_raw_string(s: &str, i: usize) -> String {
     (0..i).for_each(|_| buf.push('#'));
     buf
 }
-pub enum ParseStringError {
-    ParseEscape(ParseEscapeError),
-    InvalidEscape(char),
-}
-impl From<ParseEscapeError> for ParseStringError {
-    fn from(value: ParseEscapeError) -> Self {
-        Self::ParseEscape(value)
-    }
-}
 // TODO remove all panics, return Result instead
 /// Removes escapes, parses keywords into their SGR code counterparts
 ///
@@ -53,12 +44,11 @@ impl From<ParseEscapeError> for ParseStringError {
 /// Other than that, the string returned may be an invalid string literal.
 /// In these cases, the rust compiler should alert the user of the error.
 #[allow(clippy::cast_possible_wrap)]
-pub fn parse_string(s: &str) -> Result<String, ParseStringError> {
+pub fn parse_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
     let mut next = chars.next();
-    let mut return_kind = Ok;
-    
+
     'outer: while let Some((_, ch)) = next {
         match ch {
             // unwrap cannot fail, in the case that it does something is very wrong
@@ -89,17 +79,12 @@ pub fn parse_string(s: &str) -> Result<String, ParseStringError> {
                     }
                     // end of string reached
                 }
-                ch => return Err(ParseStringError::InvalidEscape(ch)), // invalid char
+                _ => return None, // invalid char
             },
             '{' => match chars.next() {
                 Some((_, '{')) => buf.push_str("{{"),
                 Some((_, '}')) => buf.push_str("{}"),
-                Some((i, ch)) => {
-                    buf = match parse_param(ch, i, s, chars, buf) {
-                        Ok(s) => s,
-                        Err(s) => return Ok(s),
-                    }
-                }
+                Some((i, ch)) => buf = parse_param(ch, i, s, chars, buf),
                 // unclosed bracket, compiler will let user know of error
                 None => buf.push('{'),
             },
@@ -113,7 +98,7 @@ pub fn parse_string(s: &str) -> Result<String, ParseStringError> {
         }
         next = chars.next();
     }
-    (return_kind)(buf)
+    Some(buf)
 }
 /// Parses a format param
 ///
@@ -148,7 +133,7 @@ fn parse_param(
     s: &str,
     chars: &mut CharIndices,
     mut buf: String,
-) -> Result<String, String> {
+) -> String {
     let mut close_found = false;
     let mut output = None;
     // ch is the delimiter, if not + | - | # it is a var/format param
@@ -157,9 +142,9 @@ fn parse_param(
         _ => {
             let start = i;
             let Some((end, next_ch)) = find_delimiter(chars, &mut close_found) else {
-                // ignores invalid bracket, add rest of string to buf
-                // compiler will let user know of error
-                return Err(buf + &s[start-1..]);// -1 to include bracket
+                // compiler does not pickup this error unless macro is made
+                // other errors can just be picked up without macro creation
+                return buf + &s[start-1..];// -1 to include bracket
             };
             output = Some(&s[start..end]);
             i = end; // current end is next delimiter's index
@@ -193,7 +178,7 @@ fn parse_param(
         buf.push_str(output);
         buf.push('}');
     }
-    Ok(buf)
+    buf
 }
 /// Finds next valid delimiter
 #[inline]
@@ -207,31 +192,17 @@ fn find_delimiter(chars: &mut CharIndices, close_found: &mut bool) -> Option<(us
         _ => false,
     })
 }
-
-pub enum ParseEscapeError {
-    EarlyTerminated,
-    UnclosedBracket,
-    InvalidU32,
-    ParseIntError(ParseIntError),
-}
-impl From<ParseIntError> for ParseEscapeError {
-    fn from(value: ParseIntError) -> Self {
-        Self::ParseIntError(value)
-    }
-}
 /// Parses 7bit escape(`\x..`) into a char
-fn parse_7bit(chars: &mut CharIndices, s: &str) -> Result<char, ParseEscapeError> {
-    let (end, _) = chars.nth(1).ok_or(ParseEscapeError::EarlyTerminated)?;
+fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
+    let (end, _) = chars.nth(1)?;
     let start = end - 2;
-    char::from_u32(u32::from_str_radix(&s[start..=end], 16)?).ok_or(ParseEscapeError::InvalidU32)
+    char::from_u32(u32::from_str_radix(&s[start..=end], 16).ok()?)
 }
 /// Parses 7bit escape(`\u{..}`) into a char
-fn parse_24bit(chars: &mut CharIndices, s: &str) -> Result<char, ParseEscapeError> {
-    let (start, _) = chars.nth(1).ok_or(ParseEscapeError::EarlyTerminated)?;
-    let (end, _) = chars
-        .find(|c| c.1 == '}')
-        .ok_or(ParseEscapeError::UnclosedBracket)?;
-    char::from_u32(u32::from_str_radix(&s[start..end], 16)?).ok_or(ParseEscapeError::InvalidU32)
+fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
+    let (start, _) = chars.nth(1)?;
+    let (end, _) = chars.find(|c| c.1 == '}')?;
+    char::from_u32(u32::from_str_radix(&s[start..end], 16).ok()?)
 }
 fn parse_sgr(ch: char, s: &str, buf: &mut String) -> Option<()> {
     match ch {

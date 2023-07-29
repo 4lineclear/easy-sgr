@@ -1,4 +1,4 @@
-use std::str::CharIndices;
+use std::{num::ParseIntError, str::CharIndices};
 
 #[derive(Debug)]
 pub enum UnwrappedLiteral<'a> {
@@ -20,7 +20,7 @@ pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
     }
 }
 pub fn parse_raw_string(s: &str, i: usize) -> String {
-    // add space for r#""#
+    // add space for r#".."#
     let mut buf = String::with_capacity(s.len() + i * 2 + 3);
     buf.push('r');
     (0..i).for_each(|_| buf.push('#'));
@@ -29,6 +29,15 @@ pub fn parse_raw_string(s: &str, i: usize) -> String {
     buf.push('"');
     (0..i).for_each(|_| buf.push('#'));
     buf
+}
+pub enum ParseStringError {
+    ParseEscape(ParseEscapeError),
+    InvalidEscape(char),
+}
+impl From<ParseEscapeError> for ParseStringError {
+    fn from(value: ParseEscapeError) -> Self {
+        Self::ParseEscape(value)
+    }
 }
 // TODO remove all panics, return Result instead
 /// Removes escapes, parses keywords into their SGR code counterparts
@@ -44,26 +53,32 @@ pub fn parse_raw_string(s: &str, i: usize) -> String {
 /// Other than that, the string returned may be an invalid string literal.
 /// In these cases, the rust compiler should alert the user of the error.
 #[allow(clippy::cast_possible_wrap)]
-pub fn parse_string(s: &str) -> String {
+pub fn parse_string(s: &str) -> Result<String, ParseStringError> {
     let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
     let mut next = chars.next();
+    let mut return_kind = Ok;
+    
     'outer: while let Some((_, ch)) = next {
         match ch {
             // unwrap cannot fail, in the case that it does something is very wrong
-            '\\' => match chars.next().unwrap().1 {
+            '\\' => match chars
+                .next()
+                .expect("Unwrapping char following escape failed, should never fail")
+                .1
+            {
                 //quote escapes
                 '\'' => buf.push('\''),
                 '"' => buf.push('"'),
                 //ascii escapes
-                'x' => buf.push(parse_7bit(chars, s).expect("Invalid escape, see compiler error")),
+                'x' => buf.push(parse_7bit(chars, s)?),
                 'n' => buf.push('\n'),
                 'r' => buf.push('\r'),
                 't' => buf.push('\t'),
                 '\\' => buf.push('\\'),
                 '0' => buf.push('\0'),
                 //unicode escape
-                'u' => buf.push(parse_24bit(chars, s).expect("Invalid escape, see compiler error")),
+                'u' => buf.push(parse_24bit(chars, s)?),
                 //whitespace ignore
                 '\n' => {
                     for (i, c) in chars.by_ref() {
@@ -74,7 +89,7 @@ pub fn parse_string(s: &str) -> String {
                     }
                     // end of string reached
                 }
-                ch => panic!("Invalid escape '\\{ch}', see compile error"), // invalid char
+                ch => return Err(ParseStringError::InvalidEscape(ch)), // invalid char
             },
             '{' => match chars.next() {
                 Some((_, '{')) => buf.push_str("{{"),
@@ -82,7 +97,7 @@ pub fn parse_string(s: &str) -> String {
                 Some((i, ch)) => {
                     buf = match parse_param(ch, i, s, chars, buf) {
                         Ok(s) => s,
-                        Err(s) => return s,
+                        Err(s) => return Ok(s),
                     }
                 }
                 // unclosed bracket, compiler will let user know of error
@@ -98,7 +113,7 @@ pub fn parse_string(s: &str) -> String {
         }
         next = chars.next();
     }
-    buf
+    (return_kind)(buf)
 }
 /// Parses a format param
 ///
@@ -193,31 +208,39 @@ fn find_delimiter(chars: &mut CharIndices, close_found: &mut bool) -> Option<(us
     })
 }
 
+pub enum ParseEscapeError {
+    EarlyTerminated,
+    UnclosedBracket,
+    InvalidU32,
+    ParseIntError(ParseIntError),
+}
+impl From<ParseIntError> for ParseEscapeError {
+    fn from(value: ParseIntError) -> Self {
+        Self::ParseIntError(value)
+    }
+}
 /// Parses 7bit escape(`\x..`) into a char
-fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
-    let (end, _) = chars.nth(1)?;
+fn parse_7bit(chars: &mut CharIndices, s: &str) -> Result<char, ParseEscapeError> {
+    let (end, _) = chars.nth(1).ok_or(ParseEscapeError::EarlyTerminated)?;
     let start = end - 2;
-    char::from_u32(u32::from_str_radix(&s[start..=end], 16).ok()?)
+    char::from_u32(u32::from_str_radix(&s[start..=end], 16)?).ok_or(ParseEscapeError::InvalidU32)
 }
 /// Parses 7bit escape(`\u{..}`) into a char
-fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
-    let (start, _) = chars.nth(1)?;
-    let (end, _) = chars.find(|c| c.1 == '}')?;
-    char::from_u32(u32::from_str_radix(&s[start..end], 16).ok()?)
+fn parse_24bit(chars: &mut CharIndices, s: &str) -> Result<char, ParseEscapeError> {
+    let (start, _) = chars.nth(1).ok_or(ParseEscapeError::EarlyTerminated)?;
+    let (end, _) = chars
+        .find(|c| c.1 == '}')
+        .ok_or(ParseEscapeError::UnclosedBracket)?;
+    char::from_u32(u32::from_str_radix(&s[start..end], 16)?).ok_or(ParseEscapeError::InvalidU32)
 }
 fn parse_sgr(ch: char, s: &str, buf: &mut String) -> Option<()> {
     match ch {
-        '+' => {
-            parse_add_style(s)?.append_to(buf);
-            Some(())
-        }
-        '-' => {
-            parse_sub_style(s)?.append_to(buf);
-            Some(())
-        }
-        '#' => parse_color(s, buf),
-        _ => None,
+        '+' => parse_add_style(s)?.append_to(buf),
+        '-' => parse_sub_style(s)?.append_to(buf),
+        '#' => parse_color(s, buf)?,
+        _ => (),
     }
+    Some(())
 }
 fn parse_add_style(s: &str) -> Option<u8> {
     match s {

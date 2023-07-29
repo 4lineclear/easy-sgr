@@ -20,35 +20,137 @@ use crate::parse::parse_raw_string;
 mod parse;
 
 macro_rules! def_macros {
-    ($(#[$attr:meta] $name:ident),*) => {
+    ($($(#[$attr:meta])* $name:ident),*) => {
         $(
-            #[$attr]
+            $(#[$attr])*
             #[proc_macro]
             pub fn $name(input: TokenStream) -> TokenStream {
-                sgr_macro(concat!(stringify!($name)), input)
+                sgr_macro(stringify!($name), input)
             }
         )*
     };
 }
 
 def_macros!(
+    /// Formats data into a string.
     ///
+    /// This macro is an extension to [`std::format`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::format`]
+    /// - [`std::fmt`]
     format,
+    /// Writes formatted data into a writer.
     ///
+    /// This macro is an extension to [`std::write`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::write`]
+    /// - [`std::fmt`]
     write,
+    /// Writes formatted data into a writer with a newline appended at the end.
     ///
+    /// This macro is an extension to [`std::writeln`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::writeln`]
+    /// - [`std::fmt`]
     writeln,
+    /// Prints formatted data to the standard output.
     ///
+    /// This macro is an extension to [`std::print`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::print`]
+    /// - [`std::fmt`]
     print,
+    /// Prints formatted data to the standard output with a newline appended at the end.
     ///
+    /// This macro is an extension to [`std::println`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::println`]
+    /// - [`std::fmt`]
     println,
+    /// Writes formatted data to the standard error.
     ///
+    /// This macro is an extension to [`std::eprint`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::eprint`]
+    /// - [`std::fmt`]
     eprint,
+    /// Writes formatted data to the standard error with a newline appended at the end.
     ///
+    /// This macro is an extension to [`std::eprintln`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::eprintln`]
+    /// - [`std::fmt`]
     eprintln,
+    /// Creates a [`std::fmt::Arguments`](https://doc.rust-lang.org/std/fmt/struct.Arguments.html)
+    /// struct for deferred formatting.
     ///
+    /// This macro is an extension to [`std::format_args`],
+    /// it contains the ability switch certain keywords out with SGR escapes
+    ///
+    /// # See also
+    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+    /// - [`std::format_args`]
+    /// - [`std::fmt`]
     format_args
 );
+
+#[proc_macro]
+/// TODO
+pub fn sgr(input: TokenStream) -> TokenStream {
+    let mut tokens = input.clone().into_iter();
+    let first = tokens.next();
+    if tokens.next().is_some() {
+        return create_macro(
+            "compile error",
+            Span::mixed_site(),
+            TokenTree::Literal(Literal::string("This macro does not accept arguments")).into(),
+        );
+    }
+    match create_literal(first) {
+        ParsedLiteral::String(token) => TokenTree::Literal(token).into(),
+        ParsedLiteral::RawString(string) => string
+            .parse()
+            .expect("Raw string parsing failed, should never fail"),
+        // compiler will let user know of invalid token
+        ParsedLiteral::InvalidToken(token, s) => {
+            let span = token.span();
+            [
+                std::iter::once(token).collect(),
+                create_macro(
+                    "compile_error",
+                    span,
+                    s.parse()
+                        .expect("Parsing string into TokenStream failed, should never fail"),
+                ),
+            ]
+            .into_iter()
+            .collect()
+        }
+        ParsedLiteral::InvalidString => input,
+        ParsedLiteral::Empty => TokenTree::Literal(Literal::string("")).into(),
+    }
+}
 
 /// Creates a [`TokenStream`] macro call,
 /// meant for `fmt` macros

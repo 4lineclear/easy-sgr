@@ -9,5 +9,7 @@ fn main() {
     );
     println!("\u{1f604} ☀ ☁ ☂ less styles{#DefaultFg#DefaultBg}");
     println!("\u{1f604} ☀ ☁ ☂ no styles");
+    let test = easy_sgr::sgr!("{+Bold}");
+    print!("{test}");
     println!(r#""You can even use raw strings!""#);
 }

@@ -81,13 +81,7 @@ pub fn parse_string(s: &str) -> Option<String> {
                 }
                 _ => return None, // invalid char
             },
-            '{' => match chars.next() {
-                Some((_, '{')) => buf.push_str("{{"),
-                Some((_, '}')) => buf.push_str("{}"),
-                Some((i, ch)) => buf = parse_param(ch, i, s, chars, buf),
-                // unclosed bracket, compiler will let user know of error
-                None => buf.push('{'),
-            },
+            '{' => buf = parse_param(chars.next(), s, chars, buf),
             '}' => match chars.next() {
                 Some((_, '}')) => buf.push_str("}}"),
                 // ignores invalid bracket, continues parsing
@@ -128,47 +122,58 @@ pub fn parse_string(s: &str) -> Option<String> {
 ///
 /// When an
 fn parse_param(
-    mut ch: char,
-    mut i: usize,
+    next_char: Option<(usize, char)>,
     s: &str,
     chars: &mut CharIndices,
     mut buf: String,
 ) -> String {
-    let mut close_found = false;
-    let mut after_output = false;
-    let mut output = None;
-    // ch is the delimiter, if not + | - | # it is a var/format param
-    match ch {
-        '+' | '-' | '#' => (),
+    #[derive(Debug, PartialEq, Eq)]
+    enum Delim {
+        Standard,
+        And,
+        End,
+    }
+    use Delim::*;
+    // mut to reuse
+    let Some((mut i, mut ch)) = next_char else {
+        return buf + "{"
+    };
+    let next_delim = |(i, ch)| match ch {
+        '+' | '-' | '#' => Some((Standard, i, ch)),
+        '&' => Some((And, i, ch)),
+        '}' => Some((End, i, ch)),
+        _ => None,
+    };
+    let output = match ch {
+        '{' => return buf + "{{",
+        '}' => return buf + "{}",
+        '+' | '-' | '#' => None,
         _ => {
             let start = i;
-            let Some((end, next_ch)) = find_delimiter(chars, &mut close_found, &mut after_output) else {
-                // compiler does not pickup this error unless macro is made
-                // other errors can just be picked up without macro creation
+            let Some((delim, end, next_ch)) = chars.find_map(next_delim) else {
                 return buf + &s[start-1..];// -1 to include bracket
             };
-            output = Some(&s[start..end]);
-            i = end; // current end is next delimiter's index
-            ch = next_ch; // current next_ch is next delimiter
+            if delim == End {
+                buf.push('{');
+                buf.push_str(&s[start..end]);
+                buf.push('}');
+                return buf;
+            }
+            ch = next_ch;
+            i = end;
+            Some(start..end)
         }
-    }
-    if !close_found {
-        buf.push_str("\x1b[");
-        let mut start = i + 1;
-        while !close_found {
-            let (next_start, end, next_ch) =
-                match find_delimiter(chars, &mut close_found, &mut after_output) {
-                    Some((end, next_ch)) => {
-                        if after_output {
-                            // char at i is &, i + 1 is the delimiter, add by two to ignore them
-                            (end + 2, end, chars.next().expect("String ended early").1)
-                        } else {
-                            // char at i is the delimiter, add by one to ignore it
-                            (end + 1, end, next_ch)
-                        }
-                    }
-                    None => panic!("Close bracket not found"),
-                };
+    };
+    let mut delim = match ch {
+        '+' | '-' | '#' => Standard,
+        '&' => And,
+        '}' => End,
+        _ => unreachable!(),
+    };
+    buf.push_str("\x1b[");
+    while let Some((next_delim, end, next_ch)) = chars.find_map(next_delim) {
+        let start = i + 1;
+        if delim == Standard || delim == End {
             assert!(
                 // parse_sgr should append the string to the buf
                 // assert! is to check that an error hasn't occurred
@@ -176,52 +181,35 @@ fn parse_param(
                 "Invalid keyword: {}",
                 &s[start..end]
             );
-            if after_output {
-                if let Some(output) = output {
-                    buf.push('m');
-                    buf.push('{');
-                    buf.push_str(output);
-                    buf.push('}');
-                    buf.push_str("\x1b[");
-                }
-                output = None;
-                after_output = false;
-            } else {
-                buf.push(';');
+        } else {
+            buf.pop().unwrap();
+            buf.push_str("m{");
+            buf.push_str(&s[start..end]);
+            buf.push('}');
+            if next_delim != End {
+                buf.push_str("\x1b[");
             }
-            start = next_start;
-            ch = next_ch; // current next_ch is next delimiter
         }
-        // unwrap cannot fail, in the case that it does something is very wrong
-        buf.pop().unwrap(); // removes last ';'
-        buf.push('m');
+        buf.push(';');
+        delim = next_delim;
+        ch = next_ch;
+        i = end;
+        if delim == End {
+            break;
+        }
     }
-    if let Some(output) = output {
+    buf.pop().unwrap();
+    buf.push('m');
+
+    assert!((ch == '}'), "Missing close bracket");
+
+    if let Some(range) = output {
         buf.push('{');
-        buf.push_str(output);
+        buf.push_str(&s[range]);
         buf.push('}');
     }
+
     buf
-}
-/// Finds next valid delimiter
-#[inline]
-fn find_delimiter(
-    chars: &mut CharIndices,
-    close_found: &mut bool,
-    after_output: &mut bool,
-) -> Option<(usize, char)> {
-    chars.find(|(_, c)| match c {
-        '+' | '-' | '#' => true,
-        '}' => {
-            *close_found = true;
-            true
-        }
-        '&' => {
-            *after_output = true;
-            true
-        }
-        _ => false,
-    })
 }
 /// Parses 7bit escape(`\x..`) into a char
 fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
@@ -240,7 +228,7 @@ fn parse_sgr(ch: char, s: &str, buf: &mut String) -> Option<()> {
         '+' => parse_add_style(s)?.append_to(buf),
         '-' => parse_sub_style(s)?.append_to(buf),
         '#' => parse_color(s, buf)?,
-        _ => (),
+        _ => return None,
     }
     Some(())
 }

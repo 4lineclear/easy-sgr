@@ -1,18 +1,21 @@
-use easy_sgr::println;
+use easy_sgr::{println, sgr};
 
 fn main() {
     let green = "This should be green!";
     let normal = "This should be normal!";
-    println!("{green#GreenFg&#DefaultFg} {normal}")
-    // let i = "should be styled";
-    // println!(
-    //     "\u{1f604} ☀ ☁ ☂ {+Italic+Strikethrough#RedFg#BlackBg#f[0f]},\
-    //     this too { -Italic-Strikethrough}",
-    //     i
-    // );
-    // println!("\u{1f604} ☀ ☁ ☂ less styles{#DefaultFg#DefaultBg}");
-    // println!("\u{1f604} ☀ ☁ ☂ no styles");
-    // let test = easy_sgr::sgr!("{+Bold}");
-    // print!("{test}");
-    // println!(r#""You can even use raw strings!""#);
+    let styled = "should be styled";
+    let bold = sgr!("{+Bold}");
+
+    println!("{normal}");
+
+    println!("\u{1f604} ☀ ☁ ☂ {#GreenFg&green#DefaultFg} {normal}");
+    println!(
+        "\u{1f604} ☀ ☁ ☂ {styled+Italic+Strikethrough#RedFg#BlackBg}, \
+        this too { -Italic-Strikethrough#f[0f]}",
+        styled
+    );
+    println!("\u{1f604} ☀ ☁ ☂ now the text is white!{#DefaultFg#DefaultBg}");
+    println!("\u{1f604} ☀ ☁ ☂ no styles");
+    print!("{bold}");
+    println!(r#""You can even use raw strings! Though this just gets returned as is""#);
 }

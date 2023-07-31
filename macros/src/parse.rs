@@ -49,7 +49,7 @@ pub fn parse_string(s: &str) -> Option<String> {
     let chars = &mut s.char_indices();
     let mut next = chars.next();
 
-    'outer: while let Some((_, ch)) = next {
+    while let Some((_, ch)) = next {
         match ch {
             // unwrap cannot fail, in the case that it does something is very wrong
             '\\' => match chars
@@ -71,11 +71,11 @@ pub fn parse_string(s: &str) -> Option<String> {
                 'u' => buf.push(parse_24bit(chars, s)?),
                 //whitespace ignore
                 '\n' => {
-                    for (i, c) in chars.by_ref() {
-                        let (' ' | '\n' | '\r' | '\t') = c else {
-                            next = Some((i,c));
-                            continue 'outer; // skip calling: next = chars.next();
-                        };
+                    if let Some(non_whitespace) =
+                        chars.find(|(_, ch)| matches!(ch, ' ' | '\n' | '\r' | '\t'))
+                    {
+                        next = Some(non_whitespace);
+                        continue;
                     }
                     // end of string reached
                 }
@@ -86,7 +86,11 @@ pub fn parse_string(s: &str) -> Option<String> {
                 Some((_, '}')) => buf.push_str("}}"),
                 // ignores invalid bracket, continues parsing
                 // compiler will let user know of error
-                _ => buf.push('}'),
+                after_bracket => {
+                    buf.push('}');
+                    next = after_bracket;
+                    continue; // skip calling: next = chars.next();
+                }
             },
             ch => buf.push(ch),
         }

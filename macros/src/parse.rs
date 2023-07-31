@@ -131,81 +131,63 @@ fn parse_param(
     chars: &mut CharIndices,
     mut buf: String,
 ) -> String {
-    #[derive(Debug, PartialEq, Eq)]
-    enum Delim {
-        Standard,
-        And,
-        End,
-    }
-    use Delim::*;
-    // mut to reuse
-    let Some((mut i, mut ch)) = next_char else {
+    let Some((mut i, mut delim)) = next_char else {
         return buf + "{"
     };
-    let next_delim = |(i, ch)| match ch {
-        '+' | '-' | '#' => Some((Standard, i, ch)),
-        '&' => Some((And, i, ch)),
-        '}' => Some((End, i, ch)),
-        _ => None,
-    };
-    let output = match ch {
+    let is_delim = |ch: &(_, char)| matches!(ch.1, '+' | '-' | '#' | '&' | '}');
+    let mut find_delim = || chars.find(is_delim);
+
+    let output: Option<std::ops::Range<usize>> = match delim {
         '{' => return buf + "{{",
         '}' => return buf + "{}",
         '+' | '-' | '#' => None,
         _ => {
             let start = i;
-            let Some((delim, end, next_ch)) = chars.find_map(next_delim) else {
+            let Some((end, next_ch)) = find_delim() else {
                 return buf + &s[start-1..];// -1 to include bracket
             };
-            if delim == End {
+            if next_ch == '}' {
                 buf.push('{');
                 buf.push_str(&s[start..end]);
                 buf.push('}');
                 return buf;
             }
-            ch = next_ch;
+            delim = next_ch;
             i = end;
             Some(start..end)
         }
     };
-    let mut delim = match ch {
-        '+' | '-' | '#' => Standard,
-        '&' => And,
-        '}' => End,
-        _ => unreachable!(),
-    };
     buf.push_str("\x1b[");
-    while let Some((next_delim, end, next_ch)) = chars.find_map(next_delim) {
+    while let Some((end, next_delim)) = find_delim() {
         let start = i + 1;
-        if delim == Standard || delim == End {
-            assert!(
-                // parse_sgr should append the string to the buf
-                // assert! is to check that an error hasn't occurred
-                parse_sgr(ch, &s[start..end], &mut buf).is_some(),
-                "Invalid keyword: {}",
-                &s[start..end]
-            );
-        } else {
+        if delim == '&' {
             buf.pop().unwrap();
             buf.push_str("m{");
             buf.push_str(&s[start..end]);
             buf.push('}');
-            if next_delim != End {
+            if next_delim != '}' {
                 buf.push_str("\x1b[");
             }
+        } else {
+            assert!(
+                // parse_sgr should append the string to the buf
+                // assert! is to check that an error hasn't occurred
+                parse_sgr(delim, &s[start..end], &mut buf).is_some(),
+                "Invalid keyword: {}",
+                &s[start..end]
+            );
         }
         buf.push(';');
         delim = next_delim;
-        ch = next_ch;
         i = end;
-        if delim == End {
+        if delim == '}' {
             break;
         }
     }
     buf.pop().unwrap();
     buf.push('m');
 
-    assert!((ch == '}'), "Missing close bracket");
+    assert_eq!(delim, '}', "Missing close bracket");
 
     if let Some(range) = output {
         buf.push('{');
@@ -224,7 +206,7 @@ fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
 /// Parses 7bit escape(`\u{..}`) into a char
 fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
     let (start, _) = chars.nth(1)?;
-    let (end, _) = chars.find(|c| c.1 == '}')?;
+    let (end, _) = chars.find(|ch| ch.1 == '}')?;
     char::from_u32(u32::from_str_radix(&s[start..end], 16).ok()?)
 }
 fn parse_sgr(ch: char, s: &str, buf: &mut String) -> Option<()> {

@@ -6,120 +6,81 @@
     clippy::cargo,
     clippy::nursery,
     missing_docs,
-    rustdoc::all
+    rustdoc::all,
+    future_incompatible,
+    unused
 )]
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
 
-use parse::{parse_string, unwrap_string, UnwrappedLiteral};
+use parse::{parse_raw_string, parse_string, unwrap_string, UnwrappedLiteral};
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
-
-use crate::parse::parse_raw_string;
 
 #[allow(clippy::module_name_repetitions)]
 mod parse;
 
+/// defines the [`std::fmt`] class of macros
 macro_rules! def_macros {
-    ($($(#[$attr:meta])* $name:ident),*) => {
+    ($($name:ident $description:literal),*) => {
         $(
-            $(#[$attr])*
-            #[proc_macro]
-            pub fn $name(input: TokenStream) -> TokenStream {
-                sgr_macro(stringify!($name), input)
-            }
+            def_macros!($name, $description);
         )*
+    };
+    ($name:ident, $description:expr) => {
+        #[proc_macro]
+        #[doc = $description]
+        ///
+        /// # Syntax
+        ///
+        /// Works the same as the [`fmt`](std::fmt) class of macros,
+        /// with set keywords replaced with SGR codes.
+        /// These keywords are invoked within curly brackets
+        /// in a similar way variables are captured.
+        /// each keyword is prefixed with a delimiter that determines
+        /// what type of SGR code it will be.
+        ///
+        /// There are three basic types:
+        ///
+        /// - `+` -> Add
+        ///     - Reset
+        ///     - Everything under the 'Remove Style'
+        /// - `-` -> Remove Style
+        ///     - `Bold` `Dim` `Italic` `Underline` `Blinking` `Inverse` `Hidden` `Strikethrough`
+        /// - `#` -> Color
+        ///     - `BlackFg` `RedFg` `GreenFg` `YellowFg` `BlueFg` `MagentaFg`
+        /// `CyanFg` `WhiteFg` `DefaultFg` `BlackBg` `RedBg` `GreenBg`
+        /// `YellowBg` `BlueBg` `MagentaBg` `CyanBg` `WhiteBg` `DefaultBg`
+        /// - `&` -> Format param capture
+        ///     - Anything put in normal curly braces
+        ///
+        /// Color is special in that th you
+        ///
+        /// # See also
+        ///
+        /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
+        /// - [`std::fmt`]"
+        pub fn $name(input: TokenStream) -> TokenStream {
+            sgr_macro(stringify!($name), input)
+        }
     };
 }
 
 def_macros!(
-    /// Formats data into a string.
-    ///
-    /// This macro is an extension to [`std::format`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::format`]
-    /// - [`std::fmt`]
-    format,
-    /// Writes formatted data into a writer.
-    ///
-    /// This macro is an extension to [`std::write`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::write`]
-    /// - [`std::fmt`]
-    write,
-    /// Writes formatted data into a writer with a newline appended at the end.
-    ///
-    /// This macro is an extension to [`std::writeln`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::writeln`]
-    /// - [`std::fmt`]
-    writeln,
-    /// Prints formatted data to the standard output.
-    ///
-    /// This macro is an extension to [`std::print`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::print`]
-    /// - [`std::fmt`]
-    print,
-    /// Prints formatted data to the standard output with a newline appended at the end.
-    ///
-    /// This macro is an extension to [`std::println`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::println`]
-    /// - [`std::fmt`]
-    println,
-    /// Writes formatted data to the standard error.
-    ///
-    /// This macro is an extension to [`std::eprint`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::eprint`]
-    /// - [`std::fmt`]
-    eprint,
-    /// Writes formatted data to the standard error with a newline appended at the end.
-    ///
-    /// This macro is an extension to [`std::eprintln`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::eprintln`]
-    /// - [`std::fmt`]
-    eprintln,
-    /// Creates a [`std::fmt::Arguments`](https://doc.rust-lang.org/std/fmt/struct.Arguments.html)
-    /// struct for deferred formatting.
-    ///
-    /// This macro is an extension to [`std::format_args`],
-    /// it contains the ability switch certain keywords out with SGR escapes
-    ///
-    /// # See also
-    /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-    /// - [`std::format_args`]
-    /// - [`std::fmt`]
-    format_args
+    format "Formats data into a string.",
+    write "Writes formatted data into a writer.",
+    writeln "Writes formatted data into a writer with a newline appended at the end.",
+    print "Prints formatted data to the standard output.",
+    println "Prints formatted data to the standard output with a newline appended at the end.",
+    eprint "Prints formatted data to the standard error.",
+    eprintln "Prints formatted data to the standard error with a newline appended at the end.",
+    format_args "Creates a [`std::fmt::Arguments`] struct for deferred formatting."
 );
 
 #[proc_macro]
 /// TODO
 pub fn sgr(input: TokenStream) -> TokenStream {
     let mut tokens = input.clone().into_iter();
-    let first = tokens.next();
+    let string_literal = tokens.next();
     if tokens.next().is_some() {
         return create_macro(
             "compile error",
@@ -127,7 +88,7 @@ pub fn sgr(input: TokenStream) -> TokenStream {
             TokenTree::Literal(Literal::string("This macro does not accept arguments")).into(),
         );
     }
-    match create_literal(first) {
+    match create_literal(string_literal) {
         ParsedLiteral::String(token) => TokenTree::Literal(token).into(),
         ParsedLiteral::RawString(string) => string
             .parse()
@@ -136,7 +97,7 @@ pub fn sgr(input: TokenStream) -> TokenStream {
         ParsedLiteral::InvalidToken(token, s) => {
             let span = token.span();
             [
-                std::iter::once(token).collect(),
+                token.into(),
                 create_macro(
                     "compile_error",
                     span,

@@ -43,7 +43,6 @@ pub fn parse_raw_string(s: &str, i: usize) -> String {
 ///
 /// Other than that, the string returned may be an invalid string literal.
 /// In these cases, the rust compiler should alert the user of the error.
-#[allow(clippy::cast_possible_wrap)]
 pub fn parse_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
@@ -132,12 +131,14 @@ fn parse_param(
     mut buf: String,
 ) -> String {
     let Some((mut i, mut delim)) = next_char else {
+        // string, compiler will let user know of error
         return buf + "{"
     };
+    //TODO fix logic around &
     let is_delim = |ch: &(_, char)| matches!(ch.1, '+' | '-' | '#' | '&' | '}');
     let mut find_delim = || chars.find(is_delim);
 
-    let output: Option<std::ops::Range<usize>> = match delim {
+    let output = match delim {
         '{' => return buf + "{{",
         '}' => return buf + "{}",
         '+' | '-' | '#' => None,
@@ -157,6 +158,7 @@ fn parse_param(
             Some(start..end)
         }
     };
+    // if delim != '&'
     buf.push_str("\x1b[");
     while let Some((end, next_delim)) = find_delim() {
         let start = i + 1;

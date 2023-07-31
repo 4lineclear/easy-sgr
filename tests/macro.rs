@@ -5,18 +5,18 @@ fn styles() {
     assert_eq!("\x1b[2m", easy_sgr::format!("{+Dim}"));
     assert_eq!("\x1b[3m", easy_sgr::format!("{+Italic}"));
     assert_eq!("\x1b[4m", easy_sgr::format!("{+Underline}"));
-    assert_eq!("\x1b[5m", easy_sgr::format!("{+Blinking}"));
+    assert_eq!("\x1b[5m", easy_sgr::format!("{+Blink}"));
     assert_eq!("\x1b[7m", easy_sgr::format!("{+Inverse}"));
-    assert_eq!("\x1b[8m", easy_sgr::format!("{+Hidden}"));
-    assert_eq!("\x1b[9m", easy_sgr::format!("{+Strikethrough}"));
+    assert_eq!("\x1b[8m", easy_sgr::format!("{+Hide}"));
+    assert_eq!("\x1b[9m", easy_sgr::format!("{+Strike}"));
     assert_eq!("\x1b[22m", easy_sgr::format!("{-Bold}"));
     assert_eq!("\x1b[22m", easy_sgr::format!("{-Dim}"));
     assert_eq!("\x1b[23m", easy_sgr::format!("{-Italic}"));
     assert_eq!("\x1b[24m", easy_sgr::format!("{-Underline}"));
-    assert_eq!("\x1b[25m", easy_sgr::format!("{-Blinking}"));
+    assert_eq!("\x1b[25m", easy_sgr::format!("{-Blink}"));
     assert_eq!("\x1b[27m", easy_sgr::format!("{-Inverse}"));
-    assert_eq!("\x1b[28m", easy_sgr::format!("{-Hidden}"));
-    assert_eq!("\x1b[29m", easy_sgr::format!("{-Strikethrough}"));
+    assert_eq!("\x1b[28m", easy_sgr::format!("{-Hide}"));
+    assert_eq!("\x1b[29m", easy_sgr::format!("{-Strike}"));
 }
 #[test]
 fn standard_colors() {

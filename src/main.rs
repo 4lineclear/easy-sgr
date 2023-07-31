@@ -6,12 +6,14 @@ fn main() {
     let styled = "should be styled";
     let bold = sgr!("{+Bold}");
 
+    let _ = "{+[italic,strike]} ";
+
     println!("{normal}");
 
     println!("\u{1f604} ☀ ☁ ☂ {#GreenFg&green#DefaultFg} {normal}");
     println!(
-        "\u{1f604} ☀ ☁ ☂ {styled+Italic+Strikethrough#RedFg#BlackBg}, \
-        this too { -Italic-Strikethrough#f[0f]}",
+        "\u{1f604} ☀ ☁ ☂ {styled+Italic+Strike#RedFg#BlackBg}, \
+        this too { -Italic-Strike#f[0f]}",
         styled
     );
     println!("\u{1f604} ☀ ☁ ☂ now the text is white!{#DefaultFg#DefaultBg}");

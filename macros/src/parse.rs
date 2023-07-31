@@ -71,7 +71,7 @@ pub fn parse_string(s: &str) -> Option<String> {
                 //whitespace ignore
                 '\n' => {
                     if let Some(non_whitespace) =
-                        chars.find(|(_, ch)| matches!(ch, ' ' | '\n' | '\r' | '\t'))
+                        chars.find(|(_, ch)| !matches!(ch, ' ' | '\n' | '\r' | '\t'))
                     {
                         next = Some(non_whitespace);
                         continue;
@@ -227,10 +227,10 @@ fn parse_add_style(s: &str) -> Option<u8> {
         "Dim" => Some(2),
         "Italic" => Some(3),
         "Underline" => Some(4),
-        "Blinking" => Some(5),
+        "Blink" => Some(5),
         "Inverse" => Some(7),
-        "Hidden" => Some(8),
-        "Strikethrough" => Some(9),
+        "Hide" => Some(8),
+        "Strike" => Some(9),
         _ => None,
     }
 }
@@ -239,10 +239,10 @@ fn parse_sub_style(s: &str) -> Option<u8> {
         "Bold" | "Dim" => Some(22),
         "Italic" => Some(23),
         "Underline" => Some(24),
-        "Blinking" => Some(25),
+        "Blink" => Some(25),
         "Inverse" => Some(27),
-        "Hidden" => Some(28),
-        "Strikethrough" => Some(29),
+        "Hide" => Some(28),
+        "Strike" => Some(29),
         _ => None,
     }
 }

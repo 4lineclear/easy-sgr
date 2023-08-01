@@ -7,16 +7,14 @@
     clippy::nursery,
     missing_docs,
     rustdoc::all,
-    future_incompatible,
-    unused
+    future_incompatible
 )]
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
 
-use parse::{parse_raw_string, parse_string, unwrap_string, UnwrappedLiteral};
+use parse::{create_raw_string, sgr_string, unwrap_string, UnwrappedLiteral};
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
-#[allow(clippy::module_name_repetitions)]
 mod parse;
 
 /// defines the [`std::fmt`] class of macros
@@ -67,7 +65,7 @@ macro_rules! def_macros {
 
 def_macros!(
     format "Formats data into a string.",
-    write "Writes formatted data into a writer.",
+    write "Writes formatted data into a writer.", // TODO get this working
     writeln "Writes formatted data into a writer with a newline appended at the end.",
     print "Prints formatted data to the standard output.",
     println "Prints formatted data to the standard output with a newline appended at the end.",
@@ -180,9 +178,9 @@ impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
 
         match value {
             String(s) => {
-                parse_string(s).map_or(Self::InvalidString, |s| Self::String(Literal::string(&s)))
+                sgr_string(s).map_or(Self::InvalidString, |s| Self::String(Literal::string(&s)))
             }
-            RawString(s, i) => Self::RawString(parse_raw_string(s, i)),
+            RawString(s, i) => Self::RawString(create_raw_string(s, i)),
         }
     }
 }

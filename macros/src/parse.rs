@@ -19,7 +19,7 @@ pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
         None => s.strip_prefix('"')?.strip_suffix('"').map(String),
     }
 }
-pub fn parse_raw_string(s: &str, i: usize) -> String {
+pub fn create_raw_string(s: &str, i: usize) -> String {
     // add space for r#".."#
     let mut buf = String::with_capacity(s.len() + i * 2 + 3);
     buf.push('r');
@@ -43,7 +43,7 @@ pub fn parse_raw_string(s: &str, i: usize) -> String {
 ///
 /// Other than that, the string returned may be an invalid string literal.
 /// In these cases, the rust compiler should alert the user of the error.
-pub fn parse_string(s: &str) -> Option<String> {
+pub fn sgr_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
     let mut next = chars.next();
@@ -130,74 +130,33 @@ fn parse_param(
     chars: &mut CharIndices,
     mut buf: String,
 ) -> String {
-    let Some((mut i, mut delim)) = next_char else {
+    let Some((start, ch)) = next_char else {
         // string, compiler will let user know of error
         return buf + "{"
     };
-    //TODO fix logic around &
-    let is_delim = |ch: &(_, char)| matches!(ch.1, '+' | '-' | '#' | '&' | '}');
-    let mut find_delim = || chars.find(is_delim);
-
-    let output = match delim {
-        '{' => return buf + "{{",
-        '}' => return buf + "{}",
-        '+' | '-' | '#' => None,
-        _ => {
-            let start = i;
-            let Some((end, next_ch)) = find_delim() else {
-                return buf + &s[start-1..];// -1 to include bracket
-            };
-            if next_ch == '}' {
-                buf.push('{');
-                buf.push_str(&s[start..end]);
-                buf.push('}');
-                return buf;
-            }
-            delim = next_ch;
-            i = end;
-            Some(start..end)
-        }
-    };
-    // if delim != '&'
-    buf.push_str("\x1b[");
-    while let Some((end, next_delim)) = find_delim() {
-        let start = i + 1;
-        if delim == '&' {
-            buf.pop().unwrap();
-            buf.push_str("m{");
-            buf.push_str(&s[start..end]);
-            buf.push('}');
-            if next_delim != '}' {
-                buf.push_str("\x1b[");
-            }
-        } else {
-            assert!(
-                // parse_sgr should append the string to the buf
-                // assert! is to check that an error hasn't occurred
-                parse_sgr(delim, &s[start..end], &mut buf).is_some(),
-                "Invalid keyword: {}",
-                &s[start..end]
-            );
-        }
-        buf.push(';');
-        delim = next_delim;
-        i = end;
-        if delim == '}' {
-            break;
-        }
-    }
-    buf.pop().unwrap();
-    buf.push('m');
-
-    assert_eq!(delim, '}', "Missing close bracket");
-
-    if let Some(range) = output {
-        buf.push('{');
-        buf.push_str(&s[range]);
-        buf.push('}');
+    if ch == '}' {
+        return buf + "{}";
+    } else if ch == '{' {
+        return buf + "{{";
     }
 
-    buf
+    let end = chars.find(|ch| ch.1 == '}').expect("Param not closed").0;
+    if ch == '[' {
+        buf.push_str("\x1b[");
+        for s in s[start + 1..end]
+            .strip_suffix(']')
+            .expect("Expected a ending square bracket")
+            .split_whitespace()
+        {
+            assert!(parse_sgr(s, &mut buf).is_some(), "Invalid keyword {s}");
+            buf.push(';');
+        }
+        buf.pop().unwrap();
+        buf + "m"
+    } else {
+        buf.push_str(&s[start - 1..=end]);
+        buf
+    }
 }
 /// Parses 7bit escape(`\x..`) into a char
 fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
@@ -211,119 +170,100 @@ fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
     let (end, _) = chars.find(|ch| ch.1 == '}')?;
     char::from_u32(u32::from_str_radix(&s[start..end], 16).ok()?)
 }
-fn parse_sgr(ch: char, s: &str, buf: &mut String) -> Option<()> {
-    match ch {
-        '+' => parse_add_style(s)?.append_to(buf),
-        '-' => parse_sub_style(s)?.append_to(buf),
-        '#' => parse_color(s, buf)?,
-        _ => return None,
-    }
-    Some(())
-}
-fn parse_add_style(s: &str) -> Option<u8> {
-    match s {
-        "Reset" => Some(0),
-        "Bold" => Some(1),
-        "Dim" => Some(2),
-        "Italic" => Some(3),
-        "Underline" => Some(4),
-        "Blink" => Some(5),
-        "Inverse" => Some(7),
-        "Hide" => Some(8),
-        "Strike" => Some(9),
-        _ => None,
-    }
-}
-fn parse_sub_style(s: &str) -> Option<u8> {
-    match s {
-        "Bold" | "Dim" => Some(22),
-        "Italic" => Some(23),
-        "Underline" => Some(24),
-        "Blink" => Some(25),
-        "Inverse" => Some(27),
-        "Hide" => Some(28),
-        "Strike" => Some(29),
-        _ => None,
-    }
-}
-fn parse_color(s: &str, buf: &mut String) -> Option<()> {
-    #[inline]
-    fn parse_color_simple(s: &str) -> Option<u8> {
-        match s {
-            "BlackFg" => Some(30),
-            "RedFg" => Some(31),
-            "GreenFg" => Some(32),
-            "YellowFg" => Some(33),
-            "BlueFg" => Some(34),
-            "MagentaFg" => Some(35),
-            "CyanFg" => Some(36),
-            "WhiteFg" => Some(37),
-            "DefaultFg" => Some(39),
-            "BlackBg" => Some(40),
-            "RedBg" => Some(41),
-            "GreenBg" => Some(42),
-            "YellowBg" => Some(43),
-            "BlueBg" => Some(44),
-            "MagentaBg" => Some(45),
-            "CyanBg" => Some(46),
-            "WhiteBg" => Some(47),
-            "DefaultBg" => Some(49),
-            _ => None,
-        }
-    }
-    if let Some(n) = parse_color_simple(s) {
+fn parse_sgr(s: &str, buf: &mut String) -> Option<()> {
+    if let Some(n) = parse_common(s) {
         n.append_to(buf);
+        Some(())
     } else {
-        let mut chars = s.chars();
-        match chars.next()? {
-            'f' => buf.push_str("38;"),
-            'b' => buf.push_str("48;"),
+        complex_color(s, buf)
+    }
+}
+fn parse_common(s: &str) -> Option<u8> {
+    match s {
+        // styles
+        "reset" => Some(0),
+        "bold" => Some(1),
+        "dim" => Some(2),
+        "italic" => Some(3),
+        "underline" => Some(4),
+        "blink" => Some(5),
+        "inverse" => Some(7),
+        "hide" => Some(8),
+        "strike" => Some(9),
+        // undo styles
+        "!bold" | "!dim" => Some(22),
+        "!italic" => Some(23),
+        "!underline" => Some(24),
+        "!blink" => Some(25),
+        "!inverse" => Some(27),
+        "!hide" => Some(28),
+        "!strike" => Some(29),
+        // foregrounds
+        "black" => Some(30),
+        "red" => Some(31),
+        "green" => Some(32),
+        "yellow" => Some(33),
+        "blue" => Some(34),
+        "magenta" => Some(35),
+        "cyan" => Some(36),
+        "white" => Some(37),
+        "default" => Some(39),
+        // backgrounds
+        "on-black" => Some(40),
+        "on-red" => Some(41),
+        "on-green" => Some(42),
+        "on-yellow" => Some(43),
+        "on-blue" => Some(44),
+        "on-magenta" => Some(45),
+        "on-cyan" => Some(46),
+        "on-white" => Some(47),
+        "on-default" => Some(49),
+        _ => None,
+    }
+}
+fn complex_color(s: &str, buf: &mut String) -> Option<()> {
+    let (color_code, s) = s.strip_prefix("on-").map_or(("38;", s), |s| ("48;", s));
+    buf.push_str(color_code);
+
+    if let Some(s) = s.strip_prefix('#') {
+        match s.len() {
+            2 => {
+                buf.push_str("5;");
+                u8::from_str_radix(s, 16).ok()?.append_to(buf);
+            }
+            6 => {
+                buf.push_str("2;");
+                u8::from_str_radix(&s[0..2], 16).ok()?.append_to(buf);
+                buf.push(';');
+                u8::from_str_radix(&s[2..4], 16).ok()?.append_to(buf);
+                buf.push(';');
+                u8::from_str_radix(&s[4..6], 16).ok()?.append_to(buf);
+            }
             _ => return None,
         }
-        let (left, right) = (chars.next()?, chars.next_back()?);
-        // x[..] -> ..
-        let s = &s[2..s.as_bytes().len() - 1];
-        match (left, right) {
-            ('(', ')') => {
-                let parts = s
-                    .split(',')
-                    .map(std::str::FromStr::from_str)
-                    .collect::<Result<Vec<u8>, _>>()
-                    .ok()?;
-                match parts[..] {
-                    [n] => {
-                        buf.push_str("5;");
-                        n.append_to(buf);
-                    }
-                    [n1, n2, n3] => {
-                        buf.push_str("2;");
-                        n1.append_to(buf);
-                        buf.push(';');
-                        n2.append_to(buf);
-                        buf.push(';');
-                        n3.append_to(buf);
-                    }
-                    _ => return None,
-                }
+    } else {
+        let parts = s
+            .split(',')
+            .map(std::str::FromStr::from_str)
+            .collect::<Result<Vec<u8>, _>>()
+            .ok()?;
+        match parts[..] {
+            [n] => {
+                buf.push_str("5;");
+                n.append_to(buf);
             }
-            ('[', ']') => match s.len() {
-                2 => {
-                    buf.push_str("5;");
-                    u8::from_str_radix(s, 16).ok()?.append_to(buf);
-                }
-                6 => {
-                    buf.push_str("2;");
-                    u8::from_str_radix(&s[0..2], 16).ok()?.append_to(buf);
-                    buf.push(';');
-                    u8::from_str_radix(&s[2..4], 16).ok()?.append_to(buf);
-                    buf.push(';');
-                    u8::from_str_radix(&s[4..6], 16).ok()?.append_to(buf);
-                }
-                _ => return None,
-            },
+            [n1, n2, n3] => {
+                buf.push_str("2;");
+                n1.append_to(buf);
+                buf.push(';');
+                n2.append_to(buf);
+                buf.push(';');
+                n3.append_to(buf);
+            }
             _ => return None,
         }
     }
+
     Some(())
 }
 

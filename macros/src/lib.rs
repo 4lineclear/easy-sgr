@@ -17,65 +17,65 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 
 mod parse;
 
-/// defines the [`std::fmt`] class of macros
-macro_rules! def_macros {
-    ($($name:ident $description:literal),*) => {
-        $(
-            def_macros!($name, $description);
-        )*
-    };
-    ($name:ident, $description:expr) => {
-        #[proc_macro]
-        #[doc = $description]
-        ///
-        /// # Syntax
-        ///
-        /// Works the same as the [`fmt`](std::fmt) class of macros,
-        /// with set keywords replaced with SGR codes.
-        /// These keywords are invoked within curly brackets
-        /// in a similar way variables are captured.
-        /// each keyword is prefixed with a delimiter that determines
-        /// what type of SGR code it will be.
-        ///
-        /// There are three basic types:
-        ///
-        /// - `+` -> Add
-        ///     - Reset
-        ///     - Everything under the 'Remove Style'
-        /// - `-` -> Remove Style
-        ///     - `Bold` `Dim` `Italic` `Underline` `Blinking` `Inverse` `Hidden` `Strikethrough`
-        /// - `#` -> Color
-        ///     - `BlackFg` `RedFg` `GreenFg` `YellowFg` `BlueFg` `MagentaFg`
-        /// `CyanFg` `WhiteFg` `DefaultFg` `BlackBg` `RedBg` `GreenBg`
-        /// `YellowBg` `BlueBg` `MagentaBg` `CyanBg` `WhiteBg` `DefaultBg`
-        /// - `&` -> Format param capture
-        ///     - Anything put in normal curly braces
-        ///
-        /// Color is special in that th you
-        ///
-        /// # See also
-        ///
-        /// - [`easy_sgr`](https://docs.rs/easy-sgr/latest/easy_sgr/)
-        /// - [`std::fmt`]"
-        pub fn $name(input: TokenStream) -> TokenStream {
-            sgr_macro(stringify!($name), input)
-        }
-    };
+#[proc_macro]
+/// Formats data into a string.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn format(input: TokenStream) -> TokenStream {
+    sgr_macro(stringify!(format), input)
 }
 
-def_macros!(
-    format "Formats data into a string.",
-    write "Writes formatted data into a writer.", // TODO get this working
-    writeln "Writes formatted data into a writer with a newline appended at the end.",
-    print "Prints formatted data to the standard output.",
-    println "Prints formatted data to the standard output with a newline appended at the end.",
-    eprint "Prints formatted data to the standard error.",
-    eprintln "Prints formatted data to the standard error with a newline appended at the end.",
-    format_args "Creates a [`std::fmt::Arguments`] struct for deferred formatting."
-);
+#[proc_macro]
+/// Writes formatted data into a writer.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn write(input: TokenStream) -> TokenStream {
+    sgr_macro("write", input)
+}
+
+#[proc_macro]
+/// Writes formatted data into a writer with a newline appended at the end.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn writeln(input: TokenStream) -> TokenStream {
+    sgr_macro("writeln", input)
+}
+
+#[proc_macro]
+/// Prints formatted data to the standard output.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn print(input: TokenStream) -> TokenStream {
+    sgr_macro("print", input)
+}
+
+#[proc_macro]
+/// Prints formatted data to the standard output with a newline appended at the end.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn println(input: TokenStream) -> TokenStream {
+    sgr_macro("println", input)
+}
+
+#[proc_macro]
+/// Prints formatted data to the standard error.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn eprint(input: TokenStream) -> TokenStream {
+    sgr_macro("eprint", input)
+}
+
+#[proc_macro]
+/// Prints formatted data to the standard error with a newline appended at the end.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn eprintln(input: TokenStream) -> TokenStream {
+    sgr_macro("eprintln", input)
+}
+
+#[proc_macro]
+/// Creates a [`std::fmt::Arguments`] struct for deferred formatting.
+#[doc = include_str!("../SYNTAX.md")]
+pub fn format_args(input: TokenStream) -> TokenStream {
+    sgr_macro("format_args", input)
+}
 
 #[proc_macro]
 /// TODO
+#[doc = include_str!("../SYNTAX.md")]
 pub fn sgr(input: TokenStream) -> TokenStream {
     let mut tokens = input.clone().into_iter();
     let string_literal = tokens.next();

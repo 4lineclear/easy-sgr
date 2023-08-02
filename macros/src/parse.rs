@@ -46,7 +46,7 @@ pub fn create_raw_string(s: &str, i: usize) -> String {
 pub fn sgr_string(s: &str) -> Option<String> {
     let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
-    let mut next = chars.next();
+    let mut next: Option<(usize, char)> = chars.next();
 
     while let Some((_, ch)) = next {
         match ch {

@@ -1,4 +1,4 @@
-use easy_sgr::{println, sgr, write};
+use easy_sgr_macros::{println, sgr, write};
 use std::fmt::Write;
 fn main() {
     let green = "This should be green!";

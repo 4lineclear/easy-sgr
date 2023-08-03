@@ -1,4 +1,10 @@
-//!The proc-macro implementation for the easy-sgr string
+//! The proc-macro implementation for the easy-sgr
+//!
+//! ## Syntax
+//!
+//! See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+//!
+//!
 #![forbid(unsafe_code)]
 #![deny(
     clippy::all,
@@ -17,65 +23,119 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 
 mod parse;
 
-#[proc_macro]
 /// Formats data into a string.
-#[doc = include_str!("../SYNTAX.md")]
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
+#[proc_macro]
 pub fn format(input: TokenStream) -> TokenStream {
     standard_sgr_macro("format", input)
 }
 
-#[proc_macro]
 /// Writes formatted data into a writer.
-#[doc = include_str!("../SYNTAX.md")]
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
+#[proc_macro]
 pub fn write(input: TokenStream) -> TokenStream {
     write_sgr_macro("write", input)
 }
 
-#[proc_macro]
 /// Writes formatted data into a writer with a newline appended at the end.
-#[doc = include_str!("../SYNTAX.md")]
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
+#[proc_macro]
 pub fn writeln(input: TokenStream) -> TokenStream {
     write_sgr_macro("writeln", input)
 }
 
-#[proc_macro]
 /// Prints formatted data to the standard output.
-#[doc = include_str!("../SYNTAX.md")]
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
+#[proc_macro]
 pub fn print(input: TokenStream) -> TokenStream {
     standard_sgr_macro("print", input)
 }
 
-#[proc_macro]
 /// Prints formatted data to the standard output with a newline appended at the end.
-#[doc = include_str!("../SYNTAX.md")]
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
+#[proc_macro]
 pub fn println(input: TokenStream) -> TokenStream {
     standard_sgr_macro("println", input)
 }
 
-#[proc_macro]
 /// Prints formatted data to the standard error.
-#[doc = include_str!("../SYNTAX.md")]
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
+#[proc_macro]
 pub fn eprint(input: TokenStream) -> TokenStream {
     standard_sgr_macro("eprint", input)
 }
 
-#[proc_macro]
 /// Prints formatted data to the standard error with a newline appended at the end.
-#[doc = include_str!("../SYNTAX.md")]
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
+#[proc_macro]
 pub fn eprintln(input: TokenStream) -> TokenStream {
     standard_sgr_macro("eprintln", input)
 }
 
+/// Creates a [`arguments`](std::fmt::Arguments) struct for deferred formatting.
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
 #[proc_macro]
-/// Creates a [`std::fmt::Arguments`] struct for deferred formatting.
-#[doc = include_str!("../SYNTAX.md")]
 pub fn format_args(input: TokenStream) -> TokenStream {
     standard_sgr_macro("format_args", input)
 }
 
+/// Creates a string literal
+///
+/// SGR keywords are switched out with their code counterparts
+///
+/// # Syntax
+///
+/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
+/// 
 #[proc_macro]
-/// TODO
-#[doc = include_str!("../SYNTAX.md")]
 pub fn sgr(input: TokenStream) -> TokenStream {
     let mut tokens = input.clone().into_iter();
     let string_literal = tokens.next();
@@ -104,7 +164,11 @@ pub fn sgr(input: TokenStream) -> TokenStream {
         }
     }
 }
-
+/// will create keywords aliases in the future
+///
+fn _sgr_alias() {
+    unimplemented!()
+}
 /// Creates a [`TokenStream`] macro call,
 /// meant for `fmt` macros
 ///

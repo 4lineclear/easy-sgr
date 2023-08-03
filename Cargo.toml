@@ -13,7 +13,7 @@ keywords = ["SGR", "cli", "color", "terminal", "text"]
 exclude = ["/scripts, /.settings.json"]
 
 [dependencies]
-easy-sgr-macros = { version = "*", path = "macros" }
+easy-sgr-macros = { version = "*", path = "macros", optional = true}
 
 [workspace]
 members = ["macros"]
@@ -21,5 +21,5 @@ members = ["macros"]
 [features]
 partial = []
 from-str = []
-macros = []
+macros = ["dep:easy-sgr-macros"]
 macro-only = ["macros"]

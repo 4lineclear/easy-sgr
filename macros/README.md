@@ -1,19 +1,7 @@
 # easy-sgr-macros
 
-The proc-macro implementation for the easy-sgr string
+The proc-macro implementation for the easy-sgr
 
-## Structure & Functionality
+## Syntax
 
-This crate works by parsing continuously, everything works in a single loop.
-
-This loop has several actions it does:
-
-- Parsing the string literal
-- Fixing any escapes
-- Collecting all instances of
-
-## TODO
-
-- [x] create Transform
-- [x] create Mapform
-- [ ] Use in project
+See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)

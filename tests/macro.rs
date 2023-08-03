@@ -9,7 +9,16 @@ mod macros {
             )*
         };
     }
-
+    #[test]
+    fn general() {
+        sgr_tests!(
+            "{[]}" = "\x1b[0m",
+            "{[reset bold]}" = "\x1b[0;1m",
+            "{[!bold]}" = "\x1b[22m",
+            "{[0,0,0 on-0,0,0]}" = "\x1b[38;2;0;0;0;48;2;0;0;0m",
+            "{[#00 on-#00]}" = "\x1b[38;5;0;48;5;0m"
+        );
+    }
     #[test]
     fn styles() {
         sgr_tests!(

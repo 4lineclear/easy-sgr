@@ -21,56 +21,56 @@ mod parse;
 /// Formats data into a string.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn format(input: TokenStream) -> TokenStream {
-    sgr_macro("format", input.into_iter())
+    standard_sgr_macro("format", input)
 }
 
 #[proc_macro]
 /// Writes formatted data into a writer.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn write(input: TokenStream) -> TokenStream {
-    sgr_macro("write", input.into_iter())
+    write_sgr_macro("write", input)
 }
 
 #[proc_macro]
 /// Writes formatted data into a writer with a newline appended at the end.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn writeln(input: TokenStream) -> TokenStream {
-    sgr_macro("writeln", input.into_iter())
+    write_sgr_macro("writeln", input)
 }
 
 #[proc_macro]
 /// Prints formatted data to the standard output.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn print(input: TokenStream) -> TokenStream {
-    sgr_macro("print", input.into_iter())
+    standard_sgr_macro("print", input)
 }
 
 #[proc_macro]
 /// Prints formatted data to the standard output with a newline appended at the end.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn println(input: TokenStream) -> TokenStream {
-    sgr_macro("println", input.into_iter())
+    standard_sgr_macro("println", input)
 }
 
 #[proc_macro]
 /// Prints formatted data to the standard error.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn eprint(input: TokenStream) -> TokenStream {
-    sgr_macro("eprint", input.into_iter())
+    standard_sgr_macro("eprint", input)
 }
 
 #[proc_macro]
 /// Prints formatted data to the standard error with a newline appended at the end.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn eprintln(input: TokenStream) -> TokenStream {
-    sgr_macro("eprintln", input.into_iter())
+    standard_sgr_macro("eprintln", input)
 }
 
 #[proc_macro]
 /// Creates a [`std::fmt::Arguments`] struct for deferred formatting.
 #[doc = include_str!("../SYNTAX.md")]
 pub fn format_args(input: TokenStream) -> TokenStream {
-    sgr_macro("format_args", input.into_iter())
+    standard_sgr_macro("format_args", input)
 }
 
 #[proc_macro]
@@ -80,27 +80,28 @@ pub fn sgr(input: TokenStream) -> TokenStream {
     let mut tokens = input.clone().into_iter();
     let string_literal = tokens.next();
     if tokens.next().is_some() {
-        return create_macro(
+        create_macro(
             "compile_error",
             Span::mixed_site(),
-            TokenTree::Literal(Literal::string("sgr! macro does not accept arguments")).into(),
-        );
-    }
-    match create_literal(string_literal) {
-        ParsedLiteral::String(token) => TokenTree::Literal(token).into(),
-        ParsedLiteral::RawString(string) => string
-            .parse()
-            .expect("Raw string parsing failed, should never fail"),
-        // compiler will let user know of invalid token
-        ParsedLiteral::InvalidToken(token) => create_macro(
-            "compile_error",
-            token.span(),
-            std::format!(r#""Invalid token: {token}""#)
+            TokenTree::Literal(Literal::string("sgr! does not accept arguments")).into(),
+        )
+    } else {
+        match create_literal(string_literal) {
+            ParsedLiteral::String(token) => TokenTree::Literal(token).into(),
+            ParsedLiteral::RawString(string) => string
                 .parse()
-                .expect("Parsing error string failed, should never fail"),
-        ),
-        ParsedLiteral::InvalidString => input,
-        ParsedLiteral::Empty => TokenTree::Literal(Literal::string("")).into(),
+                .expect("Raw string parsing failed, should never fail"),
+            // compiler will let user know of invalid token
+            ParsedLiteral::InvalidToken(token) => create_macro(
+                "compile_error",
+                token.span(),
+                std::format!(r#""Invalid token: {token}""#)
+                    .parse()
+                    .expect("Parsing error string failed, should never fail"),
+            ),
+            ParsedLiteral::InvalidString => input,
+            ParsedLiteral::Empty => TokenTree::Literal(Literal::string("")).into(),
+        }
     }
 }
 
@@ -114,7 +115,8 @@ pub fn sgr(input: TokenStream) -> TokenStream {
 ///
 /// This may change in the future to just returning the [`TokenStream`]
 /// that is inputted in the macro call
-fn sgr_macro(macro_call: &str, mut tokens: impl Iterator<Item = TokenTree>) -> TokenStream {
+fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
+    let mut tokens = input.into_iter();
     match create_literal(tokens.next()) {
         ParsedLiteral::String(token) => create_macro(
             macro_call,
@@ -142,6 +144,72 @@ fn sgr_macro(macro_call: &str, mut tokens: impl Iterator<Item = TokenTree>) -> T
         ),
         ParsedLiteral::InvalidString => TokenStream::new(),
         ParsedLiteral::Empty => create_macro(macro_call, Span::mixed_site(), TokenStream::new()),
+    }
+}
+fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
+    let mut tokens = input.into_iter();
+    let writer = tokens.next().expect("Missing writer");
+    let (next, punct) = match tokens.next() {
+        Some(TokenTree::Punct(p)) => (tokens.next(), Some(p)),
+        Some(t) => (Some(t), None),
+        None => (None, None),
+    };
+    match create_literal(next) {
+        ParsedLiteral::String(token) => create_macro(
+            macro_call,
+            token.span(),
+            match punct {
+                Some(ident) => [writer, TokenTree::Punct(ident), TokenTree::Literal(token)]
+                    .into_iter()
+                    .chain(tokens)
+                    .collect(),
+                None => [writer, TokenTree::Literal(token)]
+                    .into_iter()
+                    .chain(tokens)
+                    .collect(),
+            },
+        ),
+        ParsedLiteral::RawString(string) => {
+            // Should not fail
+            create_macro(macro_call, Span::mixed_site(), {
+                // using FromStr is the only way to return a raw string
+                let mut stream = match punct {
+                    Some(punct) => [writer, TokenTree::Punct(punct)].into_iter().collect(),
+                    None => TokenStream::from(writer),
+                };
+
+                let str_lit: TokenStream = string
+                    .parse()
+                    .expect("Raw string parsing failed, should never fail");
+                stream.extend(str_lit.into_iter());
+                stream.extend(tokens);
+                stream
+            })
+        }
+        // compiler will let user know of invalid token
+        ParsedLiteral::InvalidToken(token) => create_macro(
+            macro_call,
+            token.span(),
+            match punct {
+                Some(ident) => [writer, TokenTree::Punct(ident), token]
+                    .into_iter()
+                    .chain(tokens)
+                    .collect(),
+                None => [writer, token].into_iter().chain(tokens).collect(),
+            },
+        ),
+        ParsedLiteral::InvalidString => TokenStream::new(),
+        ParsedLiteral::Empty => create_macro(
+            macro_call,
+            Span::mixed_site(),
+            match punct {
+                Some(ident) => [writer, TokenTree::Punct(ident)]
+                    .into_iter()
+                    .chain(tokens)
+                    .collect(),
+                None => std::iter::once(writer).chain(tokens).collect(),
+            },
+        ),
     }
 }
 enum ParsedLiteral {

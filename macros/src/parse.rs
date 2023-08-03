@@ -151,7 +151,10 @@ fn parse_param(
             assert!(parse_sgr(s, &mut buf).is_some(), "Invalid keyword {s}");
             buf.push(';');
         }
-        buf.pop().unwrap();
+        // {[..]} .. is empty it is parsed as reset
+        if buf.pop().unwrap() == '[' {
+            buf.push_str("[0");
+        }
         buf + "m"
     } else {
         buf.push_str(&s[start - 1..=end]);

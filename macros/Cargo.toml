@@ -13,3 +13,6 @@ keywords = ["SGR", "cli", "color", "terminal", "text"]
 
 [lib]
 proc-macro = true
+
+[features]
+alias = []

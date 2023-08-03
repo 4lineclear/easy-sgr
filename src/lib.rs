@@ -180,25 +180,15 @@
 //!
 //! ## TODO for `1.0.0` release
 //!
-//! - [x] Add inline that doesn't write escape itself
-//! - [x] Add `get_writer` method to `writing` module
-//!     - [x] Consider removing `SGRWriter`
-//!     - [x] Consider adding an associated type to `CapableWriter`
 //! - [ ] Add examples to docs
 //!     - [x] `discrete`
 //!     - [ ] `graphics`
 //!     - [ ] `writing`
-//! - [ ] Implement `FromStr` for [`SGR`][SGR] types
-//!     - [x] Implement more complex `from_str` for `Color`
-//!     - [x] Move to new submodule
-//!     - [ ] Add underlying const functions
-//!     - [ ] Set it as a feature
-//! - [ ] Macros (`SGRise`) (`0.1.0`)
-//! - [ ] Add parser(`deSGR`)
+//! - [ ] Macros (`east-sgr-macros`) (`0.1.0`)
+//! - [ ] Add parser?
 //!     - [ ] Add parsing from ansi codes
 //!     - [ ] Add parsing for `SGRString`
 //! - [ ] `EasySGR` implementation that doesn't allocate an `SGRString`
-//! - [ ] (maybe) create smart clean system
 #![forbid(unsafe_code)]
 #![deny(
     clippy::all,

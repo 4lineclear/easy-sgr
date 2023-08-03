@@ -164,11 +164,6 @@ pub fn sgr(input: TokenStream) -> TokenStream {
         }
     }
 }
-/// will create keywords aliases in the future
-///
-fn _sgr_alias() {
-    unimplemented!()
-}
 /// Creates a [`TokenStream`] macro call,
 /// meant for `fmt` macros
 ///
@@ -177,8 +172,6 @@ fn _sgr_alias() {
 /// - `macro_call`: What macro to make
 /// - `input`: The [`TokenStream`] to parse
 ///
-/// This may change in the future to just returning the [`TokenStream`]
-/// that is inputted in the macro call
 fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter();
     match create_literal(tokens.next()) {
@@ -210,7 +203,8 @@ fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
         ParsedLiteral::Empty => create_macro(macro_call, Span::mixed_site(), TokenStream::new()),
     }
 }
-// TODO merge these implementations
+/// similar to [`standard_sgr_macro`], except
+/// the first token is expected to be a writer's ident
 fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter();
     let writer = tokens.next().expect("Missing writer");
@@ -321,3 +315,31 @@ fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStrea
     .into_iter()
     .collect()
 }
+
+// #[cfg(feature = "alias")]
+// pub(crate) mod user_keyword {
+//     use std::{
+//         collections::HashMap,
+//         sync::{Mutex, OnceLock},
+//     };
+//     static KEYWORDS: OnceLock<Mutex<HashMap<&str, &str>>> = OnceLock::new();
+// }
+// /// will create keywords aliases in the future
+// ///
+// #[proc_macro]
+// #[cfg(feature = "alias")]
+// pub fn sgr_alias(input: TokenStream) -> TokenStream {
+//     let mut tokens = input.into_iter();
+//     let ret = match tokens.next() {
+//         Some(TokenTree::Literal(s)) => (),
+//         Some(t) => return create_macro(
+//             "compile_error",
+//             t.span(),
+//             r#""Invalid token found""#
+//                 .parse()
+//                 .expect("Parsing error string failed, should never fail"),
+//         ),
+//         None => todo!(),
+//     };
+//     unimplemented!()
+// }

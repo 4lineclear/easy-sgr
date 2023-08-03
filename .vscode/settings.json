@@ -1,6 +1,7 @@
 {
     "rust-analyzer.cargo.features": [
         "from-str",
-        "macros"
+        "macros",
+        "alias"
     ]
 }

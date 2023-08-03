@@ -53,7 +53,7 @@ pub fn sgr_string(s: &str) -> Option<String> {
             // unwrap cannot fail, in the case that it does something is very wrong
             '\\' => match chars
                 .next()
-                .expect("Unwrapping char following escape failed, should never fail")
+                .expect("Unwrapping char following escape failed, should never fail") // TODO panic removal
                 .1
             {
                 //quote escapes
@@ -97,6 +97,8 @@ pub fn sgr_string(s: &str) -> Option<String> {
     }
     Some(buf)
 }
+
+// enum ParamError {}
 /// Parses a format param
 ///
 /// i.e. something within curly braces:
@@ -140,15 +142,15 @@ fn parse_param(
         return buf + "{{";
     }
 
-    let end = chars.find(|ch| ch.1 == '}').expect("Param not closed").0;
+    let end = chars.find(|ch| ch.1 == '}').expect("Param not closed").0; // TODO panic removal
     if ch == '[' {
         buf.push_str("\x1b[");
         for s in s[start + 1..end]
             .strip_suffix(']')
-            .expect("Expected a ending square bracket")
+            .expect("Expected a ending square bracket") // TODO panic removal
             .split_whitespace()
         {
-            assert!(parse_sgr(s, &mut buf).is_some(), "Invalid keyword {s}");
+            assert!(parse_sgr(s, &mut buf).is_some(), "Invalid keyword {s}"); // TODO panic removal
             buf.push(';');
         }
         // {[..]} .. is empty it is parsed as reset

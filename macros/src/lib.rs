@@ -30,7 +30,7 @@ mod parse;
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn format(input: TokenStream) -> TokenStream {
     standard_sgr_macro("format", input)
@@ -43,7 +43,7 @@ pub fn format(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn write(input: TokenStream) -> TokenStream {
     write_sgr_macro("write", input)
@@ -56,7 +56,7 @@ pub fn write(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn writeln(input: TokenStream) -> TokenStream {
     write_sgr_macro("writeln", input)
@@ -69,7 +69,7 @@ pub fn writeln(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn print(input: TokenStream) -> TokenStream {
     standard_sgr_macro("print", input)
@@ -82,7 +82,7 @@ pub fn print(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn println(input: TokenStream) -> TokenStream {
     standard_sgr_macro("println", input)
@@ -95,7 +95,7 @@ pub fn println(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn eprint(input: TokenStream) -> TokenStream {
     standard_sgr_macro("eprint", input)
@@ -108,7 +108,7 @@ pub fn eprint(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn eprintln(input: TokenStream) -> TokenStream {
     standard_sgr_macro("eprintln", input)
@@ -121,7 +121,7 @@ pub fn eprintln(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn format_args(input: TokenStream) -> TokenStream {
     standard_sgr_macro("format_args", input)
@@ -134,7 +134,7 @@ pub fn format_args(input: TokenStream) -> TokenStream {
 /// # Syntax
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-/// 
+///
 #[proc_macro]
 pub fn sgr(input: TokenStream) -> TokenStream {
     let mut tokens = input.clone().into_iter();
@@ -151,11 +151,11 @@ pub fn sgr(input: TokenStream) -> TokenStream {
             ParsedLiteral::RawString(string) => string
                 .parse()
                 .expect("Raw string parsing failed, should never fail"),
-            // compiler will let user know of invalid token
+            // need to manually tell the user that the token is incorrect
             ParsedLiteral::InvalidToken(token) => create_macro(
                 "compile_error",
                 token.span(),
-                std::format!(r#""Invalid token: {token}""#)
+                r#""sgr! only accepts a format string argument""#
                     .parse()
                     .expect("Parsing error string failed, should never fail"),
             ),
@@ -210,6 +210,7 @@ fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
         ParsedLiteral::Empty => create_macro(macro_call, Span::mixed_site(), TokenStream::new()),
     }
 }
+// TODO merge these implementations
 fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter();
     let writer = tokens.next().expect("Missing writer");

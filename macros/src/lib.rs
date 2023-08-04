@@ -22,7 +22,8 @@ use parse::{create_raw_string, sgr_string, unwrap_string, ParseError, UnwrappedL
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 mod parse;
-
+#[cfg(test)]
+mod test;
 /// Formats data into a string.
 ///
 /// SGR keywords are switched out with their code counterparts
@@ -169,7 +170,7 @@ pub fn sgr(input: TokenStream) -> TokenStream {
 /// - `macro_call`: What macro to make
 /// - `input`: The [`TokenStream`] to parse
 ///
-fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
+pub(crate) fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter();
     match create_literal(tokens.next()) {
         ParsedLiteral::String(token) => create_macro(
@@ -195,7 +196,7 @@ fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
 }
 /// similar to [`standard_sgr_macro`], except
 /// the first token is expected to be a writer's ident
-fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
+pub(crate) fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter();
     let writer = tokens.next().expect("Missing writer");
     let (next, punct) = match tokens.next() {
@@ -258,6 +259,7 @@ fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
         ),
     }
 }
+#[derive(Debug)]
 enum ParsedLiteral {
     String(Literal),
     RawString(TokenStream),
@@ -311,7 +313,7 @@ impl From<ParseError> for TokenStream {
         }
     }
 }
-fn create_literal(token: Option<TokenTree>) -> ParsedLiteral {
+pub(crate) fn create_literal(token: Option<TokenTree>) -> ParsedLiteral {
     use ParsedLiteral::*;
     match token {
         Some(TokenTree::Literal(literal)) => unwrap_string(&literal.to_string())
@@ -320,7 +322,7 @@ fn create_literal(token: Option<TokenTree>) -> ParsedLiteral {
         None => Empty,
     }
 } // TODO create col_err
-fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStream {
+pub(crate) fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStream {
     let tokens: [TokenTree; 6] = [
         Ident::new("std", span).into(),
         Punct::new(':', Spacing::Joint).into(),
@@ -331,7 +333,7 @@ fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStrea
     ];
     tokens.into_iter().collect()
 }
-fn compile_error(span: Span, message: &str) -> TokenStream {
+pub(crate) fn compile_error(span: Span, message: &str) -> TokenStream {
     create_macro(
         "compile_error",
         span,

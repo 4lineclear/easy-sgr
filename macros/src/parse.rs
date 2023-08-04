@@ -1,6 +1,6 @@
 use std::{num::ParseIntError, str::CharIndices};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum UnwrappedLiteral<'a> {
     String(&'a str),
     RawString(&'a str, usize),
@@ -12,9 +12,13 @@ pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
             let len = s.as_bytes().len();
             let s = s.trim_matches('#');
             let diff = len - s.as_bytes().len();
-            s.strip_prefix('"')?
-                .strip_suffix('"')
-                .map(|s| RawString(s, diff / 2))
+            if diff % 2 == 0 {
+                s.strip_prefix('"')?
+                    .strip_suffix('"')
+                    .map(|s| RawString(s, diff / 2))
+            } else {
+                None
+            }
         }
         None => s.strip_prefix('"')?.strip_suffix('"').map(String),
     }
@@ -30,6 +34,7 @@ pub fn create_raw_string(s: &str, i: usize) -> String {
     (0..i).for_each(|_| buf.push('#'));
     buf
 }
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum ParseError {
     IntError(ParseIntError),
     MissingBracket,
@@ -61,12 +66,8 @@ pub(crate) fn sgr_string(s: &str) -> Result<String, ParseError> {
 
     while let Some((_, ch)) = next {
         match ch {
-            // unwrap cannot fail, in the case that it does something is very wrong
-            '\\' => match chars
-                .next()
-                .expect("Unwrapping char following escape failed, should never fail") // TODO panic removal
-                .1
-            {
+            // should never be ran into outside of testing
+            '\\' => match chars.next().ok_or(ParseError::CompilerPassOff)?.1 {
                 //quote escapes
                 '\'' => buf.push('\''),
                 '"' => buf.push('"'),
@@ -144,7 +145,7 @@ fn parse_param(
     mut buf: String,
 ) -> Result<String, ParseError> {
     let Some((start, ch)) = next_char else {
-        // string, compiler will let user know of error
+        // compiler will let user know of error
         return Ok(buf + "{");
     };
     if ch == '}' {
@@ -182,7 +183,7 @@ fn parse_param(
 /// Parses 7bit escape(`\x..`) into a char
 fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
     let (end, _) = chars.nth(1)?;
-    let start = end - 2;
+    let start = end - 1;
     char::from_u32(u32::from_str_radix(&s[start..=end], 16).ok()?)
 }
 /// Parses 7bit escape(`\u{..}`) into a char

@@ -1,4 +1,4 @@
-use std::str::CharIndices;
+use std::{num::ParseIntError, str::CharIndices};
 
 #[derive(Debug)]
 pub enum UnwrappedLiteral<'a> {
@@ -30,6 +30,17 @@ pub fn create_raw_string(s: &str, i: usize) -> String {
     (0..i).for_each(|_| buf.push('#'));
     buf
 }
+pub(crate) enum ParseError {
+    IntError(ParseIntError),
+    MissingBracket,
+    InvalidColorLen,
+    CompilerPassOff,
+}
+impl From<ParseIntError> for ParseError {
+    fn from(value: ParseIntError) -> Self {
+        Self::IntError(value)
+    }
+}
 // TODO remove all panics, return Result instead
 /// Removes escapes, parses keywords into their SGR code counterparts
 ///
@@ -43,7 +54,7 @@ pub fn create_raw_string(s: &str, i: usize) -> String {
 ///
 /// Other than that, the string returned may be an invalid string literal.
 /// In these cases, the rust compiler should alert the user of the error.
-pub fn sgr_string(s: &str) -> Option<String> {
+pub(crate) fn sgr_string(s: &str) -> Result<String, ParseError> {
     let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
     let mut next: Option<(usize, char)> = chars.next();
@@ -60,14 +71,14 @@ pub fn sgr_string(s: &str) -> Option<String> {
                 '\'' => buf.push('\''),
                 '"' => buf.push('"'),
                 //ascii escapes
-                'x' => buf.push(parse_7bit(chars, s)?),
+                'x' => buf.push(parse_7bit(chars, s).ok_or(ParseError::CompilerPassOff)?),
                 'n' => buf.push('\n'),
                 'r' => buf.push('\r'),
                 't' => buf.push('\t'),
                 '\\' => buf.push('\\'),
                 '0' => buf.push('\0'),
                 //unicode escape
-                'u' => buf.push(parse_24bit(chars, s)?),
+                'u' => buf.push(parse_24bit(chars, s).ok_or(ParseError::CompilerPassOff)?),
                 //whitespace ignore
                 '\n' => {
                     if let Some(non_whitespace) =
@@ -78,9 +89,9 @@ pub fn sgr_string(s: &str) -> Option<String> {
                     }
                     // end of string reached
                 }
-                _ => return None, // invalid char
+                _ => return Err(ParseError::CompilerPassOff), // invalid char
             },
-            '{' => buf = parse_param(chars.next(), s, chars, buf),
+            '{' => buf = parse_param(chars.next(), s, chars, buf)?,
             '}' => match chars.next() {
                 Some((_, '}')) => buf.push_str("}}"),
                 // ignores invalid bracket, continues parsing
@@ -95,7 +106,7 @@ pub fn sgr_string(s: &str) -> Option<String> {
         }
         next = chars.next();
     }
-    Some(buf)
+    Ok(buf)
 }
 
 // enum ParamError {}
@@ -131,36 +142,41 @@ fn parse_param(
     s: &str,
     chars: &mut CharIndices,
     mut buf: String,
-) -> String {
+) -> Result<String, ParseError> {
     let Some((start, ch)) = next_char else {
         // string, compiler will let user know of error
-        return buf + "{"
+        return Ok(buf + "{");
     };
     if ch == '}' {
-        return buf + "{}";
+        return Ok(buf + "{}");
     } else if ch == '{' {
-        return buf + "{{";
+        return Ok(buf + "{{");
     }
 
-    let end = chars.find(|ch| ch.1 == '}').expect("Param not closed").0; // TODO panic removal
+    // returns early as there is no end bracket compiler should handle this
+    // TODO consider changing this to be returned as an error
+    let Some(end) = chars.find(|ch| ch.1 == '}') else {
+        return Ok(buf + &s[start-1..]);
+    };
+    let end = end.0;
     if ch == '[' {
         buf.push_str("\x1b[");
         for s in s[start + 1..end]
             .strip_suffix(']')
-            .expect("Expected a ending square bracket") // TODO panic removal
+            .ok_or(ParseError::MissingBracket)?
             .split_whitespace()
         {
-            assert!(parse_sgr(s, &mut buf).is_some(), "Invalid keyword {s}"); // TODO panic removal
+            parse_sgr(s, &mut buf)?;
             buf.push(';');
         }
         // {[..]} .. is empty it is parsed as reset
         if buf.pop().unwrap() == '[' {
             buf.push_str("[0");
         }
-        buf + "m"
+        Ok(buf + "m")
     } else {
         buf.push_str(&s[start - 1..=end]);
-        buf
+        Ok(buf)
     }
 }
 /// Parses 7bit escape(`\x..`) into a char
@@ -175,10 +191,10 @@ fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
     let (end, _) = chars.find(|ch| ch.1 == '}')?;
     char::from_u32(u32::from_str_radix(&s[start..end], 16).ok()?)
 }
-fn parse_sgr(s: &str, buf: &mut String) -> Option<()> {
+fn parse_sgr(s: &str, buf: &mut String) -> Result<(), ParseError> {
     if let Some(n) = parse_common(s) {
         n.append_to(buf);
-        Some(())
+        Ok(())
     } else {
         complex_color(s, buf)
     }
@@ -226,7 +242,7 @@ fn parse_common(s: &str) -> Option<u8> {
         _ => None,
     }
 }
-fn complex_color(s: &str, buf: &mut String) -> Option<()> {
+fn complex_color(s: &str, buf: &mut String) -> Result<(), ParseError> {
     let (color_code, s) = s.strip_prefix("on-").map_or(("38;", s), |s| ("48;", s));
     buf.push_str(color_code);
 
@@ -234,24 +250,23 @@ fn complex_color(s: &str, buf: &mut String) -> Option<()> {
         match s.len() {
             2 => {
                 buf.push_str("5;");
-                u8::from_str_radix(s, 16).ok()?.append_to(buf);
+                u8::from_str_radix(s, 16)?.append_to(buf);
             }
             6 => {
                 buf.push_str("2;");
-                u8::from_str_radix(&s[0..2], 16).ok()?.append_to(buf);
+                u8::from_str_radix(&s[0..2], 16)?.append_to(buf);
                 buf.push(';');
-                u8::from_str_radix(&s[2..4], 16).ok()?.append_to(buf);
+                u8::from_str_radix(&s[2..4], 16)?.append_to(buf);
                 buf.push(';');
-                u8::from_str_radix(&s[4..6], 16).ok()?.append_to(buf);
+                u8::from_str_radix(&s[4..6], 16)?.append_to(buf);
             }
-            _ => return None,
+            _ => return Err(ParseError::InvalidColorLen),
         }
     } else {
         let parts = s
             .split(',')
             .map(std::str::FromStr::from_str)
-            .collect::<Result<Vec<u8>, _>>()
-            .ok()?;
+            .collect::<Result<Vec<u8>, _>>()?;
         match parts[..] {
             [n] => {
                 buf.push_str("5;");
@@ -265,11 +280,11 @@ fn complex_color(s: &str, buf: &mut String) -> Option<()> {
                 buf.push(';');
                 n3.append_to(buf);
             }
-            _ => return None,
+            _ => return Err(ParseError::InvalidColorLen),
         }
     }
 
-    Some(())
+    Ok(())
 }
 
 /// A trait for appending self to a given string

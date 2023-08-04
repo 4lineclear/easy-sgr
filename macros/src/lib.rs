@@ -18,7 +18,7 @@
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
 
-use parse::{create_raw_string, sgr_string, unwrap_string, UnwrappedLiteral};
+use parse::{create_raw_string, sgr_string, unwrap_string, ParseError, UnwrappedLiteral};
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 mod parse;
@@ -135,22 +135,17 @@ pub fn format_args(input: TokenStream) -> TokenStream {
 ///
 /// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
 ///
+// TODO fix parsing around {{ }}
 #[proc_macro]
 pub fn sgr(input: TokenStream) -> TokenStream {
     let mut tokens = input.clone().into_iter();
     let string_literal = tokens.next();
     if tokens.next().is_some() {
-        create_macro(
-            "compile_error",
-            Span::mixed_site(),
-            TokenTree::Literal(Literal::string("sgr! does not accept arguments")).into(),
-        )
+        compile_error(Span::mixed_site(), "sgr! does not accept arguments")
     } else {
         match create_literal(string_literal) {
             ParsedLiteral::String(token) => TokenTree::Literal(token).into(),
-            ParsedLiteral::RawString(string) => string
-                .parse()
-                .expect("Raw string parsing failed, should never fail"),
+            ParsedLiteral::RawString(string) => string,
             // need to manually tell the user that the token is incorrect
             ParsedLiteral::InvalidToken(token) => create_macro(
                 "compile_error",
@@ -159,11 +154,13 @@ pub fn sgr(input: TokenStream) -> TokenStream {
                     .parse()
                     .expect("Parsing error string failed, should never fail"),
             ),
-            ParsedLiteral::InvalidString => input,
+            ParsedLiteral::InvalidString(e) => e.into(),
             ParsedLiteral::Empty => TokenTree::Literal(Literal::string("")).into(),
         }
     }
 }
+// TODO use subspan in the future
+// see https://github.com/rust-lang/rust/issues/54725
 /// Creates a [`TokenStream`] macro call,
 /// meant for `fmt` macros
 ///
@@ -182,24 +179,17 @@ fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
                 .chain(tokens)
                 .collect(),
         ),
-        ParsedLiteral::RawString(string) => {
-            // Should not fail
-            create_macro(macro_call, Span::mixed_site(), {
-                // using FromStr is the only way to return a raw string
-                let mut stream: TokenStream = string
-                    .parse()
-                    .expect("Raw string parsing failed, should never fail");
-                stream.extend(tokens);
-                stream
-            })
-        }
+        ParsedLiteral::RawString(mut string) => create_macro(macro_call, Span::mixed_site(), {
+            string.extend(tokens);
+            string
+        }),
         // compiler will let user know of invalid token
         ParsedLiteral::InvalidToken(token) => create_macro(
             macro_call,
             token.span(),
             std::iter::once(token).chain(tokens).collect(),
         ),
-        ParsedLiteral::InvalidString => TokenStream::new(),
+        ParsedLiteral::InvalidString(e) => e.into(),
         ParsedLiteral::Empty => create_macro(macro_call, Span::mixed_site(), TokenStream::new()),
     }
 }
@@ -237,10 +227,7 @@ fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
                     None => TokenStream::from(writer),
                 };
 
-                let str_lit: TokenStream = string
-                    .parse()
-                    .expect("Raw string parsing failed, should never fail");
-                stream.extend(str_lit.into_iter());
+                stream.extend(string.into_iter());
                 stream.extend(tokens);
                 stream
             })
@@ -257,7 +244,7 @@ fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
                 None => [writer, token].into_iter().chain(tokens).collect(),
             },
         ),
-        ParsedLiteral::InvalidString => TokenStream::new(),
+        ParsedLiteral::InvalidString(e) => e.into(),
         ParsedLiteral::Empty => create_macro(
             macro_call,
             Span::mixed_site(),
@@ -273,9 +260,9 @@ fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
 }
 enum ParsedLiteral {
     String(Literal),
-    RawString(String),
+    RawString(TokenStream),
     InvalidToken(TokenTree),
-    InvalidString,
+    InvalidString(ParseError),
     Empty,
 }
 impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
@@ -284,9 +271,43 @@ impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
 
         match value {
             String(s) => {
-                sgr_string(s).map_or(Self::InvalidString, |s| Self::String(Literal::string(&s)))
+                match sgr_string(s) {
+                    Ok(s) => Self::String(Literal::string(&s)),
+                    Err(e) => Self::InvalidString(e),
+                }
+                // sgr_string(s).map_or(Self::InvalidString, |s| Self::String(Literal::string(&s)))
             }
-            RawString(s, i) => Self::RawString(create_raw_string(s, i)),
+            // using FromStr is the only way to return a raw string
+            RawString(s, i) => Self::RawString(
+                create_raw_string(s, i)
+                    .parse()
+                    .expect("Raw string parsing failed, should never fail"),
+            ),
+        }
+    }
+}
+impl From<ParseError> for TokenStream {
+    fn from(value: ParseError) -> Self {
+        use std::num::IntErrorKind;
+        match value {
+            ParseError::IntError(e) => compile_error(
+                Span::mixed_site(),
+                match e.kind() {
+                    IntErrorKind::Empty => "cannot parse integer from empty string",
+                    IntErrorKind::InvalidDigit => "invalid digit or keyword found",
+                    IntErrorKind::PosOverflow => "number too large to fit in u8",
+                    IntErrorKind::NegOverflow => "number too small to fit in u8",
+                    IntErrorKind::Zero => "number would be zero for non-zero type",
+                    _ => return compile_error(Span::mixed_site(), &e.to_string()),
+                },
+            ),
+            ParseError::MissingBracket => {
+                compile_error(Span::mixed_site(), "Missing a close bracket")
+            }
+            ParseError::InvalidColorLen => {
+                compile_error(Span::mixed_site(), "Incorrect number of digits found")
+            }
+            ParseError::CompilerPassOff => TokenStream::new(),
         }
     }
 }
@@ -298,22 +319,24 @@ fn create_literal(token: Option<TokenTree>) -> ParsedLiteral {
         Some(t) => InvalidToken(t),
         None => Empty,
     }
-}
+} // TODO create col_err
 fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStream {
-    [
-        TokenTree::Ident(Ident::new("std", span)),
-        TokenTree::Punct(Punct::new(':', Spacing::Joint)),
-        TokenTree::Punct(Punct::new(':', Spacing::Alone)),
-        TokenTree::Ident(Ident::new(macro_call, span)),
-        TokenTree::Punct(Punct::new('!', Spacing::Alone)),
-        TokenTree::Group({
-            let mut group = Group::new(Delimiter::Parenthesis, stream);
-            group.set_span(span);
-            group
-        }),
-    ]
-    .into_iter()
-    .collect()
+    let tokens: [TokenTree; 6] = [
+        Ident::new("std", span).into(),
+        Punct::new(':', Spacing::Joint).into(),
+        Punct::new(':', Spacing::Alone).into(),
+        Ident::new(macro_call, span).into(),
+        Punct::new('!', Spacing::Alone).into(),
+        Group::new(Delimiter::Parenthesis, stream).into(),
+    ];
+    tokens.into_iter().collect()
+}
+fn compile_error(span: Span, message: &str) -> TokenStream {
+    create_macro(
+        "compile_error",
+        span,
+        TokenTree::Literal(Literal::string(message)).into(),
+    )
 }
 
 // #[cfg(feature = "alias")]

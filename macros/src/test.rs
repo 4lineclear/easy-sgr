@@ -115,8 +115,8 @@ fn curly_non_param() {
 #[test]
 fn curly_var_param() {
     test_eq(
-        "{This wouldn't work} {not at all} {this_would_maybe}",
-        Ok("{This wouldn't work} {not at all} {this_would_maybe}"),
+        "{This wouldn't work} {not at all} {this_would_maybe} {}",
+        Ok("{This wouldn't work} {not at all} {this_would_maybe} {}"),
     );
 }
 #[test]

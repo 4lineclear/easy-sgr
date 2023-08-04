@@ -1,6 +1,8 @@
 #[cfg(feature = "macros")]
 mod macros {
-    use easy_sgr::sgr;
+    use std::fmt::Write;
+
+    use easy_sgr::{eprint, eprintln, format, format_args, print, println, sgr, write, writeln};
 
     macro_rules! sgr_tests {
         ($($input:tt = $result:literal),*) => {
@@ -17,6 +19,13 @@ mod macros {
             "{[!bold]}" = "\x1b[22m",
             "{[0,0,0 on-0,0,0]}" = "\x1b[38;2;0;0;0;48;2;0;0;0m",
             "{[#00 on-#00]}" = "\x1b[38;5;0;48;5;0m"
+        );
+    }
+    #[test]
+    fn raw_strings() {
+        sgr_tests!(
+            r"Not much to test for this one maybe, this can't really fail" =
+                "Not much to test for this one maybe, this can't really fail"
         );
     }
     #[test]
@@ -90,6 +99,45 @@ mod macros {
             "{[on-#000000]}" = "\x1b[48;2;0;0;0m",
             "{[#ffffff]}" = "\x1b[38;2;255;255;255m",
             "{[on-#ffffff]}" = "\x1b[48;2;255;255;255m"
+        );
+    }
+    /// really just for improving coverage numbers
+    /// the other tests cover pretty much everything
+    #[test]
+    fn etc() {
+        let formatted = format!("Normal{[green]} now this is green{[]} and this is not");
+        let from_args = std::fmt::format(format_args!(
+            "Normal{[green]} now this is green{[]} and this is not"
+        ));
+        let mut written_to = String::new();
+
+        writeln!(written_to).unwrap();
+        write!(
+            written_to,
+            "Normal{[green]} now this is green{[]} and this is not"
+        )
+        .unwrap();
+        writeln!(written_to).unwrap();
+
+        println!();
+        print!("Normal{[green]} now this is green{[]} and this is not");
+        println!();
+
+        eprintln!();
+        eprint!("Normal{[green]} now this is green{[]} and this is not");
+        eprintln!();
+
+        assert_eq!(
+            formatted,
+            "Normal\u{1b}[32m now this is green\u{1b}[0m and this is not"
+        );
+        assert_eq!(
+            from_args,
+            "Normal\u{1b}[32m now this is green\u{1b}[0m and this is not"
+        );
+        assert_eq!(
+            written_to,
+            "\nNormal\u{1b}[32m now this is green\u{1b}[0m and this is not\n"
         );
     }
 }

@@ -128,12 +128,12 @@ fn param_errors() {
         "comma error {[0,0]}",
         "bracket {[yeah}",
     ] {
-        let result = sgr_string(test);
+        let result = sgr_string(test, false);
         assert!(result.is_err(), "Unexpected value: {result:#?}")
     }
 }
 fn test_eq(test: &str, result: Result<&str, ParseError>) {
-    match sgr_string(test) {
+    match sgr_string(test, false) {
         Ok(test) => match result {
             Ok(result) => assert_eq!(test, result),
             Err(result) => panic!("\"{test}\" does not eq {result:#?}"),

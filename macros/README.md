@@ -8,6 +8,7 @@ See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
 
 ## TODO
 
+- [ ] resign parsing
 - [ ] docs
     - [ ] Testing docs
     - [ ] Syntax docs

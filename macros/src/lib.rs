@@ -144,7 +144,32 @@ pub fn sgr(input: TokenStream) -> TokenStream {
     if tokens.next().is_some() {
         compile_error(Span::mixed_site(), "sgr! does not accept arguments")
     } else {
-        match create_literal(string_literal) {
+        match {
+            use ParsedLiteral::*;
+            match string_literal {
+                Some(TokenTree::Literal(literal)) => unwrap_string(&literal.to_string())
+                    .map_or_else(
+                        || InvalidToken(TokenTree::Literal(literal)),
+                        |lit| {
+                            use UnwrappedLiteral::*;
+
+                            match lit {
+                                String(s) => match sgr_string(s, false) {
+                                    Ok(s) => ParsedLiteral::String(Literal::string(&s)),
+                                    Err(e) => ParsedLiteral::InvalidString(e),
+                                },
+                                RawString(s, i) => ParsedLiteral::RawString(
+                                    create_raw_string(s, i)
+                                        .parse()
+                                        .expect("Raw string parsing failed, should never fail"),
+                                ),
+                            }
+                        },
+                    ),
+                Some(t) => InvalidToken(t),
+                None => Empty,
+            }
+        } {
             ParsedLiteral::String(token) => TokenTree::Literal(token).into(),
             ParsedLiteral::RawString(string) => string,
             // need to manually tell the user that the token is incorrect
@@ -273,7 +298,7 @@ impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
 
         match value {
             String(s) => {
-                match sgr_string(s) {
+                match sgr_string(s, false) {
                     Ok(s) => Self::String(Literal::string(&s)),
                     Err(e) => Self::InvalidString(e),
                 }

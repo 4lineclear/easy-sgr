@@ -18,12 +18,15 @@
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
 
-use parse::{create_raw_string, sgr_string, unwrap_string, ParseError, UnwrappedLiteral};
+use parse::ParseError;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+
+use crate::parse::{create_raw_string, sgr_string, unwrap_string, UnwrappedLiteral};
 
 mod parse;
 #[cfg(test)]
 mod test;
+
 /// Formats data into a string.
 ///
 /// SGR keywords are switched out with their code counterparts
@@ -34,7 +37,7 @@ mod test;
 ///
 #[proc_macro]
 pub fn format(input: TokenStream) -> TokenStream {
-    standard_sgr_macro("format", input)
+    build_macro(MacroKind::Format, input)
 }
 
 /// Writes formatted data into a writer.
@@ -47,7 +50,7 @@ pub fn format(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro]
 pub fn write(input: TokenStream) -> TokenStream {
-    write_sgr_macro("write", input)
+    build_macro(MacroKind::Write, input)
 }
 
 /// Writes formatted data into a writer with a newline appended at the end.
@@ -60,7 +63,7 @@ pub fn write(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro]
 pub fn writeln(input: TokenStream) -> TokenStream {
-    write_sgr_macro("writeln", input)
+    build_macro(MacroKind::Writeln, input)
 }
 
 /// Prints formatted data to the standard output.
@@ -73,7 +76,7 @@ pub fn writeln(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro]
 pub fn print(input: TokenStream) -> TokenStream {
-    standard_sgr_macro("print", input)
+    build_macro(MacroKind::Print, input)
 }
 
 /// Prints formatted data to the standard output with a newline appended at the end.
@@ -86,7 +89,7 @@ pub fn print(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro]
 pub fn println(input: TokenStream) -> TokenStream {
-    standard_sgr_macro("println", input)
+    build_macro(MacroKind::Println, input)
 }
 
 /// Prints formatted data to the standard error.
@@ -99,7 +102,7 @@ pub fn println(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro]
 pub fn eprint(input: TokenStream) -> TokenStream {
-    standard_sgr_macro("eprint", input)
+    build_macro(MacroKind::EPrint, input)
 }
 
 /// Prints formatted data to the standard error with a newline appended at the end.
@@ -112,7 +115,7 @@ pub fn eprint(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro]
 pub fn eprintln(input: TokenStream) -> TokenStream {
-    standard_sgr_macro("eprintln", input)
+    build_macro(MacroKind::EPrintln, input)
 }
 
 /// Creates a [`arguments`](std::fmt::Arguments) struct for deferred formatting.
@@ -125,7 +128,7 @@ pub fn eprintln(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro]
 pub fn format_args(input: TokenStream) -> TokenStream {
-    standard_sgr_macro("format_args", input)
+    build_macro(MacroKind::FormatArgs, input)
 }
 
 /// Creates a string literal
@@ -139,152 +142,103 @@ pub fn format_args(input: TokenStream) -> TokenStream {
 // TODO fix parsing around {{ }}
 #[proc_macro]
 pub fn sgr(input: TokenStream) -> TokenStream {
-    let mut tokens = input.clone().into_iter();
-    let string_literal = tokens.next();
-    if tokens.next().is_some() {
-        compile_error(Span::mixed_site(), "sgr! does not accept arguments")
-    } else {
-        match {
-            use ParsedLiteral::*;
-            match string_literal {
-                Some(TokenTree::Literal(literal)) => unwrap_string(&literal.to_string())
-                    .map_or_else(
-                        || InvalidToken(TokenTree::Literal(literal)),
-                        |lit| {
-                            use UnwrappedLiteral::*;
+    build_macro(MacroKind::Sgr, input)
+}
+fn build_macro(kind: MacroKind, input: TokenStream) -> TokenStream {
+    let stream = ArgumentBuilder::from_kind(kind).build_from(input);
+    match kind {
+        MacroKind::Sgr => stream,
+        _ => create_macro(kind.name(), Span::mixed_site(), stream),
+    }
+}
 
-                            match lit {
-                                String(s) => match sgr_string(s, false) {
-                                    Ok(s) => ParsedLiteral::String(Literal::string(&s)),
-                                    Err(e) => ParsedLiteral::InvalidString(e),
-                                },
-                                RawString(s, i) => ParsedLiteral::RawString(
-                                    create_raw_string(s, i)
-                                        .parse()
-                                        .expect("Raw string parsing failed, should never fail"),
-                                ),
-                            }
-                        },
-                    ),
-                Some(t) => InvalidToken(t),
-                None => Empty,
+struct ArgumentBuilder {
+    kind: MacroKind,
+    literal_parser: LiteralParser,
+}
+impl ArgumentBuilder {
+    fn from_kind(kind: MacroKind) -> Self {
+        Self {
+            literal_parser: match kind == MacroKind::Sgr {
+                true => LiteralParser::MergeCurly,
+                false => LiteralParser::Standard,
+            },
+            kind,
+        }
+    }
+    fn build_from(self, input: TokenStream) -> TokenStream {
+        let tokens = input.into_iter();
+        let disassembled_stream = match DisassembledStream::disassemble(self.kind, tokens) {
+            Ok(stream) => stream,
+            Err(tokens) => return tokens.into_iter().collect(),
+        };
+
+        let parsed_literal = match &disassembled_stream.kind {
+            StreamKind::Standard(literal) | StreamKind::Writer(_, Some((_, literal))) => {
+                unwrap_string(&literal.to_string()).map_or_else(
+                    || ParsedLiteral::InvalidToken(TokenTree::Literal(literal.clone())),
+                    |unwrapped| self.literal_parser.parse_literal(unwrapped),
+                )
             }
-        } {
-            ParsedLiteral::String(token) => TokenTree::Literal(token).into(),
-            ParsedLiteral::RawString(string) => string,
-            // need to manually tell the user that the token is incorrect
-            ParsedLiteral::InvalidToken(token) => create_macro(
-                "compile_error",
-                token.span(),
-                r#""sgr! only accepts a format string argument""#
-                    .parse()
-                    .expect("Parsing error string failed, should never fail"),
-            ),
-            ParsedLiteral::InvalidString(e) => e.into(),
-            ParsedLiteral::Empty => TokenTree::Literal(Literal::string("")).into(),
-        }
-    }
-}
-// TODO use subspan in the future
-// see https://github.com/rust-lang/rust/issues/54725
-/// Creates a [`TokenStream`] macro call,
-/// meant for `fmt` macros
-///
-/// # Params
-///
-/// - `macro_call`: What macro to make
-/// - `input`: The [`TokenStream`] to parse
-///
-pub(crate) fn standard_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
-    let mut tokens = input.into_iter();
-    match create_literal(tokens.next()) {
-        ParsedLiteral::String(token) => create_macro(
-            macro_call,
-            token.span(),
-            std::iter::once(TokenTree::Literal(token))
-                .chain(tokens)
+            StreamKind::Writer(_, None) => ParsedLiteral::Empty,
+            StreamKind::Empty => ParsedLiteral::Empty,
+        };
+        match parsed_literal {
+            ParsedLiteral::String(literal) => match disassembled_stream.kind {
+                StreamKind::Writer(writer, Some((punct, _))) => [
+                    TokenTree::from(writer),
+                    TokenTree::from(punct),
+                    TokenTree::from(literal),
+                ]
+                .into_iter()
+                .chain(disassembled_stream.tokens)
                 .collect(),
-        ),
-        ParsedLiteral::RawString(mut string) => create_macro(macro_call, Span::mixed_site(), {
-            string.extend(tokens);
-            string
-        }),
-        // compiler will let user know of invalid token
-        ParsedLiteral::InvalidToken(token) => create_macro(
-            macro_call,
-            token.span(),
-            std::iter::once(token).chain(tokens).collect(),
-        ),
-        ParsedLiteral::InvalidString(e) => e.into(),
-        ParsedLiteral::Empty => create_macro(macro_call, Span::mixed_site(), TokenStream::new()),
-    }
-}
-/// similar to [`standard_sgr_macro`], except
-/// the first token is expected to be a writer's ident
-pub(crate) fn write_sgr_macro(macro_call: &str, input: TokenStream) -> TokenStream {
-    let mut tokens = input.into_iter();
-    let writer = tokens.next().expect("Missing writer");
-    let (next, punct) = match tokens.next() {
-        Some(TokenTree::Punct(p)) => (tokens.next(), Some(p)),
-        Some(t) => (Some(t), None),
-        None => (None, None),
-    };
-    match create_literal(next) {
-        ParsedLiteral::String(token) => create_macro(
-            macro_call,
-            token.span(),
-            match punct {
-                Some(ident) => [writer, TokenTree::Punct(ident), TokenTree::Literal(token)]
-                    .into_iter()
-                    .chain(tokens)
-                    .collect(),
-                None => [writer, TokenTree::Literal(token)]
-                    .into_iter()
-                    .chain(tokens)
+                StreamKind::Writer(writer, None) => {
+                    [TokenTree::from(writer), TokenTree::from(literal)]
+                        .into_iter()
+                        .collect()
+                }
+                _ => std::iter::once(TokenTree::from(literal))
+                    .chain(disassembled_stream.tokens)
                     .collect(),
             },
-        ),
-        ParsedLiteral::RawString(string) => {
-            // Should not fail
-            create_macro(macro_call, Span::mixed_site(), {
-                // using FromStr is the only way to return a raw string
-                let mut stream = match punct {
-                    Some(punct) => [writer, TokenTree::Punct(punct)].into_iter().collect(),
-                    None => TokenStream::from(writer),
+            ParsedLiteral::RawString(string) => {
+                let mut stream: TokenStream = match disassembled_stream.kind {
+                    StreamKind::Writer(writer, Some((punct, _))) => {
+                        [TokenTree::from(writer), TokenTree::from(punct)]
+                            .into_iter()
+                            .collect()
+                    }
+                    StreamKind::Writer(writer, None) => TokenTree::from(writer).into(),
+                    _ => {
+                        let mut string = string;
+                        string.extend(disassembled_stream.tokens);
+                        return string;
+                    }
                 };
-
                 stream.extend(string.into_iter());
-                stream.extend(tokens);
+                stream.extend(disassembled_stream.tokens);
                 stream
-            })
+            }
+            ParsedLiteral::InvalidToken(token) => std::iter::once(token)
+                .chain(disassembled_stream.tokens)
+                .collect(),
+            ParsedLiteral::InvalidString(e) => e.into(),
+            ParsedLiteral::Empty => match disassembled_stream.kind {
+                StreamKind::Writer(writer, Some((punct, _))) => {
+                    [TokenTree::from(writer), TokenTree::from(punct)]
+                        .into_iter()
+                        .chain(disassembled_stream.tokens)
+                        .collect()
+                }
+                StreamKind::Writer(writer, None) => std::iter::once(TokenTree::from(writer))
+                    .into_iter()
+                    .collect(),
+                _ => TokenStream::new(), // _ if self.kind == MacroKind::Sgr => TokenStream::new()
+            },
         }
-        // compiler will let user know of invalid token
-        ParsedLiteral::InvalidToken(token) => create_macro(
-            macro_call,
-            token.span(),
-            match punct {
-                Some(ident) => [writer, TokenTree::Punct(ident), token]
-                    .into_iter()
-                    .chain(tokens)
-                    .collect(),
-                None => [writer, token].into_iter().chain(tokens).collect(),
-            },
-        ),
-        ParsedLiteral::InvalidString(e) => e.into(),
-        ParsedLiteral::Empty => create_macro(
-            macro_call,
-            Span::mixed_site(),
-            match punct {
-                Some(ident) => [writer, TokenTree::Punct(ident)]
-                    .into_iter()
-                    .chain(tokens)
-                    .collect(),
-                None => std::iter::once(writer).chain(tokens).collect(),
-            },
-        ),
     }
 }
-#[derive(Debug)]
 enum ParsedLiteral {
     String(Literal),
     RawString(TokenStream),
@@ -292,20 +246,26 @@ enum ParsedLiteral {
     InvalidString(ParseError),
     Empty,
 }
-impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
-    fn from(value: UnwrappedLiteral) -> Self {
-        use UnwrappedLiteral::*;
 
-        match value {
-            String(s) => {
-                match sgr_string(s, false) {
-                    Ok(s) => Self::String(Literal::string(&s)),
-                    Err(e) => Self::InvalidString(e),
-                }
-                // sgr_string(s).map_or(Self::InvalidString, |s| Self::String(Literal::string(&s)))
-            }
+enum LiteralParser {
+    Standard,
+    MergeCurly,
+}
+impl LiteralParser {
+    fn parse_literal(&self, unwrapped: UnwrappedLiteral) -> ParsedLiteral {
+        use UnwrappedLiteral::*;
+        let check_curly = |ch| match ch {
+            '}' => Some("{}"),
+            '{' => Some(if let Self::Standard = self { "{{" } else { "{" }),
+            _ => None,
+        };
+        match unwrapped {
+            String(s) => match sgr_string(s, check_curly) {
+                Ok(s) => ParsedLiteral::String(Literal::string(&s)),
+                Err(e) => ParsedLiteral::InvalidString(e),
+            },
             // using FromStr is the only way to return a raw string
-            RawString(s, i) => Self::RawString(
+            RawString(s, i) => ParsedLiteral::RawString(
                 create_raw_string(s, i)
                     .parse()
                     .expect("Raw string parsing failed, should never fail"),
@@ -313,6 +273,131 @@ impl<'a> From<UnwrappedLiteral<'a>> for ParsedLiteral {
         }
     }
 }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MacroKind {
+    EPrint,
+    EPrintln,
+    Format,
+    FormatArgs,
+    Print,
+    Println,
+    Sgr,
+    Write,
+    Writeln,
+}
+impl MacroKind {
+    fn name(&self) -> &str {
+        use MacroKind::*;
+        match self {
+            EPrint => "eprint",
+            EPrintln => "eprintln",
+            Format => "format",
+            FormatArgs => "format_args",
+            Print => "print",
+            Println => "println",
+            Sgr => "sgr",
+            Write => "write",
+            Writeln => "writeln",
+        }
+    }
+}
+struct DisassembledStream<I>
+where
+    I: Iterator<Item = TokenTree>,
+{
+    kind: StreamKind,
+    tokens: I,
+}
+
+impl<I> DisassembledStream<I>
+where
+    I: Iterator<Item = TokenTree>,
+{
+    fn disassemble(
+        kind: MacroKind,
+        mut tokens: I,
+    ) -> Result<Self, impl Iterator<Item = TokenTree>> {
+        Ok(Self {
+            kind: match StreamKind::from_kind(kind, &mut tokens) {
+                Ok(stream_kind) => stream_kind,
+                Err(err) => return Err(err.into_iter().chain(tokens)),
+            },
+            tokens,
+        })
+    }
+}
+
+enum StreamKind {
+    Standard(Literal),
+    Writer(Ident, Option<(Punct, Literal)>),
+    Empty,
+}
+
+impl StreamKind {
+    fn from_kind(
+        kind: MacroKind,
+        tokens: &mut impl Iterator<Item = TokenTree>,
+    ) -> Result<Self, Vec<TokenTree>> {
+        use MacroKind::*;
+        use StreamKind::*;
+        let first = tokens.next();
+        match kind {
+            EPrint | EPrintln | Format | FormatArgs | Print | Println => Ok(match first {
+                Some(TokenTree::Literal(literal)) => Standard(literal),
+                Some(t) => return Err(vec![t]),
+                None => Empty,
+            }),
+            Write | Writeln => {
+                let writer = match first {
+                    Some(TokenTree::Ident(ident)) => ident,
+                    Some(t) => return Err(vec![t]),
+                    None => return Ok(Empty),
+                };
+                let punct = match tokens.next() {
+                    Some(TokenTree::Punct(punct)) => Some(punct),
+                    Some(t) => return Err(vec![TokenTree::Ident(writer), t]),
+                    None => None,
+                };
+                let Some(punct) = punct else {
+                    return Ok(Writer(writer, None))
+                };
+                let punct_literal = match tokens.next() {
+                    Some(TokenTree::Literal(literal)) => Some((punct, literal)),
+                    Some(t) => {
+                        return Err(vec![TokenTree::Ident(writer), TokenTree::Punct(punct), t])
+                    }
+                    None => return Err(vec![TokenTree::Ident(writer), TokenTree::Punct(punct)]),
+                };
+                Ok(Writer(writer, punct_literal))
+            }
+
+            Sgr => match first {
+                Some(TokenTree::Literal(literal)) => Ok(Standard(literal)),
+                Some(t) => Err(vec![t]),
+                None => Ok(Empty),
+            },
+        }
+    }
+} // TODO create col_err
+pub(crate) fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStream {
+    let tokens: [TokenTree; 6] = [
+        Ident::new("std", span).into(),
+        Punct::new(':', Spacing::Joint).into(),
+        Punct::new(':', Spacing::Alone).into(),
+        Ident::new(macro_call, span).into(),
+        Punct::new('!', Spacing::Alone).into(),
+        Group::new(Delimiter::Parenthesis, stream).into(),
+    ];
+    tokens.into_iter().collect()
+}
+pub(crate) fn compile_error(span: Span, message: &str) -> TokenStream {
+    create_macro(
+        "compile_error",
+        span,
+        TokenTree::Literal(Literal::string(message)).into(),
+    )
+}
+
 impl From<ParseError> for TokenStream {
     fn from(value: ParseError) -> Self {
         use std::num::IntErrorKind;
@@ -338,58 +423,3 @@ impl From<ParseError> for TokenStream {
         }
     }
 }
-pub(crate) fn create_literal(token: Option<TokenTree>) -> ParsedLiteral {
-    use ParsedLiteral::*;
-    match token {
-        Some(TokenTree::Literal(literal)) => unwrap_string(&literal.to_string())
-            .map_or_else(|| InvalidToken(TokenTree::Literal(literal)), Into::into),
-        Some(t) => InvalidToken(t),
-        None => Empty,
-    }
-} // TODO create col_err
-pub(crate) fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStream {
-    let tokens: [TokenTree; 6] = [
-        Ident::new("std", span).into(),
-        Punct::new(':', Spacing::Joint).into(),
-        Punct::new(':', Spacing::Alone).into(),
-        Ident::new(macro_call, span).into(),
-        Punct::new('!', Spacing::Alone).into(),
-        Group::new(Delimiter::Parenthesis, stream).into(),
-    ];
-    tokens.into_iter().collect()
-}
-pub(crate) fn compile_error(span: Span, message: &str) -> TokenStream {
-    create_macro(
-        "compile_error",
-        span,
-        TokenTree::Literal(Literal::string(message)).into(),
-    )
-}
-
-// #[cfg(feature = "alias")]
-// pub(crate) mod user_keyword {
-//     use std::{
-//         collections::HashMap,
-//         sync::{Mutex, OnceLock},
-//     };
-//     static KEYWORDS: OnceLock<Mutex<HashMap<&str, &str>>> = OnceLock::new();
-// }
-// /// will create keywords aliases in the future
-// ///
-// #[proc_macro]
-// #[cfg(feature = "alias")]
-// pub fn sgr_alias(input: TokenStream) -> TokenStream {
-//     let mut tokens = input.into_iter();
-//     let ret = match tokens.next() {
-//         Some(TokenTree::Literal(s)) => (),
-//         Some(t) => return create_macro(
-//             "compile_error",
-//             t.span(),
-//             r#""Invalid token found""#
-//                 .parse()
-//                 .expect("Parsing error string failed, should never fail"),
-//         ),
-//         None => todo!(),
-//     };
-//     unimplemented!()
-// }

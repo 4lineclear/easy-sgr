@@ -59,15 +59,13 @@ impl From<ParseIntError> for ParseError {
 ///
 /// Other than that, the string returned may be an invalid string literal.
 /// In these cases, the rust compiler should alert the user of the error.
-pub(crate) fn sgr_string(s: &str, combine_curly: bool) -> Result<String, ParseError> {
+pub(crate) fn sgr_string<F>(s: &str, check_curly: F) -> Result<String, ParseError>
+where
+    F: Fn(char) -> Option<&'static str>,
+{
     let mut buf = String::with_capacity(s.len());
     let chars = &mut s.char_indices();
     let mut next: Option<(usize, char)> = chars.next();
-    let param_parse = if combine_curly {
-        parse_param_combined_curly
-    } else {
-        parse_param
-    };
 
     while let Some((_, ch)) = next {
         match ch {
@@ -97,7 +95,7 @@ pub(crate) fn sgr_string(s: &str, combine_curly: bool) -> Result<String, ParseEr
                 }
                 _ => return Err(ParseError::CompilerPassOff), // invalid char
             },
-            '{' => buf = param_parse(chars.next(), s, chars, buf)?,
+            '{' => buf = parse_param(chars.next(), s, chars, buf, &check_curly)?,
             '}' => match chars.next() {
                 Some((_, '}')) => buf.push_str("}}"),
                 // ignores invalid bracket, continues parsing
@@ -148,85 +146,14 @@ fn parse_param(
     s: &str,
     chars: &mut CharIndices,
     mut buf: String,
+    check_curly: impl Fn(char) -> Option<&'static str>,
 ) -> Result<String, ParseError> {
     let Some((start, ch)) = next_char else {
         // compiler will let user know of error
         return Ok(buf + "{");
     };
-    if ch == '}' {
-        return Ok(buf + "{}");
-    } else if ch == '{' {
-        return Ok(buf + "{{");
-    }
-
-    // returns early as there is no end bracket compiler should handle this
-    // TODO consider changing this to be returned as an error
-    let Some(end) = chars.find(|ch| ch.1 == '}') else {
-        return Ok(buf + &s[start-1..]);
-    };
-    let end = end.0;
-    if ch == '[' {
-        buf.push_str("\x1b[");
-        for s in s[start + 1..end]
-            .strip_suffix(']')
-            .ok_or(ParseError::MissingBracket)?
-            .split_whitespace()
-        {
-            parse_sgr(s, &mut buf)?;
-            buf.push(';');
-        }
-        // {[..]} .. is empty it is parsed as reset
-        if buf.pop().unwrap() == '[' {
-            buf.push_str("[0");
-        }
-        Ok(buf + "m")
-    } else {
-        buf.push_str(&s[start - 1..=end]);
-        Ok(buf)
-    }
-}
-// enum ParamError {}
-/// Parses a format param
-///
-/// i.e. something within curly braces:
-///
-/// ```plain
-///"{..}"
-///   ^^
-/// ```
-///
-/// # Params
-/// - `ch`: the char after the opening brace
-/// - `i`: the index of the opening brace plus one(index of `ch`)
-/// - `s`: the full string to parse
-/// - `chars`: the string's `char_indices`, with chars.next() being the char after ch
-/// - `buf`: the string buf to append and return
-///
-/// # Returns
-///
-/// `buf` with the parsed param appended
-///
-/// # Errors
-///
-/// Returns `Err(String)` when an unclosed closed brace is found.
-///
-/// # Panics
-///
-/// When an
-fn parse_param_combined_curly(
-    next_char: Option<(usize, char)>,
-    s: &str,
-    chars: &mut CharIndices,
-    mut buf: String,
-) -> Result<String, ParseError> {
-    let Some((start, ch)) = next_char else {
-        // compiler will let user know of error
-        return Ok(buf + "{");
-    };
-    if ch == '}' {
-        return Ok(buf + "{}");
-    } else if ch == '{' {
-        return Ok(buf + "{");
+    if let Some(s) = check_curly(ch) {
+        return Ok(buf + s);
     }
 
     // returns early as there is no end bracket compiler should handle this

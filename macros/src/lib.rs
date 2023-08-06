@@ -18,7 +18,7 @@
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]
 
-use parse::ParseError;
+use parse::Error;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 use crate::parse::{create_raw_string, sgr_string, unwrap_string, UnwrappedLiteral};
@@ -144,6 +144,7 @@ pub fn format_args(input: TokenStream) -> TokenStream {
 pub fn sgr(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Sgr, input)
 }
+
 fn build_macro(kind: MacroKind, input: TokenStream) -> TokenStream {
     let stream = ArgumentBuilder::from_kind(kind).build_from(input);
     match kind {
@@ -159,9 +160,10 @@ struct ArgumentBuilder {
 impl ArgumentBuilder {
     fn from_kind(kind: MacroKind) -> Self {
         Self {
-            literal_parser: match kind == MacroKind::Sgr {
-                true => LiteralParser::MergeCurly,
-                false => LiteralParser::Standard,
+            literal_parser: if kind == MacroKind::Sgr {
+                LiteralParser::MergeCurly
+            } else {
+                LiteralParser::Standard
             },
             kind,
         }
@@ -177,11 +179,10 @@ impl ArgumentBuilder {
             StreamKind::Standard(literal) | StreamKind::Writer(_, Some((_, literal))) => {
                 unwrap_string(&literal.to_string()).map_or_else(
                     || ParsedLiteral::InvalidToken(TokenTree::Literal(literal.clone())),
-                    |unwrapped| self.literal_parser.parse_literal(unwrapped),
+                    |unwrapped| self.literal_parser.parse_literal(&unwrapped),
                 )
             }
-            StreamKind::Writer(_, None) => ParsedLiteral::Empty,
-            StreamKind::Empty => ParsedLiteral::Empty,
+            StreamKind::Writer(_, None) | StreamKind::Empty => ParsedLiteral::Empty,
         };
         match parsed_literal {
             ParsedLiteral::String(literal) => match disassembled_stream.kind {
@@ -231,10 +232,13 @@ impl ArgumentBuilder {
                         .chain(disassembled_stream.tokens)
                         .collect()
                 }
-                StreamKind::Writer(writer, None) => std::iter::once(TokenTree::from(writer))
-                    .into_iter()
-                    .collect(),
-                _ => TokenStream::new(), // _ if self.kind == MacroKind::Sgr => TokenStream::new()
+                StreamKind::Writer(writer, None) => {
+                    std::iter::once(TokenTree::from(writer)).collect()
+                }
+                _ if self.kind == MacroKind::Sgr => {
+                    compile_error(Span::mixed_site(), "missing string literal")
+                }
+                _ => TokenStream::new(),
             },
         }
     }
@@ -243,7 +247,7 @@ enum ParsedLiteral {
     String(Literal),
     RawString(TokenStream),
     InvalidToken(TokenTree),
-    InvalidString(ParseError),
+    InvalidString(Error),
     Empty,
 }
 
@@ -252,11 +256,15 @@ enum LiteralParser {
     MergeCurly,
 }
 impl LiteralParser {
-    fn parse_literal(&self, unwrapped: UnwrappedLiteral) -> ParsedLiteral {
+    fn parse_literal(&self, unwrapped: &UnwrappedLiteral) -> ParsedLiteral {
         use UnwrappedLiteral::*;
         let check_curly = |ch| match ch {
             '}' => Some("{}"),
-            '{' => Some(if let Self::Standard = self { "{{" } else { "{" }),
+            '{' => Some(if matches!(self, Self::Standard) {
+                "{{"
+            } else {
+                "{"
+            }),
             _ => None,
         };
         match unwrapped {
@@ -266,7 +274,7 @@ impl LiteralParser {
             },
             // using FromStr is the only way to return a raw string
             RawString(s, i) => ParsedLiteral::RawString(
-                create_raw_string(s, i)
+                create_raw_string(s, *i)
                     .parse()
                     .expect("Raw string parsing failed, should never fail"),
             ),
@@ -286,7 +294,7 @@ enum MacroKind {
     Writeln,
 }
 impl MacroKind {
-    fn name(&self) -> &str {
+    const fn name(&self) -> &str {
         use MacroKind::*;
         match self {
             EPrint => "eprint",
@@ -398,11 +406,11 @@ pub(crate) fn compile_error(span: Span, message: &str) -> TokenStream {
     )
 }
 
-impl From<ParseError> for TokenStream {
-    fn from(value: ParseError) -> Self {
+impl From<Error> for TokenStream {
+    fn from(value: Error) -> Self {
         use std::num::IntErrorKind;
         match value {
-            ParseError::IntError(e) => compile_error(
+            Error::ParseInt(e) => compile_error(
                 Span::mixed_site(),
                 match e.kind() {
                     IntErrorKind::Empty => "cannot parse integer from empty string",
@@ -413,13 +421,11 @@ impl From<ParseError> for TokenStream {
                     _ => return compile_error(Span::mixed_site(), &e.to_string()),
                 },
             ),
-            ParseError::MissingBracket => {
-                compile_error(Span::mixed_site(), "Missing a close bracket")
-            }
-            ParseError::InvalidColorLen => {
+            Error::MissingBracket => compile_error(Span::mixed_site(), "Missing a close bracket"),
+            Error::InvalidColorLen => {
                 compile_error(Span::mixed_site(), "Incorrect number of digits found")
             }
-            ParseError::CompilerPassOff => TokenStream::new(),
+            Error::CompilerPassOff => Self::new(),
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::{num::ParseIntError, str::CharIndices};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum UnwrappedLiteral<'a> {
     String(&'a str),
     RawString(&'a str, usize),
@@ -35,31 +35,34 @@ pub fn create_raw_string(s: &str, i: usize) -> String {
     buf
 }
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum ParseError {
-    IntError(ParseIntError),
+pub enum Error {
+    ParseInt(ParseIntError),
     MissingBracket,
     InvalidColorLen,
     CompilerPassOff,
 }
-impl From<ParseIntError> for ParseError {
+impl From<ParseIntError> for Error {
     fn from(value: ParseIntError) -> Self {
-        Self::IntError(value)
+        Self::ParseInt(value)
     }
 }
-// TODO remove all panics, return Result instead
+
 /// Removes escapes, parses keywords into their SGR code counterparts
 ///
-/// # Panics
+/// # Errors
 ///
-/// When invalid string is inputted:
+/// When invalid string is inputted such as:
 ///
 /// - Invalid escape
 /// - Unclosed bracket
 /// - Invalid keyword
 ///
-/// Other than that, the string returned may be an invalid string literal.
-/// In these cases, the rust compiler should alert the user of the error.
-pub(crate) fn sgr_string<F>(s: &str, check_curly: F) -> Result<String, ParseError>
+/// Invalid strings can also be occasionally returned with an Ok(), in
+/// these cases the string will continue being parsed> When returned the
+/// rust compiler is expected to deal with the error.
+/// The spots where these cases occur be annotated by the comment:
+/// `// INVALID HERE` or `INVALID RETURN` when continuing parsing is impossible
+pub fn sgr_string<F>(s: &str, check_curly: F) -> Result<String, Error>
 where
     F: Fn(char) -> Option<&'static str>,
 {
@@ -70,40 +73,25 @@ where
     while let Some((_, ch)) = next {
         match ch {
             // should never be ran into outside of testing
-            '\\' => match chars.next().ok_or(ParseError::CompilerPassOff)?.1 {
-                //quote escapes
-                '\'' => buf.push('\''),
-                '"' => buf.push('"'),
-                //ascii escapes
-                'x' => buf.push(parse_7bit(chars, s).ok_or(ParseError::CompilerPassOff)?),
-                'n' => buf.push('\n'),
-                'r' => buf.push('\r'),
-                't' => buf.push('\t'),
-                '\\' => buf.push('\\'),
-                '0' => buf.push('\0'),
-                //unicode escape
-                'u' => buf.push(parse_24bit(chars, s).ok_or(ParseError::CompilerPassOff)?),
-                //whitespace ignore
-                '\n' => {
-                    if let Some(non_whitespace) =
-                        chars.find(|(_, ch)| !matches!(ch, ' ' | '\n' | '\r' | '\t'))
-                    {
-                        next = Some(non_whitespace);
-                        continue;
-                    }
-                    // end of string reached
+            '\\' => {
+                if let Some(after_escape) = parse_escape(
+                    chars.next().ok_or(Error::CompilerPassOff)?.1,
+                    s,
+                    chars,
+                    &mut buf,
+                )? {
+                    next = Some(after_escape);
+                    continue;
                 }
-                _ => return Err(ParseError::CompilerPassOff), // invalid char
-            },
-            '{' => buf = parse_param(chars.next(), s, chars, buf, &check_curly)?,
+            }
+            '{' => parse_param(chars.next(), s, chars, &mut buf, &check_curly)?,
             '}' => match chars.next() {
                 Some((_, '}')) => buf.push_str("}}"),
-                // ignores invalid bracket, continues parsing
-                // compiler will let user know of error
+                // INVALID HERE
                 after_bracket => {
                     buf.push('}');
                     next = after_bracket;
-                    continue; // skip calling: next = chars.next();
+                    continue;
                 }
             },
             ch => buf.push(ch),
@@ -112,8 +100,39 @@ where
     }
     Ok(buf)
 }
+fn parse_escape(
+    next_char: char,
+    s: &str,
+    chars: &mut CharIndices,
+    buf: &mut String,
+) -> Result<Option<(usize, char)>, Error> {
+    match next_char {
+        //quote escapes
+        '\'' => buf.push('\''),
+        '"' => buf.push('"'),
+        //ascii escapes
+        'x' => buf.push(parse_7bit(chars, s).ok_or(Error::CompilerPassOff)?),
+        'n' => buf.push('\n'),
+        'r' => buf.push('\r'),
+        't' => buf.push('\t'),
+        '\\' => buf.push('\\'),
+        '0' => buf.push('\0'),
+        //unicode escape
+        'u' => buf.push(parse_24bit(chars, s).ok_or(Error::CompilerPassOff)?),
+        //whitespace ignore
+        '\n' => {
+            if let Some(non_whitespace) =
+                chars.find(|(_, ch)| !matches!(ch, ' ' | '\n' | '\r' | '\t'))
+            {
+                return Ok(Some(non_whitespace));
+            }
+            // end of string reached
+        }
+        _ => return Err(Error::CompilerPassOff), // invalid char
+    }
+    Ok(None)
+}
 
-// enum ParamError {}
 /// Parses a format param
 ///
 /// i.e. something within curly braces:
@@ -124,63 +143,58 @@ where
 /// ```
 ///
 /// # Params
-/// - `ch`: the char after the opening brace
-/// - `i`: the index of the opening brace plus one(index of `ch`)
+/// - `next_char`: the index, char pair after the opening brace
 /// - `s`: the full string to parse
-/// - `chars`: the string's `char_indices`, with chars.next() being the char after ch
+/// - `chars`: the string's `char_indices`,
+/// with `chars.next()` being the char after `next_char`
 /// - `buf`: the string buf to append and return
+/// - `check_curly`: fn to check if char is curly
 ///
-/// # Returns
+/// `check_curly` is used since [`sgr`](super::sgr)
+/// follows different rules to the other macros
 ///
-/// `buf` with the parsed param appended
-///
-/// # Errors
-///
-/// Returns `Err(String)` when an unclosed closed brace is found.
-///
-/// # Panics
-///
-/// When an
 fn parse_param(
     next_char: Option<(usize, char)>,
     s: &str,
     chars: &mut CharIndices,
-    mut buf: String,
+    buf: &mut String,
     check_curly: impl Fn(char) -> Option<&'static str>,
-) -> Result<String, ParseError> {
+) -> Result<(), Error> {
     let Some((start, ch)) = next_char else {
-        // compiler will let user know of error
-        return Ok(buf + "{");
+        // INVALID HERE
+        buf.push( '{');
+        return Ok(());
     };
     if let Some(s) = check_curly(ch) {
-        return Ok(buf + s);
+        buf.push_str(s);
+        return Ok(());
     }
 
-    // returns early as there is no end bracket compiler should handle this
-    // TODO consider changing this to be returned as an error
+    // INVALID RETURN
     let Some(end) = chars.find(|ch| ch.1 == '}') else {
-        return Ok(buf + &s[start-1..]);
+        buf.push_str( &s[start-1..]);
+        return Ok(());
     };
     let end = end.0;
     if ch == '[' {
         buf.push_str("\x1b[");
         for s in s[start + 1..end]
             .strip_suffix(']')
-            .ok_or(ParseError::MissingBracket)?
+            .ok_or(Error::MissingBracket)?
             .split_whitespace()
         {
-            parse_sgr(s, &mut buf)?;
+            parse_sgr(s, buf)?;
             buf.push(';');
         }
-        // {[..]} .. is empty it is parsed as reset
+        // {[..]} if .. is empty it is parsed as reset
         if buf.pop().unwrap() == '[' {
             buf.push_str("[0");
         }
-        Ok(buf + "m")
+        buf.push('m');
     } else {
         buf.push_str(&s[start - 1..=end]);
-        Ok(buf)
     }
+    Ok(())
 }
 /// Parses 7bit escape(`\x..`) into a char
 fn parse_7bit(chars: &mut CharIndices, s: &str) -> Option<char> {
@@ -194,7 +208,14 @@ fn parse_24bit(chars: &mut CharIndices, s: &str) -> Option<char> {
     let (end, _) = chars.find(|ch| ch.1 == '}')?;
     char::from_u32(u32::from_str_radix(&s[start..end], 16).ok()?)
 }
-fn parse_sgr(s: &str, buf: &mut String) -> Result<(), ParseError> {
+/// Parses a SGR keyword from the inputted [`str`]
+///
+/// # Returns
+///
+/// - `Err(ParseError)` if `s` is an invalid keyword
+///
+/// First [`parse_common`] is used, if it fails [`complex_color`] is used
+fn parse_sgr(s: &str, buf: &mut String) -> Result<(), Error> {
     if let Some(n) = parse_common(s) {
         n.append_to(buf);
         Ok(())
@@ -202,6 +223,7 @@ fn parse_sgr(s: &str, buf: &mut String) -> Result<(), ParseError> {
         complex_color(s, buf)
     }
 }
+/// Parses common keywords
 fn parse_common(s: &str) -> Option<u8> {
     match s {
         // styles
@@ -245,7 +267,27 @@ fn parse_common(s: &str) -> Option<u8> {
         _ => None,
     }
 }
-fn complex_color(s: &str, buf: &mut String) -> Result<(), ParseError> {
+/// Parses more complex color configurations.
+///
+/// Colors are expected to be one of the following,
+/// optionally prefixed by `on-` to indicate being a background color:
+///
+/// - `u8` -> `(38|48);5;u8`
+/// - `u8,u8,u8` -> `(38|48);2;u8;u8;u8`
+///
+/// And, prefixed with `#` to indicate hex,
+/// but without any commas:
+///
+/// - `#u8` -> `(38|48);5;u8`
+/// - `#u8u8u8` -> `(38|48);2;u8;u8;u8`
+///
+/// so some example colors could be
+///
+/// - `on-15` -> 48;5;15
+/// - `15,115,215` -> 38;2;15;115;215
+/// - `#0f` -> 38;5;15
+/// - `on-#0f;73;d7` -> 48;2;15;115;215
+fn complex_color(s: &str, buf: &mut String) -> Result<(), Error> {
     let (color_code, s) = s.strip_prefix("on-").map_or(("38;", s), |s| ("48;", s));
     buf.push_str(color_code);
 
@@ -263,7 +305,7 @@ fn complex_color(s: &str, buf: &mut String) -> Result<(), ParseError> {
                 buf.push(';');
                 u8::from_str_radix(&s[4..6], 16)?.append_to(buf);
             }
-            _ => return Err(ParseError::InvalidColorLen),
+            _ => return Err(Error::InvalidColorLen),
         }
     } else {
         let parts = s
@@ -283,7 +325,7 @@ fn complex_color(s: &str, buf: &mut String) -> Result<(), ParseError> {
                 buf.push(';');
                 n3.append_to(buf);
             }
-            _ => return Err(ParseError::InvalidColorLen),
+            _ => return Err(Error::InvalidColorLen),
         }
     }
 

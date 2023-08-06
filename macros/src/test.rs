@@ -1,4 +1,4 @@
-use crate::parse::{create_raw_string, sgr_string, unwrap_string, ParseError, UnwrappedLiteral};
+use crate::parse::{create_raw_string, sgr_string, unwrap_string, Error, UnwrappedLiteral};
 
 #[test]
 fn unwrap_str() {
@@ -57,7 +57,7 @@ fn compiler_pass_off_undetected() {
 }
 #[test]
 fn compiler_pass_off() {
-    use ParseError::*;
+    use Error::*;
     for (test, result) in [
         (r"\", Err(CompilerPassOff)),
         (r"\   ", Err(CompilerPassOff)),
@@ -132,7 +132,7 @@ fn param_errors() {
         assert!(result.is_err(), "Unexpected value: {result:#?}")
     }
 }
-fn test_eq(test: &str, result: Result<&str, ParseError>) {
+fn test_eq(test: &str, result: Result<&str, Error>) {
     match sgr_string(test, check_curly) {
         Ok(test) => match result {
             Ok(result) => assert_eq!(test, result),

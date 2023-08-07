@@ -7,7 +7,7 @@ mod macros {
     macro_rules! sgr_tests {
         ($($input:tt = $result:literal),*) => {
             $(
-                assert_eq!($result, sgr!($input));
+                assert_eq!(sgr!($input), $result);
             )*
         };
     }

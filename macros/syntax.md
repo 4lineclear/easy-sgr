@@ -97,3 +97,9 @@ so some example colors could be
 - `15,115,215` -> `38;2;15;115;215`
 - `#0f` -> `38;5;15`
 - `on-#0f;73;d7` -> `48;2;15;115;215`
+
+## Examples of syntax malfunctions
+
+```rust compile_fail
+compile_error!("This should panic");
+```

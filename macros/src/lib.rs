@@ -16,213 +16,87 @@
 #![allow(clippy::enum_glob_use)]
 
 use parse::Error;
-use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro::{
+    token_stream::IntoIter, Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream,
+    TokenTree,
+};
 
 use crate::parse::{create_raw_string, sgr_string, unwrap_string, UnwrappedLiteral};
 
 mod parse;
 #[cfg(test)]
 mod test;
-
-/// Formats data into a string.
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn format(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::Format, input)
-}
-
-/// Writes formatted data into a writer.
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn write(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::Write, input)
-}
-
-/// Writes formatted data into a writer with a newline append
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn writeln(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::Writeln, input)
-}
-
-/// Prints formatted data to the standard output.
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn print(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::Print, input)
-}
-
-/// Prints formatted data to the standard output with a newline
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn println(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::Println, input)
-}
-
-/// Prints formatted data to the standard error.
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn eprint(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::EPrint, input)
-}
-
-/// Prints formatted data to the standard error with a newline
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn eprintln(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::EPrintln, input)
-}
-
-/// Creates a [`arguments`](std::fmt::Arguments) struct for d
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn format_args(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::FormatArgs, input)
-}
-
-/// Creates a string literal
-#[doc = include_str!("../syntax.md")]
-#[proc_macro]
-pub fn sgr(input: TokenStream) -> TokenStream {
-    build_macro(MacroKind::Sgr, input)
-}
-
-fn build_macro(kind: MacroKind, input: TokenStream) -> TokenStream {
-    let stream = ArgumentBuilder::from_kind(kind).build_from(input);
-    match kind {
-        MacroKind::Sgr => stream,
-        _ => create_macro(kind.name(), Span::mixed_site(), stream),
-    }
-}
-
-struct ArgumentBuilder {
-    kind: MacroKind,
-    literal_parser: LiteralParser,
-}
-impl ArgumentBuilder {
-    fn from_kind(kind: MacroKind) -> Self {
-        Self {
-            literal_parser: if kind == MacroKind::Sgr {
-                LiteralParser::MergeCurly
-            } else {
-                LiteralParser::Standard
-            },
-            kind,
-        }
-    }
-    fn build_from(self, input: TokenStream) -> TokenStream {
-        let tokens = input.into_iter();
-        let disassembled_stream = match DisassembledStream::disassemble(self.kind, tokens) {
-            Ok(stream) => stream,
-            Err(tokens) => return tokens.into_iter().collect(),
-        };
-
-        let parsed_literal = match &disassembled_stream.kind {
-            StreamKind::Standard(literal) | StreamKind::Writer(_, Some((_, literal))) => {
-                unwrap_string(&literal.to_string()).map_or_else(
-                    || ParsedLiteral::InvalidToken(TokenTree::Literal(literal.clone())),
-                    |unwrapped| self.literal_parser.parse_literal(&unwrapped),
-                )
+// TODO fix spans
+macro_rules! def_macros {
+    ($($(#[$docs:meta])* $name:ident : $kind:ident),+) => {
+        $(
+            $(#[$docs])*
+            #[doc = include_str!("../keywords.md")]
+            #[proc_macro]
+            pub fn $name(input: TokenStream) -> TokenStream {
+                build_macro::<{matches!(MacroKind::$kind, MacroKind::Sgr)}>(MacroKind::$kind, input)
             }
-            StreamKind::Writer(_, None) | StreamKind::Empty => ParsedLiteral::Empty,
-        };
-        match parsed_literal {
-            ParsedLiteral::String(literal) => match disassembled_stream.kind {
-                StreamKind::Writer(writer, Some((punct, _))) => [
-                    TokenTree::from(writer),
-                    TokenTree::from(punct),
-                    TokenTree::from(literal),
-                ]
-                .into_iter()
-                .chain(disassembled_stream.tokens)
-                .collect(),
-                StreamKind::Writer(writer, None) => {
-                    [TokenTree::from(writer), TokenTree::from(literal)]
-                        .into_iter()
-                        .collect()
-                }
-                _ => std::iter::once(TokenTree::from(literal))
-                    .chain(disassembled_stream.tokens)
-                    .collect(),
-            },
-            ParsedLiteral::RawString(string) => {
-                let mut stream: TokenStream = match disassembled_stream.kind {
-                    StreamKind::Writer(writer, Some((punct, _))) => {
-                        [TokenTree::from(writer), TokenTree::from(punct)]
-                            .into_iter()
-                            .collect()
-                    }
-                    StreamKind::Writer(writer, None) => TokenTree::from(writer).into(),
-                    _ => {
-                        let mut string = string;
-                        string.extend(disassembled_stream.tokens);
-                        return string;
-                    }
-                };
-                stream.extend(string.into_iter());
-                stream.extend(disassembled_stream.tokens);
-                stream
-            }
-            ParsedLiteral::InvalidToken(token) => std::iter::once(token)
-                .chain(disassembled_stream.tokens)
-                .collect(),
-            ParsedLiteral::InvalidString(e) => e.into(),
-            ParsedLiteral::Empty => match disassembled_stream.kind {
-                StreamKind::Writer(writer, Some((punct, _))) => {
-                    [TokenTree::from(writer), TokenTree::from(punct)]
-                        .into_iter()
-                        .chain(disassembled_stream.tokens)
-                        .collect()
-                }
-                StreamKind::Writer(writer, None) => {
-                    std::iter::once(TokenTree::from(writer)).collect()
-                }
-                _ if self.kind == MacroKind::Sgr => {
-                    compile_error(Span::mixed_site(), "missing string literal")
-                }
-                _ => TokenStream::new(),
-            },
-        }
-    }
+        )+
+    };
 }
-enum ParsedLiteral {
-    String(Literal),
-    RawString(TokenStream),
-    InvalidToken(TokenTree),
-    InvalidString(Error),
-    Empty,
+// TODO turn this into a crate maybe
+macro_rules! build_stream {
+    ($($unit:expr),*) => {{
+        let mut stream = TokenStream::new();
+        $(
+            $unit.extend_from_self(&mut stream);
+        )*
+        stream
+    }};
 }
+def_macros!(
+    /// Creates a String using interpolation of runtime expressions,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    format : Format,
+    /// Writes formatted data into a buffer,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    write : Write,
+    /// Write formatted data into a buffer, with a newline appended,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    writeln : Writeln,
+    /// Prints to the standard output,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    print : Print,
+    /// Prints to the standard output, with a newline,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    println : Println,
+    /// Prints to the standard error,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    eprint : EPrint,
+    /// Prints to the standard error, with a newline,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    eprintln : EPrintln,
+    /// Constructs parameters for the other string-formatting macros,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    format_args : FormatArgs,
+    /// Creates a string literal,
+    /// SGR keywords substituted.
+    ///
+    /// # Examples
+    sgr : Sgr
+);
 
-enum LiteralParser {
-    Standard,
-    MergeCurly,
-}
-impl LiteralParser {
-    fn parse_literal(&self, unwrapped: &UnwrappedLiteral) -> ParsedLiteral {
-        use UnwrappedLiteral::*;
-        let check_curly = |ch| match ch {
-            '}' => Some("{}"),
-            '{' => Some(if matches!(self, Self::Standard) {
-                "{{"
-            } else {
-                "{"
-            }),
-            _ => None,
-        };
-        match unwrapped {
-            String(s) => match sgr_string(s, check_curly) {
-                Ok(s) => ParsedLiteral::String(Literal::string(&s)),
-                Err(e) => ParsedLiteral::InvalidString(e),
-            },
-            // using FromStr is the only way to return a raw string
-            RawString(s, i) => ParsedLiteral::RawString(
-                create_raw_string(s, *i)
-                    .parse()
-                    .expect("Raw string parsing failed, should never fail"),
-            ),
-        }
-    }
-}
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum MacroKind {
     EPrint,
@@ -251,26 +125,99 @@ impl MacroKind {
         }
     }
 }
-struct DisassembledStream<I>
-where
-    I: Iterator<Item = TokenTree>,
-{
-    kind: StreamKind,
-    tokens: I,
+fn build_macro<const MERGE_CURLY: bool>(kind: MacroKind, input: TokenStream) -> TokenStream {
+    let stream = build_args::<MERGE_CURLY>(kind, input);
+    match kind {
+        MacroKind::Sgr => stream,
+        _ => create_macro(kind.name(), Span::mixed_site(), stream),
+    }
 }
+fn build_args<const MERGE_CURLY: bool>(kind: MacroKind, input: TokenStream) -> TokenStream {
+    let tokens = input.into_iter();
+    let stream = match DisassembledStream::disassemble(kind, tokens) {
+        Ok(stream) => stream,
+        Err(tokens) => return build_stream!(tokens),
+    };
 
-impl<I> DisassembledStream<I>
-where
-    I: Iterator<Item = TokenTree>,
-{
-    fn disassemble(
-        kind: MacroKind,
-        mut tokens: I,
-    ) -> Result<Self, impl Iterator<Item = TokenTree>> {
+    let parsed_literal = match &stream.kind {
+        StreamKind::Standard(literal) | StreamKind::Writer(_, Some((_, literal))) => {
+            unwrap_string(&literal.to_string()).map_or_else(
+                || ParsedLiteral::InvalidToken(TokenTree::Literal(literal.clone())),
+                |unwrapped| parse_literal::<MERGE_CURLY>(&unwrapped),
+            )
+        }
+        StreamKind::Writer(_, None) | StreamKind::Empty => ParsedLiteral::Empty,
+    };
+    match parsed_literal {
+        ParsedLiteral::String(literal) => match stream.kind {
+            StreamKind::Writer(writer, Some((punct, _))) => {
+                build_stream!(writer, punct, literal, stream.tokens)
+            }
+            StreamKind::Writer(writer, None) => build_stream!(writer, literal, stream.tokens),
+            _ => build_stream!(literal, stream.tokens),
+        },
+        ParsedLiteral::RawString(string) => {
+            build_stream!(
+                match stream.kind {
+                    StreamKind::Writer(writer, Some((punct, _))) => build_stream!(writer, punct),
+                    StreamKind::Writer(writer, None) => TokenTree::from(writer).into(),
+                    _ => TokenStream::new(),
+                },
+                string,
+                stream.tokens
+            )
+        }
+        ParsedLiteral::InvalidToken(token) => build_stream!(token, stream.tokens),
+        ParsedLiteral::InvalidString(e) => e.into(),
+        ParsedLiteral::Empty => match stream.kind {
+            StreamKind::Writer(writer, Some((punct, _))) => {
+                build_stream!(writer, punct, stream.tokens)
+            }
+            StreamKind::Writer(writer, None) => build_stream!(writer),
+            _ if kind == MacroKind::Sgr => {
+                compile_error(Span::mixed_site(), "missing string literal")
+            }
+            _ => TokenStream::new(),
+        },
+    }
+}
+enum ParsedLiteral {
+    String(Literal),
+    RawString(TokenStream),
+    InvalidToken(TokenTree),
+    InvalidString(Error),
+    Empty,
+}
+fn parse_literal<const MERGE_CURLY: bool>(unwrapped: &UnwrappedLiteral) -> ParsedLiteral {
+    use UnwrappedLiteral::*;
+    let check_curly = |ch| match ch {
+        '}' => Some("{}"),
+        '{' => Some(if MERGE_CURLY { "{" } else { "{{" }),
+        _ => None,
+    };
+    match unwrapped {
+        String(s) => match sgr_string(s, check_curly) {
+            Ok(s) => ParsedLiteral::String(Literal::string(&s)),
+            Err(e) => ParsedLiteral::InvalidString(e),
+        },
+        // using FromStr is the only way to return a raw string
+        RawString(s, i) => ParsedLiteral::RawString(
+            create_raw_string(s, *i)
+                .parse()
+                .expect("Raw string parsing failed, should never fail"),
+        ),
+    }
+}
+struct DisassembledStream {
+    kind: StreamKind,
+    tokens: IntoIter,
+}
+impl DisassembledStream {
+    fn disassemble(kind: MacroKind, mut tokens: IntoIter) -> Result<Self, IntoIter> {
         Ok(Self {
             kind: match StreamKind::from_kind(kind, &mut tokens) {
                 Ok(stream_kind) => stream_kind,
-                Err(err) => return Err(err.into_iter().chain(tokens)),
+                Err(err) => return Err(build_stream!(err, tokens).into_iter()),
             },
             tokens,
         })
@@ -330,24 +277,22 @@ impl StreamKind {
     }
 } // TODO create col_err
 pub(crate) fn create_macro(macro_call: &str, span: Span, stream: TokenStream) -> TokenStream {
-    let tokens: [TokenTree; 6] = [
-        Ident::new("std", span).into(),
-        Punct::new(':', Spacing::Joint).into(),
-        Punct::new(':', Spacing::Alone).into(),
-        Ident::new(macro_call, span).into(),
-        Punct::new('!', Spacing::Alone).into(),
-        Group::new(Delimiter::Parenthesis, stream).into(),
-    ];
-    tokens.into_iter().collect()
+    build_stream!(
+        Ident::new("std", span),
+        Punct::new(':', Spacing::Joint),
+        Punct::new(':', Spacing::Alone),
+        Ident::new(macro_call, span),
+        Punct::new('!', Spacing::Alone),
+        Group::new(Delimiter::Parenthesis, stream)
+    )
 }
 pub(crate) fn compile_error(span: Span, message: &str) -> TokenStream {
     create_macro(
         "compile_error",
         span,
-        TokenTree::Literal(Literal::string(message)).into(),
+        build_stream!(Literal::string(message)),
     )
 }
-
 impl From<Error> for TokenStream {
     fn from(value: Error) -> Self {
         use std::num::IntErrorKind;
@@ -369,5 +314,44 @@ impl From<Error> for TokenStream {
             }
             Error::CompilerPassOff => Self::new(),
         }
+    }
+}
+trait StreamUnit {
+    fn extend_from_self(self, stream: &mut TokenStream);
+}
+trait ToTree {
+    fn to_tree(self) -> TokenTree;
+}
+macro_rules! to_tree {
+    ($($name:ident),*) => {
+        $(
+            impl ToTree for $name {
+                fn to_tree(self) -> TokenTree {
+                    self.into()
+                }
+            }
+        )*
+    };
+}
+to_tree!(Group, Ident, Punct, Literal, TokenTree);
+
+impl<T: ToTree> StreamUnit for T {
+    fn extend_from_self(self, stream: &mut TokenStream) {
+        stream.extend(Some(self.to_tree()));
+    }
+}
+impl StreamUnit for TokenStream {
+    fn extend_from_self(self, stream: &mut TokenStream) {
+        stream.extend(self);
+    }
+}
+impl StreamUnit for Vec<TokenTree> {
+    fn extend_from_self(self, stream: &mut TokenStream) {
+        stream.extend(self);
+    }
+}
+impl StreamUnit for IntoIter {
+    fn extend_from_self(self, stream: &mut TokenStream) {
+        stream.extend(self);
     }
 }

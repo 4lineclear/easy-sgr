@@ -52,7 +52,7 @@ pub fn print(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Print, input)
 }
 
-/// Prints formatted data to the standard output with a newli
+/// Prints formatted data to the standard output with a newline
 #[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn println(input: TokenStream) -> TokenStream {
@@ -66,7 +66,7 @@ pub fn eprint(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::EPrint, input)
 }
 
-/// Prints formatted data to the standard error with a newlin
+/// Prints formatted data to the standard error with a newline
 #[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn eprintln(input: TokenStream) -> TokenStream {

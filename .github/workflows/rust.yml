@@ -14,8 +14,8 @@ jobs:
       - run: cargo test -F=partial --verbose partial
       - run: cargo test -F=macros --verbose macros  
       - run: cargo clippy --workspace --verbose
-      - run: cargo clippy -F=partial --verbose partial
-      - run: cargo clippy -F=macros --verbose macros
+      - run: cargo clippy -F=partial --verbose
+      - run: cargo clippy -F=macros --verbose
   rustfmt:
     runs-on: ubuntu-latest
     steps:

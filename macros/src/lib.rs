@@ -1,10 +1,7 @@
-//! The proc-macro implementation for the easy-sgr
+//! The proc-macro implementation for the
+//! [easy-sgr](https://crates.io/crates/easy-sgr) crate
 //!
-//! ## Syntax
-//!
-//! See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-//!
-//!
+#![doc = include_str!("../syntax.md")]
 #![forbid(unsafe_code)]
 #![deny(
     clippy::all,
@@ -28,118 +25,63 @@ mod parse;
 mod test;
 
 /// Formats data into a string.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn format(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Format, input)
 }
 
 /// Writes formatted data into a writer.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn write(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Write, input)
 }
 
-/// Writes formatted data into a writer with a newline appended at the end.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+/// Writes formatted data into a writer with a newline append
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn writeln(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Writeln, input)
 }
 
 /// Prints formatted data to the standard output.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn print(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Print, input)
 }
 
-/// Prints formatted data to the standard output with a newline appended at the end.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+/// Prints formatted data to the standard output with a newli
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn println(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Println, input)
 }
 
 /// Prints formatted data to the standard error.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn eprint(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::EPrint, input)
 }
 
-/// Prints formatted data to the standard error with a newline appended at the end.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+/// Prints formatted data to the standard error with a newlin
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn eprintln(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::EPrintln, input)
 }
 
-/// Creates a [`arguments`](std::fmt::Arguments) struct for deferred formatting.
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
+/// Creates a [`arguments`](std::fmt::Arguments) struct for d
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn format_args(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::FormatArgs, input)
 }
 
 /// Creates a string literal
-///
-/// SGR keywords are switched out with their code counterparts
-///
-/// # Syntax
-///
-/// See [easy-sgr](https://docs.rs/easy-sgr/0.0.8/easy_sgr/#macros)
-///
-// TODO fix parsing around {{ }}
+#[doc = include_str!("../syntax.md")]
 #[proc_macro]
 pub fn sgr(input: TokenStream) -> TokenStream {
     build_macro(MacroKind::Sgr, input)

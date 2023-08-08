@@ -73,12 +73,5 @@ so some example colors could be
 
 ## TODO
 
-- [x] redesign project
-- [x] Fix spans
-- [ ] docs
-    - [ ] Testing docs
-    - [x] Syntax docs
-    - [x] Internal docs
-
 - [ ] Build build-stream crate (maybe)
 - [ ] create col_err (maybe)

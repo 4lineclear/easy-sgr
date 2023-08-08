@@ -23,6 +23,7 @@ use proc_macro::{
 
 use crate::parse::{create_raw_string, sgr_string, unwrap_string, UnwrappedLiteral};
 
+/// Contains strictly string parsing implementation
 mod parse;
 #[cfg(test)]
 mod test;
@@ -462,14 +463,6 @@ impl StreamUnit for TokenStream {
     }
     fn to_stream(self) -> TokenStream {
         self
-    }
-}
-impl StreamUnit for Vec<TokenTree> {
-    fn extend_from_self(self, stream: &mut TokenStream) {
-        stream.extend(self);
-    }
-    fn to_stream(self) -> TokenStream {
-        self.into_iter().collect()
     }
 }
 impl StreamUnit for IntoIter {

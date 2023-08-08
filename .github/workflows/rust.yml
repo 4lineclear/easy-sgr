@@ -10,8 +10,8 @@ jobs:
       - run: cargo check --workspace --verbose
       - run: cargo build --workspace --verbose
       - run: cargo doc --workspace --verbose
-      - run: cargo test --workspace --verbose
-      - run: cargo test -F=partial,macros --verbose  
+      - run: cargo test -F=macros --workspace --verbose
+      - run: cargo test -F=partial partial --verbose  
       - run: cargo clippy --workspace --verbose
   rustfmt:
     runs-on: ubuntu-latest

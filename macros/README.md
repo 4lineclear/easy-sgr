@@ -73,6 +73,7 @@ so some example colors could be
 
 ## TODO
 
+- [ ] custom codes
 - [ ] alias system
 - [ ] Build build-stream crate (maybe)
 - [ ] create col_err (maybe)

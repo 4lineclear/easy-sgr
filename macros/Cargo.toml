@@ -1,8 +1,8 @@
 [package]
-name = "easy-sgr"
-version = "0.0.8"
+name = "easy-sgr-macros"
+version = "0.0.0"
 authors = ["Tamim Hakimi <tamimhakimi21@gmail.com>"]
-description = "An easy to use Select Graphics Rendition(SGR) library"
+description = "The implementation of macros used within easy-sgr"
 edition = "2021"
 homepage = "https://github.com/4lineclear/easy-sgr/tree/main"
 repository = "https://github.com/4lineclear/easy-sgr/tree/main"
@@ -10,16 +10,9 @@ readme = "README.md"
 license = "MIT"
 categories = ["command-line-interface"]
 keywords = ["SGR", "cli", "color", "terminal", "text"]
-exclude = ["/scripts, /.settings.json"]
 
-[dependencies]
-easy-sgr-macros = { version = "*", path = "macros", optional = true}
-
-[workspace]
-members = ["macros"]
+[lib]
+proc-macro = true
 
 [features]
-partial = []
-from-str = []
-macros = ["dep:easy-sgr-macros"]
-macro-only = ["macros"]
+alias = []

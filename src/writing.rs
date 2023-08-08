@@ -122,7 +122,6 @@ impl<W: CapableWriter> SGRWriter<W> {
     /// Returns an error if writing fails.
     /// Error type specified by [`CapableWriter::Error`]
     #[inline]
-    #[cfg(feature = "partial")]
     pub fn partial_sgr(&mut self, sgr: &impl EasyWrite) -> Result<(), W::Error> {
         let mut builder = SGRBuilder::default();
         sgr.sgr(&mut builder);

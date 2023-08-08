@@ -19,9 +19,36 @@ easy-sgr="0.0.8"
 
 ## Usage
 
+### `Macros`
+
+The method I would recommend when regarding ease-of-use is to use the macros provided,
+through this library or the macro library [itself](https://docs.rs/easy-sgr/latest/easy_sgr_macros/).
+
+This can be done without importing any other features of the library as such:
+
+```toml
+[dependencies]
+easy-sgr = { version = "0.0.8", features = ["macro-only"] }
+```
+
+Or if you want to still use the other features, replace `"macro-only"` with `"macros"`.
+
+And its usage is very simple:
+
+```rust
+use easy_sgr::println;
+
+println!("{[italic red]}This should be italic & red!{[]}");
+```
+
+`{[]}` is interpreted as a reset here.
+
+All the other `fmt` functions are also implemented, see
+[`easy-sgr-macros`](https://docs.rs/easy-sgr/latest/easy_sgr_macros/) for more.
+
 ### `Color` and `Style` enums
 
-The simplest way to color text, using these two enums allows you to
+The simplest runtime way to color text, using these two enums allows you to
 work inline of a string literal when using a macro such as
 `println!`, `writeln!` or `format!`:
 
@@ -184,22 +211,12 @@ as all the types they contain are reexported.
 
 ## TODO for `1.0.0` release
 
-- [x] Add inline that doesn't write escape itself
-- [x] Add `get_writer` method to `writing` module
-    - [x] Consider removing `SGRWriter`
-    - [x] Consider adding an associated type to `CapableWriter`
 - [ ] Add examples to docs
     - [x] `discrete`
     - [ ] `graphics`
     - [ ] `writing`
-- [ ] Implement `FromStr` for [`SGR`][SGR] types
-    - [x] Implement more complex `from_str` for `Color`
-    - [x] Move to new submodule
-    - [ ] Add underlying const functions
-    - [ ] Set it as a feature
-- [ ] Macros (`SGRise`) (`0.1.0`)
-- [ ] Add parser(`deSGR`)
+- [ ] Macros (`east-sgr-macros`) (`0.1.0`)
+- [ ] Add parser?
     - [ ] Add parsing from ansi codes
     - [ ] Add parsing for `SGRString`
 - [ ] `EasySGR` implementation that doesn't allocate an `SGRString`
-- [ ] (maybe) create smart clean system

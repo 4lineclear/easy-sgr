@@ -102,46 +102,95 @@ def_macros!(
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::format;
+    ///let my_string = format!("{[italic red]}This should be italic & red!{[]}");
+    ///println!("{my_string}");
+    ///```
     format : Format,
     /// Writes formatted data into a buffer,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::write;
+    ///# use std::io::{stdout, Write};
+    ///write!(&mut stdout(), "{[italic red]}This should be italic & red!{[]}\n");
+    ///```
     write : Write,
     /// Write formatted data into a buffer, with a newline appended,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::writeln;
+    ///# use std::io::{stdout, Write};
+    ///writeln!(&mut stdout(), "{[italic red]}This should be italic & red!{[]}");
+    ///```
     writeln : Writeln,
     /// Prints to the standard output,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::print;
+    ///print!("{[italic red]}This should be italic & red!{[]}\n");
+    ///```
     print : Print,
     /// Prints to the standard output, with a newline,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::println;
+    ///println!("{[italic red]}This should be italic & red!{[]}");
+    ///```
     println : Println,
     /// Prints to the standard error,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::eprint;
+    ///eprint!("{[italic red]}This should be italic & red!{[]}\n");
+    ///```
     eprint : EPrint,
     /// Prints to the standard error, with a newline,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::eprintln;
+    ///eprintln!("{[italic red]}This should be italic & red!{[]}");
+    ///```
     eprintln : EPrintln,
     /// Constructs parameters for the other string-formatting macros,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::format_args;
+    ///let args = format_args!("{[italic red]}This should be italic & red!{[]}");
+    ///println!("{}", args);
+    ///```
     format_args : FormatArgs,
     /// Creates a string literal,
     /// SGR keywords substituted.
     ///
     /// # Examples
+    ///
+    ///```rust
+    ///# use easy_sgr_macros::sgr;
+    ///let my_string = sgr!("{[italic red]}This should be italic & red!{[]}");
+    ///```
     sgr : Sgr
 );
 /// The type of macro
@@ -341,6 +390,7 @@ impl StreamParts {
 /// The parts a of a [`TokenStream`]
 ///
 /// Additional `TokenTrees` should be found within [`StreamParts`]
+#[derive(Debug)]
 enum StreamKind {
     /// For one of
     /// `EPrint | EPrintln | Format | FormatArgs | Print | Println | Sgr`
@@ -348,7 +398,7 @@ enum StreamKind {
     /// For one of `Write | Writeln`
     ///
     /// `1` will be `None` when either the [`Punct`] & [`Literal`] are not found
-    Writer(Ident, Option<(Punct, Literal)>),
+    Writer(Vec<TokenTree>, Option<(Punct, Literal)>),
     /// For all variants of [`MacroKind`]
     Empty,
 }
@@ -366,23 +416,29 @@ impl StreamKind {
     fn from_kind(kind: MacroKind, tokens: &mut IntoIter) -> Result<Self, TokenStream> {
         use MacroKind::*;
         use StreamKind::*;
-        let first = tokens.next();
         match kind {
-            EPrint | EPrintln | Format | FormatArgs | Print | Println | Sgr => match first {
-                Some(TokenTree::Literal(literal)) => Ok(Standard(literal)),
-                Some(t) => Err(build_stream!(t)),
-                None => Ok(Empty),
-            },
+            EPrint | EPrintln | Format | FormatArgs | Print | Println | Sgr => {
+                match tokens.next() {
+                    Some(TokenTree::Literal(literal)) => Ok(Standard(literal)),
+                    Some(t) => Err(build_stream!(t)),
+                    None => Ok(Empty),
+                }
+            }
             Write | Writeln => {
-                let writer = match first {
-                    Some(TokenTree::Ident(writer)) => writer,
-                    Some(t) => return Err(build_stream!(t)),
-                    None => return Ok(Empty),
-                };
-                let punct = match tokens.next() {
-                    Some(TokenTree::Punct(punct)) => punct,
-                    Some(t) => return Err(build_stream!(writer, t)),
-                    None => return Ok(Writer(writer, None)),
+                fn find_punct(writer: &mut Vec<TokenTree>, tokens: &mut IntoIter) -> Option<Punct> {
+                    for token in tokens.by_ref() {
+                        match token {
+                            TokenTree::Punct(p) if p == ',' => {
+                                return Some(p);
+                            }
+                            _ => writer.push(token),
+                        }
+                    }
+                    None
+                }
+                let mut writer = Vec::new();
+                let Some(punct) = find_punct(&mut writer, tokens) else {
+                    return Ok(Writer(writer, None))
                 };
                 match tokens.next() {
                     Some(TokenTree::Literal(literal)) => Ok(Writer(writer, Some((punct, literal)))),
@@ -498,5 +554,13 @@ impl StreamUnit for IntoIter {
     }
     fn to_stream(self) -> TokenStream {
         self.collect()
+    }
+}
+impl StreamUnit for Vec<TokenTree> {
+    fn extend_from_self(self, stream: &mut TokenStream) {
+        stream.extend(self);
+    }
+    fn to_stream(self) -> TokenStream {
+        self.into_iter().collect()
     }
 }

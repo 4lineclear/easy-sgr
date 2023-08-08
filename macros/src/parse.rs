@@ -300,7 +300,7 @@ fn parse_common(s: &str) -> Option<u8> {
 /// - `on-15` -> 48;5;15
 /// - `15,115,215` -> 38;2;15;115;215
 /// - `#0f` -> 38;5;15
-/// - `on-#0f;73;d7` -> 48;2;15;115;215
+/// - `on-#0f73d7` -> 48;2;15;115;215
 fn complex_color(s: &str, buf: &mut String) -> Result<(), Error> {
     let (color_code, s) = s.strip_prefix("on-").map_or(("38;", s), |s| ("48;", s));
     buf.push_str(color_code);

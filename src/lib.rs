@@ -10,7 +10,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! easy-sgr="0.0.8"
+//! easy-sgr="0.1.0"
 //! ```
 //!
 //! ## Usage
@@ -24,7 +24,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! easy-sgr = { version = "0.0.8", features = ["macro-only"] }
+//! easy-sgr = { version = "0.1.0", features = ["macro-only"] }
 //! ```
 //!
 //! Or if you want to still use the other features, replace `"macro-only"` with `"macros"`.

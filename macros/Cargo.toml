@@ -1,6 +1,6 @@
 [package]
 name = "easy-sgr-macros"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["Tamim Hakimi <tamimhakimi21@gmail.com>"]
 description = "The implementation of macros used within easy-sgr"
 edition = "2021"

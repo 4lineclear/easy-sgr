@@ -7,15 +7,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo check --verbose
-      - run: cargo build --verbose
+      - run: cargo check --workspace --verbose
+      - run: cargo build --workspace --verbose
       - run: cargo doc --workspace --verbose
       - run: cargo test --workspace --verbose
-      - run: cargo test -F=partial --verbose partial
-      - run: cargo test -F=macros --verbose macros  
+      - run: cargo test -F=partial,macros --verbose  
       - run: cargo clippy --workspace --verbose
-      - run: cargo clippy -F=partial --verbose
-      - run: cargo clippy -F=macros --verbose
   rustfmt:
     runs-on: ubuntu-latest
     steps:

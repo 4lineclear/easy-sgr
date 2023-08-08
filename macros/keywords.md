@@ -1,33 +1,6 @@
-# easy-sgr-macros
+# Keywords
 
-The proc-macro implementation for the
-[easy-sgr](https://crates.io/crates/easy-sgr) crate
-
-## Syntax
-
-The syntax of this crate is a near mirror copy to that of the
-[fmt] module, with one addition: [SGR] [keywords].
-
-These [keywords] get translated to [SGR] codes at compile time,
-using them is similar to formatting variables into string literals
-within the [fmt] crate, as you use block brackets
-within curly brackets: `{[...]}` to specify them.
-Each keyword within is to be separated by spaces.
-
-## Examples
-
-```rust
-use easy_sgr::println;
-
-println!("{[bold green on-red]}This is colorful");
-println!("{[!bold default on-default]}This is not");
-```
-
-See the rust docs for more
-
-## Keywords
-
-### Simple
+## Simple
 
 There are a set of 'simple' keywords, which are made up of a word:
 
@@ -44,11 +17,7 @@ There are a set of 'simple' keywords, which are made up of a word:
 
 `reset` is a little different than the others in that it is empty.
 
-[SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
-[fmt]: std::fmt
-[keywords]: #keywords
-
-### Complex
+## Complex
 
 The more complex syntax is entirely reserved for color codes.
 
@@ -70,8 +39,3 @@ so some example colors could be
 - `15,115,215` -> `38;2;15;115;215`
 - `#0f` -> `38;5;15`
 - `on-#0f;73;d7` -> `48;2;15;115;215`
-
-## TODO
-
-- [ ] Build build-stream crate (maybe)
-- [ ] create col_err (maybe)

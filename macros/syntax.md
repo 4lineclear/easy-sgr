@@ -1,9 +1,4 @@
-# easy-sgr-macros
-
-The proc-macro implementation for the
-[easy-sgr](https://crates.io/crates/easy-sgr) crate
-
-## Syntax
+# Syntax
 
 The syntax of this crate is a near mirror copy to that of the
 [fmt] module, with one addition: [SGR] [keywords].
@@ -16,14 +11,46 @@ Each keyword within is to be separated by spaces.
 
 ## Examples
 
-```rust
-use easy_sgr::println;
+Using styles + reset:
 
-println!("{[bold green on-red]}This is colorful");
-println!("{[!bold default on-default]}This is not");
+```rust
+// or the easy_sgr crate
+use easy_sgr_macros::println;
+
+println!("Using styles is easy!{[bold]}");
+println!("This is bold{[!bold]}");
+println!("This is not{[italic strike underline]}");
+println!("This text has lots of style{[]}");
+println!("And this one is reset back to normal, I could also use {[reset]}");
 ```
 
-See the rust docs for more
+Using simple colors:
+
+```rust
+use easy_sgr_macros::eprintln;
+
+eprintln!("This text is normal{[green]}");
+eprintln!("This text is green{[default]}");
+eprintln!("Back to normal{[on-red]}");
+eprintln!("Now a red background");
+eprintln!("{[blue]}With blue text{[]}");
+eprintln!("{{[]}} is used to reset(but is escaped here)");
+```
+
+Using complex colors:
+
+```rust
+use std::io::{stdout, Write};
+use easy_sgr_macros::writeln;
+
+let mut stdout = stdout();
+writeln!(stdout, "{[15]}This is possible too");
+writeln!(stdout, "{[#0f]}With hex as well");
+writeln!(stdout, "{[]}Resetting works here too");
+writeln!(stdout, "{[on-15]}So do backgrounds");
+writeln!(stdout, "{[]}{[on-255,0,0]}RGB is possible too");
+writeln!(stdout, "{[#0000ff]}And hex again");
+```
 
 ## Keywords
 
@@ -42,7 +69,7 @@ There are a set of 'simple' keywords, which are made up of a word:
 - reset
     - `{[]}`
 
-`reset` is a little different than the others in that it is empty.
+`reset` is a little different than the other in that it is empty.
 
 [SGR]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 [fmt]: std::fmt
@@ -71,7 +98,24 @@ so some example colors could be
 - `#0f` -> `38;5;15`
 - `on-#0f;73;d7` -> `48;2;15;115;215`
 
-## TODO
+## Examples of syntax malfunctions
 
-- [ ] Build build-stream crate (maybe)
-- [ ] create col_err (maybe)
+```rust compile_fail
+use easy_sgr_macros::sgr;
+let missing_literal = sgr!();
+```
+
+```rust compile_fail
+use easy_sgr_macros::sgr;
+let color_len = sgr!("{[#000]}");
+```
+
+```rust compile_fail
+use easy_sgr_macros::sgr;
+let color_len = sgr!("{[0,0]}");
+```
+
+```rust compile_fail
+use easy_sgr_macros::sgr;
+let invalid_keyword = sgr!("{[this_is_invalid]}");
+```

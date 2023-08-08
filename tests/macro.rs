@@ -7,7 +7,7 @@ mod macros {
     macro_rules! sgr_tests {
         ($($input:tt = $result:literal),*) => {
             $(
-                assert_eq!($result, sgr!($input));
+                assert_eq!(sgr!($input), $result);
             )*
         };
     }
@@ -20,7 +20,7 @@ mod macros {
             "{[!bold]}" = "\x1b[22m",
             "{[0,0,0 on-0,0,0]}" = "\x1b[38;2;0;0;0;48;2;0;0;0m",
             "{[#00 on-#00]}" = "\x1b[38;5;0;48;5;0m",
-            "{{[]}}" = "{{[]}}"
+            "{{[]}" = "{[]}"
         );
     }
     #[test]

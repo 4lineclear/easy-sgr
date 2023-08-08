@@ -196,7 +196,8 @@
     clippy::cargo,
     clippy::nursery,
     missing_docs,
-    rustdoc::all
+    rustdoc::all,
+    future_incompatible
 )]
 #![warn(missing_debug_implementations)]
 #![allow(clippy::enum_glob_use)]

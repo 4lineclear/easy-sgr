@@ -183,8 +183,7 @@ fn build_macro(kind: MacroKind, input: TokenStream) -> TokenStream {
             Ok(tokens) | Err(tokens) => tokens,
         },
         _ => match build_args::<false>(kind, input) {
-            Ok(tokens) => create_macro(kind.name(), Span::mixed_site(), tokens),
-            Err(tokens) => tokens,
+            Ok(tokens) | Err(tokens) => create_macro(kind.name(), Span::mixed_site(), tokens),
         },
     }
 }
@@ -206,17 +205,15 @@ fn build_args<const MERGE_CURLY: bool>(
         Err(tokens) => return Err(tokens),
     };
 
-    let (span, parsed_literal) = match &stream.kind {
+    let (literal, parsed_literal) = match &stream.kind {
         StreamKind::Standard(literal) | StreamKind::Writer(_, Some((_, literal))) => (
-            literal.span(),
+            Some(literal),
             unwrap_string(&literal.to_string()).map_or_else(
                 || ParsedLiteral::InvalidToken(TokenTree::from(literal.clone())),
                 |unwrapped| ParsedLiteral::parse::<MERGE_CURLY>(&unwrapped),
             ),
         ),
-        StreamKind::Writer(_, None) | StreamKind::Empty => {
-            (Span::mixed_site(), ParsedLiteral::Empty)
-        }
+        StreamKind::Writer(_, None) | StreamKind::Empty => (None, ParsedLiteral::Empty),
     };
     Ok(match parsed_literal {
         ParsedLiteral::String(literal) => match stream.kind {
@@ -230,15 +227,15 @@ fn build_args<const MERGE_CURLY: bool>(
             build_stream!(
                 match stream.kind {
                     StreamKind::Writer(writer, Some((punct, _))) => build_stream!(writer, punct),
-                    StreamKind::Writer(writer, None) => TokenTree::from(writer).into(),
-                    _ => TokenStream::new(),
+                    StreamKind::Writer(writer, None) => build_stream!(writer),
+                    _ => build_stream!(),
                 },
                 string,
                 stream.tokens
             )
         }
         ParsedLiteral::InvalidToken(token) => build_stream!(token, stream.tokens),
-        ParsedLiteral::InvalidString(e) => return Err(e.into_stream(span)),
+        ParsedLiteral::InvalidString(e) => return Err(e.into_stream(literal)),
         ParsedLiteral::Empty => match stream.kind {
             StreamKind::Writer(writer, Some((punct, _))) => {
                 build_stream!(writer, punct, stream.tokens)
@@ -395,9 +392,10 @@ impl Error {
     ///
     /// May return an empty [`TokenStream`] when the error will be reported
     /// by the compiler itself
-    fn into_stream(self, span: Span) -> TokenStream {
+    fn into_stream(self, literal: Option<&Literal>) -> TokenStream {
         use std::num::IntErrorKind::*;
         use Error::*;
+        let span = literal.map_or_else(Span::mixed_site, Literal::span);
         match self {
             ParseInt(e) => compile_error(
                 span,
@@ -412,7 +410,9 @@ impl Error {
             ),
             MissingBracket => compile_error(span, "Missing a close bracket"),
             InvalidColorLen => compile_error(span, "Incorrect number of digits found"),
-            CompilerPassOff => build_stream!(),
+            CompilerPassOff => {
+                literal.map_or_else(|| build_stream!(), |literal| build_stream!(literal.clone()))
+            }
         }
     }
 }

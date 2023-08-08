@@ -1,10 +1,15 @@
 use std::{num::ParseIntError, str::CharIndices};
 
+/// A string from `Literal::to_string` thats been stripped of
+/// double quotes and other things left
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum UnwrappedLiteral<'a> {
     String(&'a str),
+    /// `usize` indicates the number of hashes per side
     RawString(&'a str, usize),
 }
+/// [Unwraps](UnwrappedLiteral) string, returning `None`
+/// when string is invalid
 pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
     use UnwrappedLiteral::*;
     match s.strip_prefix('r') {
@@ -23,6 +28,7 @@ pub fn unwrap_string(s: &str) -> Option<UnwrappedLiteral> {
         None => s.strip_prefix('"')?.strip_suffix('"').map(String),
     }
 }
+/// Creates a raw string to be parsed and turned into a `TokenStream`
 pub fn create_raw_string(s: &str, i: usize) -> String {
     // add space for r#".."#
     let mut buf = String::with_capacity(s.len() + i * 2 + 3);
@@ -34,6 +40,7 @@ pub fn create_raw_string(s: &str, i: usize) -> String {
     (0..i).for_each(|_| buf.push('#'));
     buf
 }
+/// An error ran into while parsing
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     ParseInt(ParseIntError),
@@ -100,6 +107,14 @@ where
     }
     Ok(buf)
 }
+/// Checks the `char` after an escape
+///
+/// # Returns
+///
+/// - `Ok(Some(_))` when parsing has succeeded, returned value is
+/// meant to be used as the next `char` for parsing
+/// - Ok(None) when parsing has succeeded, parsing to continue as normal
+/// - Err(Error) when an unrecoverable invalid string has been detected
 fn parse_escape(
     next_char: char,
     s: &str,
@@ -132,7 +147,6 @@ fn parse_escape(
     }
     Ok(None)
 }
-
 /// Parses a format param
 ///
 /// i.e. something within curly braces:

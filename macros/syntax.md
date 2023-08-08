@@ -101,5 +101,21 @@ so some example colors could be
 ## Examples of syntax malfunctions
 
 ```rust compile_fail
-compile_error!("This should panic");
+use easy_sgr_macros::sgr;
+let missing_literal = sgr!();
+```
+
+```rust compile_fail
+use easy_sgr_macros::sgr;
+let color_len = sgr!("{[#000]}");
+```
+
+```rust compile_fail
+use easy_sgr_macros::sgr;
+let color_len = sgr!("{[0,0]}");
+```
+
+```rust compile_fail
+use easy_sgr_macros::sgr;
+let invalid_keyword = sgr!("{[this_is_invalid]}");
 ```

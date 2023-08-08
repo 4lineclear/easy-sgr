@@ -23,7 +23,7 @@ println!("{[bold green on-red]}This is colorful");
 println!("{[!bold default on-default]}This is not");
 ```
 
-See the docs for more
+See the rust docs for more
 
 ## Keywords
 
@@ -74,7 +74,11 @@ so some example colors could be
 ## TODO
 
 - [x] redesign project
+- [x] Fix spans
 - [ ] docs
     - [ ] Testing docs
-    - [ ] Syntax docs
-    - [ ] Internal docs
+    - [x] Syntax docs
+    - [x] Internal docs
+
+- [ ] Build build-stream crate (maybe)
+- [ ] create col_err (maybe)

@@ -59,7 +59,7 @@ impl From<ParseIntError> for Error {
 ///
 /// Invalid strings can also be occasionally returned with an Ok(), in
 /// these cases the string will continue being parsed> When returned the
-/// rust compiler is expected to deal with the error.
+/// compiler is expected to deal with the error.
 /// The spots where these cases occur be annotated by the comment:
 /// `// INVALID HERE` or `INVALID RETURN` when continuing parsing is impossible
 pub fn sgr_string<F>(s: &str, check_curly: F) -> Result<String, Error>

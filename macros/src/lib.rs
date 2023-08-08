@@ -70,6 +70,33 @@ macro_rules! build_stream {
         TokenStream::new()
     };
 }
+// #[cfg(feature = "alias")]
+// pub(crate) mod user_keyword {
+//     use std::{
+//         collections::HashMap,
+//         sync::{Mutex, OnceLock},
+//     };
+//     static KEYWORDS: OnceLock<Mutex<HashMap<&str, &str>>> = OnceLock::new();
+// }
+// /// will create keywords aliases in the future
+// ///
+// #[proc_macro]
+// #[cfg(feature = "alias")]
+// pub fn sgr_alias(input: TokenStream) -> TokenStream {
+//     let mut tokens = input.into_iter();
+//     let ret = match tokens.next() {
+//         Some(TokenTree::Literal(s)) => (),
+//         Some(t) => return create_macro(
+//             "compile_error",
+//             t.span(),
+//             r#""Invalid token found""#
+//                 .parse()
+//                 .expect("Parsing error string failed, should never fail"),
+//         ),
+//         None => todo!(),
+//     };
+//     unimplemented!()
+// }
 def_macros!(
     /// Creates a String using interpolation of runtime expressions,
     /// SGR keywords substituted.

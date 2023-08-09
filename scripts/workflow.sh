@@ -14,6 +14,9 @@ cargo fmt --check --all --verbose
 
 python ./scripts/copy_librs.py
 
-cargo llvm-cov --all-features --workspace
+cargo llvm-cov clean --workspace # remove artifacts that may affect the coverage results
+cargo llvm-cov --no-report --workspace
+cargo llvm-cov --no-report -F=macros,partial
+cargo llvm-cov report # generate report without tests
 
 echo -e "\033[0;32mExecution Complete\033[0m"

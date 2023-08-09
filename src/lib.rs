@@ -232,23 +232,19 @@
 ///
 /// These types exist outside the context of a [`SGRString`], but
 /// can be used in conjunction of one through the use of [`EasySGR`]
-#[cfg(not(feature = "macros-only"))]
+#[cfg(not(feature = "macro-only"))]
 pub mod discrete;
 /// Contains the standard SGR implementations.
 ///
 /// Makes use of the [`writers`](writing) to write `SGR` codes to a writer
-#[cfg(not(feature = "macros-only"))]
+#[cfg(not(feature = "macro-only"))]
 pub mod graphics;
 /// Contains various structs and traits to help in writing `SGR` codes
-#[cfg(not(feature = "macros-only"))]
+#[cfg(not(feature = "macro-only"))]
 pub mod writing;
 
-#[cfg(not(feature = "macros-only"))]
-pub use discrete::*;
-#[cfg(not(feature = "macros-only"))]
-pub use graphics::*;
-#[cfg(not(feature = "macros-only"))]
-pub use writing::*;
+#[cfg(not(feature = "macro-only"))]
+pub use self::{discrete::*, graphics::*, writing::*};
 
 #[cfg(feature = "macros")]
 pub use easy_sgr_macros::*;

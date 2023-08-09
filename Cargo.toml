@@ -19,7 +19,11 @@ easy-sgr-macros = { version = "0.1.0", path = "macros", optional = true}
 members = ["macros"]
 
 [features]
+# Code are printed partially: the SGR start end ending strings are not printed
 partial = []
+# FromStr impls
 from-str = []
+# easy-sgr-macros re-exports
 macros = ["dep:easy-sgr-macros"]
+# Only using easy-sgr-macros
 macro-only = ["macros"]

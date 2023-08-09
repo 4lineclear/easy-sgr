@@ -10,7 +10,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! easy-sgr="0.1.0"
+//! easy-sgr="0.1.1"
 //! ```
 //!
 //! ## Usage
@@ -24,7 +24,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! easy-sgr = { version = "0.1.0", features = ["macro-only"] }
+//! easy-sgr = { version = "0.1.1", features = ["macro-only"] }
 //! ```
 //!
 //! Or if you want to still use the other features, replace `"macro-only"` with `"macros"`.
@@ -211,7 +211,7 @@
 //!     - [x] `discrete`
 //!     - [ ] `graphics`
 //!     - [ ] `writing`
-//! - [ ] Macros (`east-sgr-macros`) (`0.1.0`)
+//! - [x] Macros (`east-sgr-macros`) (`0.1.0`)
 //! - [ ] Add parser?
 //!     - [ ] Add parsing from ansi codes
 //!     - [ ] Add parsing for `SGRString`
